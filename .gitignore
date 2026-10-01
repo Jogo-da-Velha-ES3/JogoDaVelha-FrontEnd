@@ -10,10 +10,16 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+coverage
 *.local
+
 .env
 .env.*
 !.env.example
+
+# Scripts locais de automação (backlog/issues) e ambiente Python
+scripts
+.venv
 
 # Editor directories and files
 .vscode/*

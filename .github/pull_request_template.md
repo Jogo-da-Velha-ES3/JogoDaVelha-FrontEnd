@@ -8,6 +8,7 @@ Link:
 
 - [ ] `npm run build` passou sem erros
 - [ ] Lint sem warnings
+- [ ] `npm test` passou
 - [ ] Testado em desktop e mobile
 - [ ] Sem `console.log` esquecido
 - [ ] Segue o contrato de API/WebSocket combinado com o back
