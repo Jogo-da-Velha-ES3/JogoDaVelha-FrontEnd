@@ -169,12 +169,13 @@ definitivo até ser validado dos dois lados.
 2. Instalar dependências: `tailwindcss`, `framer-motion`, `zustand`, `socket.io-client`,
    `howler`, `react-router-dom`
 3. Criar a estrutura de pastas acima (vazias, com `.gitkeep` onde precisar)
-4. Configurar ESLint + Prettier
+4. Configurar lint + formatação — **oxlint** (no lugar do ESLint) + Prettier
 5. Configurar Husky + lint-staged (pre-commit hook)
 6. Criar `.env.example` com `VITE_API_URL` e `VITE_WEBSOCKET_URL`
 7. Criar `.nvmrc` com a versão do Node usada
-8. Conectar o repositório no Vercel (preview deployment por PR)
-9. Configurar branch protection (`main` e `dev`) conforme CONVENTIONS.md
+8. Configurar testes unitários com **Vitest** (`npm test`) — base para `lib/winCheck.ts`
+9. Conectar o repositório no Vercel (preview deployment por PR)
+10. Configurar branch protection (`master` e `dev`) conforme CONVENTIONS.md
 
 Esse setup deve ser **um PR único, mergeado por você mesmo (autorrevisão registrada, já que
 é infraestrutura inicial)**, antes de distribuir as primeiras tarefas reais do backlog —

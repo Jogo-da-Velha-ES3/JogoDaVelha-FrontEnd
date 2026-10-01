@@ -5,10 +5,19 @@
 
 ## Branch e Git
 
-- Nunca commitar direto na `main`/`dev` — criar branch própria:
+- Nunca commitar direto na `master`/`dev` — criar branch própria a partir da `dev`:
   `feat/`, `fix/`, `refactor/`, `docs/`, `chore/`
 - Atualizar sua branch com a `dev` regularmente (evitar divergência)
 - Merge pra `dev` só via Pull Request, com outra pessoa revisando
+- `master` só recebe PR vindo da `dev` (release), nos marcos de entrega
+
+### Papel de cada branch
+
+| Branch                | Papel                                  | Deploy na Vercel                    |
+| --------------------- | -------------------------------------- | ----------------------------------- |
+| `master`              | Produção — o que está entregue         | Production (automático a cada push) |
+| `dev` (branch padrão) | Integração — tudo que já foi revisado  | Preview com domínio fixo de staging |
+| `feat/*`, `fix/*`...  | Trabalho em andamento, uma tarefa cada | Preview com URL própria por PR      |
 
 ## Commits e PR
 
@@ -21,7 +30,9 @@
 
 - Não subir código quebrando o que já funciona (testar antes localmente)
 - Rodar `npm run build` sem erros antes de subir
-- Rodar o lint (ESLint/Prettier) sem warnings antes do commit
+- Rodar o lint (oxlint + Prettier) sem warnings antes do commit — o pre-commit (Husky +
+  lint-staged) já roda os dois nos arquivos alterados
+- Rodar `npm test` sem falhas (Vitest)
 - Sem `console.log`/`console.error` esquecido no código
 - Não commitar senha, token ou arquivo `.env` (seguir `.env.example`)
 - Seguir o contrato de API/WebSocket combinado com o back antes de implementar a integração
@@ -30,14 +41,16 @@
 
 - Atualizar o README quando criar/mudar algo importante (payload, setup, etc.)
 
-## Branch protection (GitHub — configurar em `main` e `dev` separadamente)
+## Branch protection (GitHub Ruleset — alvo: `master` e `dev`)
 
 - Require a pull request before merging
 - Require approvals → mínimo 1
 - Dismiss stale approvals when new commits are pushed
-- Do not allow bypassing the above settings (vale pro líder técnico também)
-- Allow force pushes → desmarcado
-- Allow deletions → desmarcado
+- Require status checks to pass → `Lint, testes e build` (CI)
+- Block force pushes
+- Restrict deletions
+- Bypass list → **Repository admin**, modo "For pull requests only": o líder técnico pode
+  mergear PR sem aprovação (ex: infraestrutura), mas também não faz push direto na branch
 
 ## Template de card de tarefa (Trello)
 
@@ -85,6 +98,7 @@ Link:
 
 - [ ] `npm run build` passou sem erros
 - [ ] Lint sem warnings
+- [ ] `npm test` passou
 - [ ] Testado em desktop e mobile
 - [ ] Sem console.log esquecido
 - [ ] Segue o contrato de API/WebSocket combinado com o back
@@ -94,5 +108,5 @@ Link:
 ## CODEOWNERS (`.github/CODEOWNERS`)
 
 ```
-* @usuario-github-do-rafael
+* @yMenezes
 ```
