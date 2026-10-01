@@ -5,7 +5,7 @@
 
 ## 0. Setup (Rafael — antes de distribuir o resto)
 
-- [ ] Scaffold do projeto (Vite + React + TS), estrutura de pastas, ESLint/Prettier, Husky,
+- [ ] Scaffold do projeto (Vite + React + TS), estrutura de pastas, oxlint/Prettier, Vitest, Husky,
       `.env.example`, `.nvmrc`, conexão com Vercel, branch protection — ver ARCHITECTURE.md §7
 
 ## 1. Tabuleiro (`features/board`)
