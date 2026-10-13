@@ -97,133 +97,26 @@ Regras:
 
 ## 4. Constantes (`constants/`)
 
-```ts
-export const BOARD_SIZE = 4
-export const WIN_LENGTH = 4
-export const ROOM_CODE_LENGTH = 4 // numérico
-export const MAX_PLAYERS_PER_ROOM = 2
+Todo valor fixo do jogo fica aqui, nunca espalhado pelo código. A fonte é o próprio código:
 
-export const TURN_DURATION_SECONDS = 10
-export const SUDDEN_DEATH_TURN_DURATION_SECONDS = 5
-export const HOURGLASS_TURN_DURATION_SECONDS = 5
-export const MAX_CONSECUTIVE_TIMEOUTS = 3 // W.O.
-export const PREPARATION_SECONDS = 20
-export const DRAW_PICK_SECONDS = 8
-export const MATCH_FOUND_COUNTDOWN_SECONDS = 3
-export const REMATCH_WINDOW_SECONDS = 15
-export const EFFECT_DURATION_TURNS = 2 // Escudo, Congelar, Campo de Força, Reforço
+| Arquivo                       | O que tem                                                                                                                            |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `src/constants/game.ts`       | tabuleiro, tempos (10s/5s/20s/8s/15s), W.O., deck, habilidades e personagens iniciais, Coins, preço das habilidades, `VITAO_ENABLED` |
+| `src/constants/abilities.ts`  | as 10 habilidades: nome, tipo, alvo, se pede casa de destino, se o Campo de Força anula, descrição                                   |
+| `src/constants/characters.ts` | os 6 personagens: nome, cor oficial e preço                                                                                          |
 
-export const FIXED_ABILITIES_TO_PICK = 2
-export const DECK_SIZE = 3
-export const DRAW_OPTIONS = 3
-export const ROUNDS_TO_WIN_MATCH = 2
-
-export const ABILITIES = [
-  'BOMBA',
-  'ESCUDO',
-  'AMPULHETA',
-  'TORNADO',
-  'BURACO_NEGRO',
-  'CONGELAR',
-  'CAMPO_DE_FORCA',
-  'SILENCIO',
-  'TROCA_RAPIDA',
-  'REFORCO',
-] as const
-
-export const STARTER_ABILITIES = ['BOMBA', 'ESCUDO', 'AMPULHETA'] as const
-export const CHARACTERS = ['X', 'O', 'TRIANGULO', 'QUADRADO', 'ESTRELA', 'CORACAO'] as const
-export const STARTER_CHARACTERS = ['X', 'O'] as const
-export const STARTING_COINS = 0
-
-// Preços (revisão de telas, 06/10) — conferir com o catálogo do back
-export const PRICES = {
-  ABILITY: 350,
-  QUADRADO: 400,
-  TRIANGULO: 500,
-  CORACAO: 600,
-  ESTRELA: 700,
-} as const
-
-export const COINS = { WIN: 50, DRAW: 20, LOSS: 10, WO_WIN: 30, WO_LOSS: 0 } as const
-
-export const VITAO_ENABLED = false
-```
-
-Os valores de habilidades e personagens devem bater com os enums do back. Confirmar a grafia no
-contrato antes de usar.
+Os identificadores de habilidade e personagem (`'BOMBA'`, `'CAMPO_DE_FORCA'`, `'TRIANGULO'`...) devem
+bater com os enums do back — confirmar na FE-17.
 
 ## 5. Tipos principais (`types/`)
 
-Rascunho — ajustar quando o contrato com o back for validado:
+| Arquivo                | O que tem                                                                                                               |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `src/types/game.ts`    | `AbilityId`, `CharacterId`, `RoomPhase`, `Cell`, `PlayerState`, `DeckSlot`, `TurnState`, `MatchOutcome`, `RoomSnapshot` |
+| `src/types/events.ts`  | `ServerEvent` (eventos do servidor), `ServerEnvelope` e `ClientCommand` (intenções do cliente)                          |
+| `src/sockets/types.ts` | `GameConnection`: a interface que o cliente STOMP real e o servidor simulado implementam                                |
 
-```ts
-export type AbilityId = (typeof ABILITIES)[number]
-export type CharacterId = (typeof CHARACTERS)[number]
-export type PlayerSlot = 'P1' | 'P2'
-
-export type RoomPhase =
-  | 'WAITING' // Host esperando adversário
-  | 'MATCHED' // "MATCH FEITO!" + contagem de 3s
-  | 'DRAFT' // Preparação (personagem + 2 iniciais)
-  | 'VERSUS' // tela de Confronto
-  | 'ROUND_DRAW' // sorteio da 3ª habilidade (8s)
-  | 'PLAYING'
-  | 'ROUND_END'
-  | 'RESULT'
-
-export interface CellEffect {
-  kind: 'ESCUDO' | 'CONGELAR' | 'REFORCO'
-  turnsLeft: number
-}
-
-export interface Cell {
-  index: number // 0..15
-  owner: PlayerSlot | null
-  effects: CellEffect[]
-}
-
-export interface PlayerState {
-  slot: PlayerSlot
-  userId: string
-  nickname: string
-  character: CharacterId | null
-  roundsWon: number
-  consecutiveTimeouts: number // 0..3
-  forceFieldTurnsLeft: number // Campo de Força ativo
-  silenced: boolean // Silêncio no próximo turno
-}
-
-export interface DeckSlot {
-  ability: AbilityId
-  source: 'FIXED' | 'DRAWN'
-  usedThisRound: boolean
-}
-
-export interface TurnState {
-  player: PlayerSlot
-  startedAt: number // timestamp do servidor (ms)
-  durationSeconds: 10 | 5
-}
-
-export type MatchOutcome =
-  | { kind: 'WIN'; winner: PlayerSlot; score: [number, number] }
-  | { kind: 'ABSOLUTE_DRAW' }
-  | { kind: 'WO'; winner: PlayerSlot }
-
-export interface RoomSnapshot {
-  code: string
-  phase: RoomPhase
-  players: PlayerState[]
-  round: 1 | 2 | 3
-  suddenDeath: boolean
-  board: Cell[]
-  turn: TurnState | null
-  myDeck: DeckSlot[] // o deck do oponente nunca vem
-  outcome: MatchOutcome | null
-  serverTime: number
-}
-```
+Os tipos de eventos são o rascunho do contrato da seção 6 e mudam junto com ele.
 
 ## 6. Contrato com o back (rascunho — validar antes de implementar)
 
@@ -295,9 +188,8 @@ front (`src/sockets/mock/`), ligado por `VITE_USE_MOCK_SERVER=true`:
 O setup inicial (FE-01) já está na `dev`: Vite + React + TS, Tailwind, Framer Motion, Zustand,
 Howler, React Router, oxlint + Prettier, Husky + lint-staged, Vitest, CI e deploy na Vercel.
 
-Pendências de setup por causa da ERS V2:
+A base da ERS V2 (FE-22) trocou o `socket.io-client` pelo `@stomp/stompjs`, criou as pastas novas,
+as constantes, os tipos, o cliente REST (`src/api/`) e ligou o modo `strict` do TypeScript.
 
-1. Trocar `socket.io-client` por `@stomp/stompjs` no `package.json`
-2. Criar as pastas novas (`api/`, `features/auth`, `hub`, `profile`, `shop`, `draft`, `match`,
-   `characters`, `vitao`)
-3. Configurar o PWA (manifest com `"orientation": "landscape"`, ícones e service worker)
+Pendente: configurar o PWA (manifest com `"orientation": "landscape"`, ícones e service worker) —
+card FE-16.
