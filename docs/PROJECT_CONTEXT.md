@@ -371,8 +371,8 @@ Abrir o jogo → [sem sessão] Acesso → Hub (Jogar; abas Loja / Perfil)
 - **React + TypeScript + Vite**
 - **Tailwind CSS** + **Framer Motion** (animações, inclusive dos personagens SVG)
 - **Zustand** (estado global)
-- **@stomp/stompjs** (cliente STOMP sobre WebSocket) — **substitui o `socket.io-client`**, que
-  estava no setup inicial e precisa ser removido
+- **@stomp/stompjs** (cliente STOMP sobre WebSocket) — substituiu o `socket.io-client` do setup
+  inicial
 - **fetch** para a API REST (cliente fino em `src/api/`)
 - **Howler.js** (efeitos sonoros)
 - **React Router** (rotas)
