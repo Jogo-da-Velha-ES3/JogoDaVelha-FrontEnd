@@ -1,93 +1,53 @@
-# INITIAL_BACKLOG.md — Backlog inicial do Front-end
+# INITIAL_BACKLOG.md — Backlog do Front-end (v2.1 — ERS MVP 1 V2)
 
-> Base pra criar os cards no Trello (usar o template em CONVENTIONS.md). Ordem sugere
-> prioridade de execução — dependências estão marcadas. Tudo aqui é MVP, exceto a seção 9.
+> Resumo do backlog. O detalhe de cada card (descrição, validação, critérios de aceite, datas e
+> responsáveis) está nas issues do GitHub. Atualizado em 13/10/2026.
 
-## 0. Setup (Rafael — antes de distribuir o resto)
+## Como o trabalho está organizado
 
-- [ ] Scaffold do projeto (Vite + React + TS), estrutura de pastas, oxlint/Prettier, Vitest, Husky,
-      `.env.example`, `.nvmrc`, conexão com Vercel, branch protection — ver ARCHITECTURE.md §7
+1. **Base do jogo (Rafael, em sequência, 14/10 a 23/10):** estrutura, visual, rotas, personagens,
+   tabuleiro, timer, estado da partida, servidor simulado e o esqueleto da Arena.
+2. **Complementos (Vini, Matheus e Lucas):** cada um entra assim que a parte da base de que a sua
+   tarefa depende fica pronta, e constrói telas e funcionalidades em cima dela, usando o servidor
+   simulado no lugar do back.
+3. **Integração real (Rafael, a partir de 24/10):** troca o servidor simulado pelo back de verdade.
 
-## 1. Tabuleiro (`features/board`)
+## Base do jogo — sequência do Rafael
 
-| Tarefa                                                                          | Categoria      | Depende de |
-| ------------------------------------------------------------------------------- | -------------- | ---------- |
-| Componente `Cell` (célula clicável, estados: vazia/X/O/bloqueada/congelada)     | Componentes/UI | Setup      |
-| Grid 4×4 renderizando estado local (sem rede ainda)                             | Componentes/UI | Cell       |
-| `lib/winCheck.ts` — verificação genérica de vitória (alinhar 4, todas direções) | Estado Global  | Setup      |
-| Indicador visual de turno atual (de quem é a vez)                               | Componentes/UI | Grid 4x4   |
+| Ordem | Card  | Entrega                                                     | Data     |
+| ----- | ----- | ----------------------------------------------------------- | -------- |
+| —     | FE-17 | Contrato REST/STOMP com o back (em paralelo)                | 14–16/10 |
+| 1     | FE-22 | Base ERS V2: STOMP, constantes, tipos, pastas, cliente REST | 14/10    |
+| 2     | FE-23 | Tokens neon, componentes base e layout em paisagem          | 15/10    |
+| 3     | FE-07 | Rotas e guarda de sessão                                    | 16/10    |
+| 4     | FE-24 | Os 6 personagens neon                                       | 16–17/10 |
+| 5     | FE-04 | winCheck                                                    | 17/10    |
+| 6     | FE-02 | Cell (todos os estados da casa)                             | 18/10    |
+| 7     | FE-03 | Tabuleiro 4×4                                               | 19/10    |
+| 8     | FE-08 | Timer pelo timestamp do servidor                            | 19/10    |
+| 9     | FE-12 | Estado da partida (stores e regras da MD3)                  | 20–21/10 |
+| 10    | FE-35 | Servidor simulado (mock) para desenvolvimento               | 21–22/10 |
+| 11    | FE-28 | Esqueleto da Arena ligado ao servidor simulado              | 22–23/10 |
 
-## 2. Lobby e Salas (`features/lobby`)
+Depois: FE-18 (sala e jogada via STOMP, até o Marco 4), FE-19 (habilidades e timer), FE-20
+(reconexão) e FE-29 (revanche).
 
-| Tarefa                                                                          | Categoria            | Depende de                   |
-| ------------------------------------------------------------------------------- | -------------------- | ---------------------------- |
-| Tela de Menu — criar sala / digitar código alfanumérico de 4 caracteres         | Roteamento           | Setup                        |
-| Rotas com React Router (`/`, `/sala/:codigo`, etc.)                             | Roteamento           | Setup                        |
-| Conexão de socket + estados de conexão (conectando/conectado/erro/reconectando) | Integração WebSocket | Contrato validado com o back |
+## Quando cada pessoa entra
 
-## 3. Timer
+| Pessoa  | Cards (em ordem)                                                                                                            | Começa quando estiver pronto |
+| ------- | --------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| Vini    | FE-25 Acesso → FE-06 Hub → FE-26 Sala de Espera → FE-30 REST → FE-16 PWA → FE-31 Loja                                       | FE-23 e FE-07 (16/10)        |
+| Matheus | FE-09 Preparação → FE-10 sorteio → FE-11 deck → FE-27 mira e efeitos → FE-33 Perfil                                         | FE-23 e FE-24 (17/10)        |
+| Lucas   | FE-34 Como Jogar → FE-36 recuperação de senha → FE-05 faixas e banners → FE-13 Morte Súbita → FE-15 Resultado → FE-32 Coins | FE-03 (19/10)                |
+| Todos   | FE-21 homologação                                                                                                           | 05/11                        |
 
-| Tarefa                                                                          | Categoria      | Depende de                   |
-| ------------------------------------------------------------------------------- | -------------- | ---------------------------- |
-| Componente de barra de progresso (circular ou linear), 10s / 5s                 | Componentes/UI | Setup                        |
-| Hook `useTimer` sincronizado com o tempo do servidor (não confiar só no client) | Estado Global  | Contrato validado com o back |
+## O que mudou da v1 para a v2
 
-## 4. Habilidades (`features/powers`)
-
-| Tarefa                                                                                                 | Categoria      | Depende de   |
-| ------------------------------------------------------------------------------------------------------ | -------------- | ------------ |
-| Tela de Pick Inicial — escolher 2 das 6 habilidades                                                    | Componentes/UI | Setup        |
-| Componente de Sorteio (3 cartas, escolher 1 ou descartar) — usado no início e pós-rodada               | Componentes/UI | Pick Inicial |
-| HUD do deck ativo (até 3 habilidades, indicador "usado" no round atual)                                | Componentes/UI | Sorteio      |
-| Feedback visual de ativação por habilidade (Bomba, Escudo, Tornado, Buraco Negro, Ampulheta, Congelar) | Estilização    | HUD do deck  |
-
-## 5. Fluxo de Partida / MD3 (`features/board` + estado global)
-
-| Tarefa                                                                                     | Categoria      | Depende de           |
-| ------------------------------------------------------------------------------------------ | -------------- | -------------------- |
-| Placar da MD3 (rounds ganhos por jogador)                                                  | Componentes/UI | Grid 4x4             |
-| Transição entre rounds + tela de "round neutro" em caso de empate                          | Componentes/UI | Placar MD3           |
-| UI de Round 3 / Sudden Death (alerta vermelho, timer 5s)                                   | Estilização    | Placar MD3, Timer    |
-| Mata-mata após empate no Round 3, mantendo habilidades não usadas e alternando quem começa | Estado Global  | Round 3, Habilidades |
-
-## 6. Resultado (`features/results`)
-
-| Tarefa                                                                                  | Categoria      | Depende de                             |
-| --------------------------------------------------------------------------------------- | -------------- | -------------------------------------- |
-| Tela de Resultado Final (vencedor, coins persistentes), botões Revanche/Voltar ao Lobby | Componentes/UI | Fluxo MD3                              |
-| Saldo persistente de Coins por resultado da MD3                                         | Estado Global  | Tela de Resultado, contrato com o back |
-
-## 7. PWA
-
-| Tarefa                                             | Categoria | Depende de            |
-| -------------------------------------------------- | --------- | --------------------- |
-| `manifest.json`, ícones, service worker básico     | PWA       | Setup                 |
-| Teste de responsividade real em dispositivo mobile | Testes    | Board + Lobby prontos |
-
-## 8. Integração WebSocket (transversal — depende do contrato com o back)
-
-| Tarefa                                                                        | Categoria            | Depende de                     |
-| ----------------------------------------------------------------------------- | -------------------- | ------------------------------ |
-| Validar contrato de eventos com o Victor Hugo (back) — ver ARCHITECTURE.md §6 | Integração WebSocket | —                              |
-| Emitir/receber eventos de jogada (`board:move` / `board:update`)              | Integração WebSocket | Contrato validado, Grid 4x4    |
-| Emitir/receber eventos de habilidade (`ability:activate`)                     | Integração WebSocket | Contrato validado, HUD do deck |
-| Sincronizar timer com o servidor (`turn:timeout`)                             | Integração WebSocket | Contrato validado, Timer       |
-| Tratar desconexão/reconexão (RF03 do TAP)                                     | Integração WebSocket | Contrato validado              |
-
-## 9. Pós-MVP / Stretch (não iniciar antes do item 8 estar funcional)
-
-- Habilidades exclusivas por personagem (X, O, Triângulo, Quadrado, Estrela, Coração)
-- Loja cosmética (skins, avatares, efeitos, estilos de tabuleiro)
-
----
-
-**Sugestão de divisão inicial:** dá pra montar de 2 a 3 frentes paralelas assim que o setup
-(item 0) e o contrato de WebSocket (item 8, primeira linha) estiverem prontos:
-
-- Pessoa A: Tabuleiro + Fluxo MD3 (itens 1 e 5)
-- Pessoa B: Lobby + PWA (itens 2 e 7)
-- Pessoa C: Habilidades (item 4)
-- Você (Rafael): integração WebSocket transversal (item 8) + revisão de todos os PRs
-
-Isso evita que uma pessoa fique bloqueada esperando a outra — cada frente pode desenvolver
-com dados mockados localmente até a integração real do item 8 entrar.
+- **Saiu:** mata-mata após empate no round 3 (FE-14 fechada), código alfanumérico, Socket.IO,
+  sorteio com descarte, sorteio pós-rodada "trocar ou manter".
+- **Mudou:** 10 habilidades em vez de 6; código numérico de 4 dígitos; STOMP; Preparação em 2
+  etapas com 20s; sorteio de 8s em todo round; W.O. com 3 estouros; nova regra da MD3 (empate
+  absoluto); revanche com 15s e reinício completo.
+- **Entrou:** base da ERS V2, tokens neon e paisagem, personagens neon, servidor simulado, Acesso
+  (e-mail ou usuário + senha), recuperação de senha, Sala de Espera, Arena, mira e efeitos das 10 habilidades, revanche, REST de
+  conta, Loja, Coins simbólicos, Perfil e Como Jogar.
