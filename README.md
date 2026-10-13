@@ -7,7 +7,7 @@ Front-end do jogo multiplayer Jogo do Velho, desenvolvido com React, TypeScript 
 - React + TypeScript + Vite
 - Tailwind CSS + Framer Motion
 - Zustand
-- Socket.IO Client
+- STOMP sobre WebSocket (`@stomp/stompjs`, substitui o Socket.IO no card FE-22)
 - React Router
 - Howler.js
 - Vitest (testes unitários) + oxlint + Prettier

@@ -1,182 +1,303 @@
 # ARCHITECTURE.md — Estrutura técnica do front-end
 
 > Complementa o PROJECT_CONTEXT.md. Este documento é sobre **como** o código é organizado,
-> não sobre as regras do jogo.
+> não sobre as regras do jogo. Atualizado para a ERS MVP 1 — V2 (08/10/2026).
 
 ## 1. Estrutura de pastas
 
 ```
 src/
-├── assets/            # sons (Howler), imagens, ícones, fontes
-├── components/        # componentes reutilizáveis e "burros" (sem lógica de negócio)
-│   └── ui/             # botões, modais, inputs — puramente visuais
+├── api/                # cliente REST fino (fetch): auth, perfil, inventário, loja, salas
+├── assets/             # sons (Howler), imagens, ícones, fontes
+├── components/         # componentes reutilizáveis e "burros" (sem lógica de negócio)
+│   └── ui/              # botões, modais, inputs, toast, banner — puramente visuais
 ├── features/           # lógica de domínio, isolada por área do jogo
-│   ├── board/           # tabuleiro 4x4, células, verificação visual de linha vencedora
-│   ├── powers/          # deck de habilidades, sorteio, ativação, efeitos visuais
-│   ├── lobby/           # criação/entrada de sala, código alfanumérico de 4 caracteres
-│   └── results/         # tela de resultado, coins, revanche
-├── sockets/            # conexão socket.io, listeners, emitters, contrato de eventos
-├── lib/                # lógica pura, sem UI e sem dependência de React (testável isolado)
-│   ├── winCheck.ts       # verificação genérica de vitória (N×N, alinhar K)
-│   └── timer.ts          # utilitários de contagem regressiva
-├── constants/           # valores fixos do jogo (ver seção 4 abaixo)
-├── hooks/              # hooks customizados (useSocket, useTimer, useRoundState...)
-├── stores/             # Zustand — estado global (ver seção 3)
-├── types/              # interfaces TypeScript compartilhadas (ver seção 5)
-├── routes/             # páginas roteáveis (ver seção 2) — substitui "pages/" tradicional
-├── styles/             # config Tailwind, temas neon, animações globais reutilizáveis
+│   ├── auth/            # login, cadastro, sessão
+│   ├── hub/             # Hub, menu lateral, Como Jogar, Instalar App
+│   ├── profile/         # Perfil: apelido, estatísticas, coleção
+│   ├── shop/            # Loja, demonstração de habilidade, compra de Coins
+│   ├── lobby/           # criar/entrar em sala, código numérico de 4 dígitos, Sala de Espera
+│   ├── draft/           # Preparação: personagem (com bloqueio) e 2 habilidades iniciais
+│   ├── board/           # tabuleiro 4×4, células e seus estados
+│   ├── powers/          # sorteio da 3ª, deck, mira e efeitos visuais das 10 habilidades
+│   ├── match/           # Arena: turnos, timer, placar MD3, Morte Súbita, banners
+│   ├── results/         # Resultado, Coins, revanche
+│   ├── characters/      # os 6 personagens em SVG (estilo neon) + paleta
+│   └── vitao/           # só o espaço reservado + feature flag (desligado no MVP 1)
+├── sockets/            # cliente STOMP + servidor simulado (mock/) com a mesma interface
+├── lib/                # lógica pura, sem React (testável isolado)
+│   ├── winCheck.ts       # verificação de vitória N×N/K, ignorando peças congeladas
+│   └── timer.ts          # cálculo do tempo restante a partir do timestamp do servidor
+├── constants/          # valores fixos do jogo (seção 4)
+├── hooks/              # hooks customizados (useStomp, useServerTimer, useOrientation...)
+├── stores/             # Zustand — estado global (seção 3)
+├── types/              # tipos TypeScript compartilhados (seção 5)
+├── routes/             # páginas roteáveis (seção 2)
+├── styles/             # tokens neon, temas, animações globais reutilizáveis
 └── App.tsx
 ```
 
-**Por que separar `components/` de `features/`:** cada feature (board, powers, lobby, results)
-tem seus próprios componentes e hooks isolados. Isso importa especialmente agora que as
-tarefas vão ser divididas entre pessoas do time — quem pega "powers" não esbarra no código
-de quem pega "board", reduzindo conflito de merge.
+**Por que separar `components/` de `features/`:** cada feature tem seus próprios componentes e
+hooks isolados. Quem pega "powers" não esbarra no código de quem pega "board", reduzindo conflito
+de merge.
 
-**Por que `lib/` existe separado de `features/`:** a verificação de vitória (alinhar 4 em
-qualquer direção) é regra do jogo, não componente de tela. Ela precisa ser testável sozinha,
-sem precisar renderizar nada — e pode ser validada com testes unitários simples.
+**Por que `lib/` existe:** regras puras (como a verificação de vitória) precisam ser testáveis
+sem renderizar nada. Lembrete: a vitória oficial é decidida pelo back `[RNF-ARQ-02]`; o
+`winCheck` do front serve para testes, demonstrações (Como Jogar, Loja) e para destacar a linha
+vencedora que o servidor confirmou.
 
 ## 2. Rotas (React Router)
 
-Decisão da equipe: sala pode ser acessada por **link direto** ou por **código digitado
-manualmente**. Isso exige rotas de verdade:
-
 ```
-/                       → Menu (criar sala / digitar código)
-/sala/:codigo           → Entra direto numa sala existente (link direto)
-/sala/:codigo/jogo      → Tela de partida em andamento
-/sala/:codigo/resultado → Tela de resultado final
+/entrar          → Acesso (login / criar conta / esqueci minha senha). Sem sessão, toda rota
+                   redireciona para cá
+/redefinir-senha → Nova senha, aberta pelo link enviado por e-mail (`?token=...`)
+/                → Hub com a aba Jogar
+/loja            → Hub com a aba Loja
+/perfil          → Hub com a aba Perfil
+/sala/:codigo    → Sala (Sala de Espera, Preparação, Arena e Resultado)
 ```
 
-Se alguém abre `/sala/:codigo` sem estar logado/sem personagem escolhido ainda, o fluxo
-redireciona pra seleção de personagem/pick inicial primeiro, e só entra na sala depois —
-o código da sala fica retido no estado (`roomStore`) durante esse trajeto.
+- Link direto: `/sala/4821`. Se não houver sessão, o código fica guardado no `roomStore`, o
+  jogador passa pelo Acesso e volta para a sala.
+- **[A VALIDAR COM O BACK]** Dentro de `/sala/:codigo`, a tela é escolhida pelo campo `phase` que
+  o servidor manda no snapshot da sala, em vez de rotas separadas para jogo e resultado. Assim,
+  ao recarregar ou reconectar, o jogador cai direto na fase certa:
+
+```ts
+switch (room.phase) {
+  case 'WAITING':  return <WaitingRoom />
+  case 'MATCHED':  return <WaitingRoom matched />   // "MATCH FEITO!" + 3s
+  case 'DRAFT':    return <Preparation />
+  case 'RESULT':   return <Result />
+  default:         return <Arena />                  // VERSUS, ROUND_DRAW, PLAYING, ROUND_END
+}
+```
 
 ## 3. Stores (Zustand)
 
-Sugestão inicial — cada um pode crescer conforme a implementação:
+| Store          | Guarda                                                                             |
+| -------------- | ---------------------------------------------------------------------------------- |
+| `authStore`    | token, usuário logado, status da sessão                                            |
+| `profileStore` | apelido, personagem favorito, Coins, inventário (personagens e habilidades), stats |
+| `roomStore`    | código da sala, `phase`, jogadores, status da conexão STOMP, se sou Host ou Guest  |
+| `draftStore`   | personagens bloqueados, minhas escolhas, status do oponente, prazo dos 20s         |
+| `matchStore`   | round atual, placar MD3, Morte Súbita, quem começa, estouros consecutivos (0–3)    |
+| `boardStore`   | as 16 casas e seus efeitos (escudo, congelada, reforço) com contadores             |
+| `powersStore`  | opções do sorteio, deck da rodada, habilidades usadas, mira em andamento           |
+| `timerStore`   | de quem é o turno, prazo do turno (timestamp do servidor), duração (10s/5s)        |
 
-- **`roomStore`** — código da sala, status de conexão socket, se é o Jogador 1 ou 2
-- **`matchStore`** — placar da MD3 (rounds ganhos por cada jogador), round atual (1/2/3),
-  se está em sudden death
-- **`boardStore`** — estado do tabuleiro 4×4 atual, de quem é o turno, peças bloqueadas/
-  congeladas (efeitos de Escudo/Congelar)
-- **`powersStore`** — deck ativo do jogador (até 3 habilidades), quais já foram usadas no
-  round atual, opções do sorteio pendente
-- **`timerStore`** — contagem regressiva atual (10s ou 5s), se está em W.O.
+Regras:
 
-Cada store deve refletir **o que o servidor confirmou**, não o que o jogador tentou fazer.
-O front envia a intenção (`emit`) e só atualiza o estado real quando o servidor responde —
-nunca atualiza otimisticamente o resultado de uma jogada ou habilidade sem confirmação,
-porque a lógica de vitória e validação é autoritativa no back (ver PROJECT_CONTEXT.md, seção 2).
+- Cada store reflete **o que o servidor confirmou**, nunca o que o jogador tentou fazer.
+- Mensagens do servidor entram por um único ponto (o cliente STOMP) e são distribuídas para as
+  stores. Componentes não assinam destinos STOMP diretamente.
+- A mira de habilidade (`powersStore`) é o único estado "local" da Arena: escolher o alvo é
+  interface; a resolução vem do servidor.
 
 ## 4. Constantes (`constants/`)
-
-Centralizar aqui pra não espalhar "números mágicos" pelo código:
 
 ```ts
 export const BOARD_SIZE = 4
 export const WIN_LENGTH = 4
+export const ROOM_CODE_LENGTH = 4 // numérico
+export const MAX_PLAYERS_PER_ROOM = 2
+
 export const TURN_DURATION_SECONDS = 10
 export const SUDDEN_DEATH_TURN_DURATION_SECONDS = 5
-export const MAX_INACTIVE_TURNS_BEFORE_WO = 2
-export const INITIAL_ABILITIES_TO_PICK = 2
-export const MAX_ACTIVE_DECK_SIZE = 3
-export const ROUNDS_TO_WIN_MATCH = 2 // melhor de 3
-export const ABILITY_BLOCK_DURATION_ROUNDS = 2 // Escudo e Congelar
+export const HOURGLASS_TURN_DURATION_SECONDS = 5
+export const MAX_CONSECUTIVE_TIMEOUTS = 3 // W.O.
+export const PREPARATION_SECONDS = 20
+export const DRAW_PICK_SECONDS = 8
+export const MATCH_FOUND_COUNTDOWN_SECONDS = 3
+export const REMATCH_WINDOW_SECONDS = 15
+export const EFFECT_DURATION_TURNS = 2 // Escudo, Congelar, Campo de Força, Reforço
+
+export const FIXED_ABILITIES_TO_PICK = 2
+export const DECK_SIZE = 3
+export const DRAW_OPTIONS = 3
+export const ROUNDS_TO_WIN_MATCH = 2
 
 export const ABILITIES = [
-  'bomba',
-  'escudo',
-  'tornado',
-  'buraco_negro',
-  'ampulheta',
-  'congelar',
+  'BOMBA',
+  'ESCUDO',
+  'AMPULHETA',
+  'TORNADO',
+  'BURACO_NEGRO',
+  'CONGELAR',
+  'CAMPO_DE_FORCA',
+  'SILENCIO',
+  'TROCA_RAPIDA',
+  'REFORCO',
 ] as const
+
+export const STARTER_ABILITIES = ['BOMBA', 'ESCUDO', 'AMPULHETA'] as const
+export const CHARACTERS = ['X', 'O', 'TRIANGULO', 'QUADRADO', 'ESTRELA', 'CORACAO'] as const
+export const STARTER_CHARACTERS = ['X', 'O'] as const
+export const STARTING_COINS = 0
+
+// Preços (revisão de telas, 06/10) — conferir com o catálogo do back
+export const PRICES = {
+  ABILITY: 350,
+  QUADRADO: 400,
+  TRIANGULO: 500,
+  CORACAO: 600,
+  ESTRELA: 700,
+} as const
+
+export const COINS = { WIN: 50, DRAW: 20, LOSS: 10, WO_WIN: 30, WO_LOSS: 0 } as const
+
+export const VITAO_ENABLED = false
 ```
+
+Os valores de habilidades e personagens devem bater com os enums do back. Confirmar a grafia no
+contrato antes de usar.
 
 ## 5. Tipos principais (`types/`)
 
-Rascunho inicial — ajustar assim que o contrato de eventos com o back for validado:
+Rascunho — ajustar quando o contrato com o back for validado:
 
 ```ts
-export type Symbol = 'X' | 'O'
+export type AbilityId = (typeof ABILITIES)[number]
+export type CharacterId = (typeof CHARACTERS)[number]
+export type PlayerSlot = 'P1' | 'P2'
 
-export type AbilityId = 'bomba' | 'escudo' | 'tornado' | 'buraco_negro' | 'ampulheta' | 'congelar'
+export type RoomPhase =
+  | 'WAITING' // Host esperando adversário
+  | 'MATCHED' // "MATCH FEITO!" + contagem de 3s
+  | 'DRAFT' // Preparação (personagem + 2 iniciais)
+  | 'VERSUS' // tela de Confronto
+  | 'ROUND_DRAW' // sorteio da 3ª habilidade (8s)
+  | 'PLAYING'
+  | 'ROUND_END'
+  | 'RESULT'
 
-export interface Ability {
-  id: AbilityId
-  usedThisRound: boolean
+export interface CellEffect {
+  kind: 'ESCUDO' | 'CONGELAR' | 'REFORCO'
+  turnsLeft: number
 }
 
 export interface Cell {
-  row: number
-  col: number
-  symbol: Symbol | null
-  frozen: boolean // efeito Congelar
-  blocked: boolean // efeito Escudo
+  index: number // 0..15
+  owner: PlayerSlot | null
+  effects: CellEffect[]
 }
 
-export interface RoundState {
-  roundNumber: 1 | 2 | 3
-  isSuddenDeath: boolean
-  board: Cell[][]
-  currentTurn: Symbol
-  turnDurationSeconds: number
-  winner: Symbol | 'draw' | null
+export interface PlayerState {
+  slot: PlayerSlot
+  userId: string
+  nickname: string
+  character: CharacterId | null
+  roundsWon: number
+  consecutiveTimeouts: number // 0..3
+  forceFieldTurnsLeft: number // Campo de Força ativo
+  silenced: boolean // Silêncio no próximo turno
 }
 
-export interface MatchState {
-  roomCode: string
-  players: { symbol: Symbol; deck: Ability[] }[]
-  score: { X: number; O: number } // rounds ganhos, não pontos
-  currentRound: RoundState
-  matchWinner: Symbol | null
+export interface DeckSlot {
+  ability: AbilityId
+  source: 'FIXED' | 'DRAWN'
+  usedThisRound: boolean
+}
+
+export interface TurnState {
+  player: PlayerSlot
+  startedAt: number // timestamp do servidor (ms)
+  durationSeconds: 10 | 5
+}
+
+export type MatchOutcome =
+  | { kind: 'WIN'; winner: PlayerSlot; score: [number, number] }
+  | { kind: 'ABSOLUTE_DRAW' }
+  | { kind: 'WO'; winner: PlayerSlot }
+
+export interface RoomSnapshot {
+  code: string
+  phase: RoomPhase
+  players: PlayerState[]
+  round: 1 | 2 | 3
+  suddenDeath: boolean
+  board: Cell[]
+  turn: TurnState | null
+  myDeck: DeckSlot[] // o deck do oponente nunca vem
+  outcome: MatchOutcome | null
+  serverTime: number
 }
 ```
 
-## 6. Contrato de eventos WebSocket (rascunho — validar com o back antes de implementar)
+## 6. Contrato com o back (rascunho — validar antes de implementar)
 
-Isso existe pra mitigar o risco R02 do TAP (gargalo de integração front×back). **Não
-implementar a integração real até isso estar confirmado com o time de backend.**
+Existe para mitigar o risco R02 do TAP. **Não implementar a integração real até isto estar
+confirmado com o time de back.** Os nomes abaixo são proposta do front; cadastro e login já foram
+implementados no back (revisão de telas, 06/10), então usar as rotas e payloads reais deles.
 
-**Cliente → Servidor:**
+### REST (`VITE_API_URL`)
 
-- `room:create`
-- `room:join` `{ roomCode }`
-- `ability:pick_initial` `{ abilityIds: [AbilityId, AbilityId] }`
-- `ability:draft_choice` `{ accept: boolean, abilityId: AbilityId }`
-- `board:move` `{ row, col }`
-- `ability:activate` `{ abilityId, targetCell? }`
+| Método | Rota                    | Uso                                                         |
+| ------ | ----------------------- | ----------------------------------------------------------- |
+| POST   | `/auth/register`        | criar conta (usuário, e-mail, senha) — já existe no back    |
+| POST   | `/auth/login`           | login com e-mail **ou** usuário + senha → token — já existe |
+| POST   | `/auth/forgot-password` | envia o link de recuperação para o e-mail                   |
+| POST   | `/auth/reset-password`  | troca a senha a partir do token do link                     |
+| GET    | `/me`                   | perfil, Coins, inventário, estatísticas, favorito           |
+| PATCH  | `/me`                   | trocar apelido e personagem favorito                        |
+| GET    | `/shop/catalog`         | itens, preços e pacotes de Coins                            |
+| POST   | `/shop/purchase`        | comprar personagem ou habilidade `[RF-LOJ-02]`              |
+| POST   | `/shop/coins`           | compra simbólica de Coins `[RN-LOJ-04]`                     |
+| POST   | `/rooms`                | criar sala → código de 4 dígitos `[RF-HUB-04]`              |
+| POST   | `/rooms/{code}/join`    | entrar na sala; erros: não existe, lotada, já começou       |
 
-**Servidor → Cliente:**
+### STOMP (`VITE_WEBSOCKET_URL`)
 
-- `room:state` — estado completo da sala (para sincronizar ao entrar/reconectar)
-- `round:start` `{ roundNumber, startingPlayer }`
-- `board:update` — novo estado do tabuleiro após jogada/habilidade validada
-- `turn:timeout` — jogada passada automaticamente por tempo esgotado
-- `player:disqualified` — W.O. por 2 turnos consecutivos de inatividade
-- `round:end` `{ winner: Symbol | "draw", score }`
-- `match:end` `{ winner: Symbol, finalScore }`
+- `CONNECT` com o token no header `Authorization`.
+- **Assinaturas:** `/topic/rooms/{code}` (eventos públicos da sala) e `/user/queue/room` (eventos
+  privados: opções do meu sorteio, meu deck, erros).
+- **Envio (cliente → servidor), prefixo `/app/rooms/{code}`:**
+  - `/draft/character` `{ character }`
+  - `/draft/abilities` `{ abilities: [AbilityId, AbilityId] }`
+  - `/draw/pick` `{ ability }`
+  - `/move` `{ cell }`
+  - `/ability` `{ ability, targetCell?, destinationCell? }`
+  - `/rematch/request`, `/rematch/respond` `{ accept }`
+  - `/leave`
+- **Eventos (servidor → cliente)**, num envelope `{ type, payload, serverTime }`:
+  - `ROOM_SNAPSHOT` — estado completo (ao entrar e ao reconectar)
+  - `PLAYER_JOINED`, `PLAYER_LEFT`, `PLAYER_DISCONNECTED`, `PLAYER_RECONNECTED`
+  - `DRAFT_UPDATE` — personagens bloqueados e status de cada jogador
+  - `DRAW_OPTIONS` (privado) — 3 habilidades e prazo de 8s
+  - `ROUND_START` — round, quem começa, Morte Súbita
+  - `TURN_START` — jogador, timestamp de início e duração
+  - `BOARD_UPDATE` — casas e efeitos depois de uma ação
+  - `ABILITY_RESOLVED` — quem usou, qual, alvo, se foi anulada pelo Campo de Força, se ficou sem
+    efeito
+  - `TURN_TIMEOUT` — jogador e estouros consecutivos (x/3)
+  - `ROUND_END` — vencedor ou empate, linha vencedora, placar
+  - `MATCH_END` — resultado (vitória, empate absoluto, W.O.) e Coins de cada um
+  - `REMATCH_REQUESTED`, `REMATCH_CANCELLED`, `ROOM_CLOSED`
+  - `ERROR` — código e mensagem
 
-Esse contrato é um **ponto de partida pra discussão com o Victor Hugo (back)** — não é
-definitivo até ser validado dos dois lados.
+Ponto de partida para discussão com o Victor Hugo (back). Não é definitivo até ser validado dos
+dois lados.
 
-## 7. Setup inicial recomendado (primeiro PR, antes de distribuir tarefas)
+### Servidor simulado (FE-35)
 
-1. `npm create vite@latest . -- --template react-ts`
-2. Instalar dependências: `tailwindcss`, `framer-motion`, `zustand`, `socket.io-client`,
-   `howler`, `react-router-dom`
-3. Criar a estrutura de pastas acima (vazias, com `.gitkeep` onde precisar)
-4. Configurar lint + formatação — **oxlint** (no lugar do ESLint) + Prettier
-5. Configurar Husky + lint-staged (pre-commit hook)
-6. Criar `.env.example` com `VITE_API_URL` e `VITE_WEBSOCKET_URL`
-7. Criar `.nvmrc` com a versão do Node usada
-8. Configurar testes unitários com **Vitest** (`npm test`) — base para `lib/winCheck.ts`
-9. Conectar o repositório no Vercel (preview deployment por PR)
-10. Configurar branch protection (`master` e `dev`) conforme CONVENTIONS.md
+Enquanto o back não está pronto, o front roda contra um **servidor simulado** que vive no próprio
+front (`src/sockets/mock/`), ligado por `VITE_USE_MOCK_SERVER=true`:
 
-Esse setup deve ser **um PR único, mergeado por você mesmo (autorrevisão registrada, já que
-é infraestrutura inicial)**, antes de distribuir as primeiras tarefas reais do backlog —
-assim ninguém começa tendo que montar a estrutura do zero.
+- Expõe **a mesma interface** do cliente STOMP real (conectar, assinar, enviar) e emite os mesmos
+  eventos do contrato acima, com um oponente automático.
+- Tem cenários prontos (vitória, empate absoluto, W.O., Morte Súbita) para testar cada tela.
+- As telas nunca sabem se estão falando com o simulado ou com o real. Trocar um pelo outro é só
+  mudar a variável de ambiente.
+
+## 7. Setup
+
+O setup inicial (FE-01) já está na `dev`: Vite + React + TS, Tailwind, Framer Motion, Zustand,
+Howler, React Router, oxlint + Prettier, Husky + lint-staged, Vitest, CI e deploy na Vercel.
+
+Pendências de setup por causa da ERS V2:
+
+1. Trocar `socket.io-client` por `@stomp/stompjs` no `package.json`
+2. Criar as pastas novas (`api/`, `features/auth`, `hub`, `profile`, `shop`, `draft`, `match`,
+   `characters`, `vitao`)
+3. Configurar o PWA (manifest com `"orientation": "landscape"`, ícones e service worker)
