@@ -346,6 +346,10 @@ Abrir o jogo → [sem sessão] Acesso → Hub (Jogar; abas Loja / Perfil)
   "1/3", "2/3"), mirando habilidade, habilidade do oponente (animação + aviso, inclusive "anulada
   pelo Campo de Força" e "sem efeito"), sob Ampulheta, silenciado, fim do round, entrada da Morte
   Súbita, Morte Súbita, oponente desconectado, pausa.
+- **Timer do turno (decidido em 16/10):** sempre mostra o turno atual, inclusive o do oponente,
+  com o prazo do `TURN_START`. Na sua vez fica na sua cor e vermelho nos últimos 3s; na vez do
+  oponente fica na cor dele, com o texto "Vez do oponente" e sem o vermelho (o tempo dele acabando
+  não é perigo para você). Assim também dá para ver o efeito da Ampulheta (turno dele com 5s).
 
 ### Morte Súbita: pacote de pressão
 

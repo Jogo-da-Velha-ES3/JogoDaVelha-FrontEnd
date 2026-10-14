@@ -84,17 +84,18 @@ switch (room.phase) {
 
 ## 3. Stores (Zustand)
 
-| Store          | Guarda                                                                             |
-| -------------- | ---------------------------------------------------------------------------------- |
-| `authStore`    | token, usuário logado, status da sessão                                            |
-| `profileStore` | apelido, personagem favorito, Coins, inventário (personagens e habilidades), stats |
-| `roomStore`    | código da sala, `phase`, jogadores, status da conexão STOMP, se sou Host ou Guest  |
-| `draftStore`   | personagens bloqueados, minhas escolhas, status do oponente, prazo dos 20s         |
-| `matchStore`   | round atual, placar MD3, Morte Súbita, quem começa, estouros consecutivos (0–3)    |
-| `boardStore`   | as 16 casas e seus efeitos (escudo, congelada, reforço) com contadores             |
-| `powersStore`  | opções do sorteio, deck da rodada, habilidades usadas, mira em andamento           |
-| `timerStore`   | de quem é o turno, prazo do turno (timestamp do servidor), duração (10s/5s)        |
-| `toastStore`   | fila de toasts na tela (só interface, não reflete o servidor)                      |
+| Store          | Guarda                                                                              |
+| -------------- | ----------------------------------------------------------------------------------- |
+| `authStore`    | token, usuário logado, status da sessão                                             |
+| `profileStore` | apelido, personagem favorito, Coins, inventário (personagens e habilidades), stats  |
+| `roomStore`    | código da sala, `phase`, jogadores, status da conexão STOMP, se sou Host ou Guest   |
+| `draftStore`   | personagens bloqueados, minhas escolhas, status do oponente, prazo dos 20s          |
+| `matchStore`   | round atual, placar MD3, Morte Súbita, quem começa, estouros consecutivos (0–3)     |
+| `boardStore`   | as 16 casas e seus efeitos (escudo, congelada, reforço) com contadores              |
+| `powersStore`  | opções do sorteio, deck da rodada, habilidades usadas, mira em andamento            |
+| `timerStore`   | de quem é o turno, prazo do turno (timestamp do servidor), duração (10s/5s)         |
+| `clockStore`   | diferença entre o relógio do servidor e o do aparelho (`syncWithServer` a cada msg) |
+| `toastStore`   | fila de toasts na tela (só interface, não reflete o servidor)                       |
 
 Regras:
 
