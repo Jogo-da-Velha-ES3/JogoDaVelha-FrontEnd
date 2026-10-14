@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { PREPARATION_SECONDS, TURN_DURATION_SECONDS } from '../constants/game'
 import { MOCK_TIMINGS } from '../sockets/mock/mockServer'
 import { useAuthStore } from '../stores/authStore'
@@ -33,6 +33,12 @@ async function waitForMyTurn() {
   for (let i = 0; i < 10 && !screen.queryByText('Sua vez'); i++) await tick(1500)
   expect(screen.getByText('Sua vez')).toBeInTheDocument()
 }
+
+// O simulado é carregado sob demanda; o carregamento do módulo leva tempo real, que os fake
+// timers não adiantam. Carregar antes deixa o import() da sala instantâneo.
+beforeAll(async () => {
+  await Promise.all([import('../sockets/mock/mockConnection'), import('../sockets/mock/scenarios')])
+})
 
 beforeEach(() => {
   vi.useFakeTimers()

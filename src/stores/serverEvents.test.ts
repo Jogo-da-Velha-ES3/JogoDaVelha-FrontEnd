@@ -303,6 +303,21 @@ describe('infraestrutura', () => {
     expect(useClockStore.getState().offsetMs).toBe(-2000)
   })
 
+  it('evento local (gerado no front) não sincroniza o relógio', () => {
+    useClockStore.getState().reset()
+    applyServerEvent(
+      {
+        type: 'ERROR',
+        payload: { code: 'NOT_CONNECTED', message: 'Sem conexão' },
+        serverTime: 999_999,
+        local: true,
+      },
+      1000,
+    )
+    expect(useClockStore.getState().offsetMs).toBe(0)
+    expect(useRoomStore.getState().lastError?.code).toBe('NOT_CONNECTED')
+  })
+
   it('as stores de jogo não expõem setters para os componentes', () => {
     for (const state of [
       useMatchStore.getState(),

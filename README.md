@@ -93,6 +93,23 @@ um oponente automático. Ele já vem ligado (`VITE_USE_MOCK_SERVER=false` deslig
 
 - **Para testar:** abra `/vitrine?cenario=vitoria` (ou outro): a seção "Partida simulada" já
   começa a partida.
+- **Criar e entrar em sala (Hub):** `createRoom()` e `joinRoomByCode(código)` de
+  `src/api/rooms.ts`. No simulado, criar só sorteia o código e entrar sempre funciona; no real,
+  os erros já vêm prontos para a tela ("Sala 4821 não encontrada", sala cheia, partida começada).
+
+### Back de verdade (FE-18)
+
+O cliente STOMP real (`src/sockets/stompConnection.ts`) já está pronto. Para usá-lo:
+
+```bash
+VITE_USE_MOCK_SERVER=false
+VITE_WEBSOCKET_URL=http://localhost:8080   # vira ws://localhost:8080/ws
+```
+
+Ele conecta com o token no `CONNECT`, assina a sala e a fila privada, reconecta sozinho
+("Reconectando…" na tela) e pede o estado completo de novo ao voltar. Os destinos ficam em
+`src/sockets/destinations.ts` e a tradução das mensagens em `src/sockets/envelope.ts`: ajustes do
+contrato com o back (FE-17) mudam só esses arquivos.
 
 ## Rotas
 

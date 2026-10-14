@@ -18,6 +18,8 @@ export interface ServerEnvelope<T extends ServerEvent = ServerEvent> {
   payload: T['payload']
   /** Relógio do servidor (ms), usado para sincronizar timers */
   serverTime: number
+  /** Gerado no próprio front (ex: "sem conexão"): não sincroniza o relógio */
+  local?: boolean
 }
 
 export type ServerEvent =

@@ -7,6 +7,12 @@ export const roomTopic = (roomCode: string) => `/topic/rooms/${roomCode}`
 /** Eventos privados do jogador (opções do sorteio, deck, erros) */
 export const PRIVATE_QUEUE = '/user/queue/room'
 
+/**
+ * Avisa que o jogador entrou (ou voltou) na sala; o servidor responde com o ROOM_SNAPSHOT.
+ * [A VALIDAR COM O BACK] Hoje o back tem `/app/room/{code}/connect`.
+ */
+export const joinDestination = (roomCode: string) => `/app/rooms/${roomCode}/connect`
+
 const COMMAND_PATHS: Record<ClientCommandType, string> = {
   DRAFT_CHARACTER: '/draft/character',
   DRAFT_ABILITIES: '/draft/abilities',

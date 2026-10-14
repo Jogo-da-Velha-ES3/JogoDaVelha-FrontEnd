@@ -68,10 +68,11 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
       clearAuthToken()
       unauthorizedHandler?.()
     }
+    const error = readBackError(data)
     throw new ApiError(
       response.status,
-      readString(data, 'message') ?? `Erro ${response.status} ao falar com o servidor.`,
-      readString(data, 'code'),
+      error.message ?? `Erro ${response.status} ao falar com o servidor.`,
+      error.code,
     )
   }
 
@@ -87,10 +88,14 @@ function parseJson(text: string): unknown {
   }
 }
 
-function readString(data: unknown, key: string): string | null {
-  if (data && typeof data === 'object' && key in data) {
-    const value = (data as Record<string, unknown>)[key]
-    return typeof value === 'string' ? value : null
-  }
-  return null
+/**
+ * Lê `code` e `message` de um erro do back. [A VALIDAR COM O BACK] O combinado é
+ * `{ code, message }`; hoje o auth manda `{ error }` e as salas, `{ "erro: " }`.
+ */
+function readBackError(data: unknown): { code: string | null; message: string | null } {
+  // Corpo que não é JSON (ex: página HTML de um 502) nunca vira mensagem na tela
+  if (!data || typeof data !== 'object') return { code: null, message: null }
+  const record = data as Record<string, unknown>
+  const text = (key: string) => (typeof record[key] === 'string' ? (record[key] as string) : null)
+  return { code: text('code'), message: text('message') ?? text('error') ?? text('erro: ') }
 }
