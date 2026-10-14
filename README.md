@@ -65,6 +65,14 @@ personagens de cada lado, a linha vencedora e a mira, e só emite a intenção
 (`onCellSelect(índice)`). Ele ocupa o maior quadrado que cabe no pai, que precisa ter altura
 definida. Cada casa é um `<Cell>`; a peça congelada usa o token `ice`.
 
+## Timer
+
+O tempo vem sempre do servidor: o front só desenha. O `<TimerBar deadline={{ startedAt,
+durationSeconds }} />` (em `src/components/ui`) serve para turno, Morte Súbita, Preparação,
+sorteio e revanche, e não tem callback de "acabou": timeout e W.O. são do servidor. A diferença
+de relógio do aparelho é corrigida pelo `clockStore`; o cliente STOMP deve chamar
+`syncWithServer(serverTime)` a cada mensagem. A conta fica em `src/lib/timer.ts`.
+
 ## Rotas
 
 Tabela em `src/routes/routes.tsx` e caminhos em `src/routes/paths.ts` (detalhes no
