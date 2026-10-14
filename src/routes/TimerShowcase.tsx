@@ -33,6 +33,8 @@ export function TimerShowcase() {
 
   const start = (seconds: number) => {
     const serverTime = fakeServerTime()
+    // A partida simulada da vitrine também mede o relógio; aqui a demonstração começa do zero
+    useClockStore.getState().reset()
     sync(serverTime)
     setDeadline({ startedAt: serverTime, durationSeconds: seconds })
   }
@@ -79,7 +81,7 @@ export function TimerShowcase() {
         </figure>
       </div>
       <p className="max-w-xl font-mono text-xs text-text-muted">
-        {offsetMs === 0
+        {deadline === null
           ? `Este exemplo finge que o relógio do celular está ${CLIENT_AHEAD_MS / 1000}s adiantado em relação ao servidor. Clique numa duração para o "servidor" mandar o prazo.`
           : `Relógio do celular ${-offsetMs / 1000}s adiantado em relação ao servidor: o timer desconta essa diferença (correção de ${offsetMs} ms) e por isso começa cheio, como no servidor.`}
       </p>

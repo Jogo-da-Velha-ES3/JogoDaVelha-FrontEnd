@@ -7,7 +7,6 @@ import { NotFoundPage } from './NotFoundPage'
 import { PATHS } from './paths'
 import { ResetPasswordPage } from './ResetPasswordPage'
 import { RoomPage } from './RoomPage'
-import { ShowcasePage } from './ShowcasePage'
 
 // Rotas da aplicação — docs/ARCHITECTURE.md §2
 export const routes: RouteObject[] = [
@@ -31,6 +30,10 @@ export const routes: RouteObject[] = [
   },
   // Livres: o link do e-mail pode ser aberto logado ou não; a vitrine é consulta do time
   { path: PATHS.resetPassword, element: <ResetPasswordPage /> },
-  { path: PATHS.showcase, element: <ShowcasePage /> },
+  // Carregada sob demanda: só o time usa, e ela traz todas as demonstrações
+  {
+    path: PATHS.showcase,
+    lazy: async () => ({ Component: (await import('./ShowcasePage')).ShowcasePage }),
+  },
   { path: '*', element: <NotFoundPage /> },
 ]
