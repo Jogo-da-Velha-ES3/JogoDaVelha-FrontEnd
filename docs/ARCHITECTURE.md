@@ -57,10 +57,17 @@ vencedora que o servidor confirmou.
 /loja            → Hub com a aba Loja
 /perfil          → Hub com a aba Perfil
 /sala/:codigo    → Sala (Sala de Espera, Preparação, Arena e Resultado)
+/vitrine         → Vitrine dos tokens e componentes base (consulta do time, sem sessão)
+*                → "Página não encontrada" com botão "Voltar ao Hub"
 ```
 
-- Link direto: `/sala/4821`. Se não houver sessão, o código fica guardado no `roomStore`, o
-  jogador passa pelo Acesso e volta para a sala.
+- A tabela de rotas fica em `src/routes/routes.tsx` e os caminhos em `src/routes/paths.ts`
+  (`PATHS`, `roomPath(code)`): usar as constantes em vez de strings soltas.
+- Guardas: `RequireAuth` (sem sessão → `/entrar`) e `RequireGuest` (`/entrar` logado → Hub ou
+  sala pendente). Um 401 da API derruba a sessão pelo `authStore` e cai no `/entrar`.
+- Link direto: `/sala/4821`. Se não houver sessão, o código fica guardado no `roomStore`
+  (`pendingRoomCode`, no `sessionStorage`), o jogador passa pelo Acesso e volta para a sala.
+- Código de sala inválido (`/sala/abc`, `/sala/12345`) mostra "Página não encontrada".
 - **[A VALIDAR COM O BACK]** Dentro de `/sala/:codigo`, a tela é escolhida pelo campo `phase` que
   o servidor manda no snapshot da sala, em vez de rotas separadas para jogo e resultado. Assim,
   ao recarregar ou reconectar, o jogador cai direto na fase certa:
