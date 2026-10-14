@@ -7,6 +7,7 @@ import type {
   MatchOutcome,
   PlayerSlot,
   PlayerState,
+  RoomPhase,
   RoomSnapshot,
   TurnState,
 } from './game'
@@ -34,12 +35,28 @@ export type ServerEvent =
         ready: Record<PlayerSlot, boolean>
       }
     }
+  /** [A VALIDAR COM O BACK] Troca de fase da sala; sem isto o front teria de deduzir a tela */
+  | { type: 'PHASE_CHANGE'; payload: { phase: RoomPhase } }
   | { type: 'DRAW_OPTIONS'; payload: { options: AbilityId[]; deadline: number } }
   | {
       type: 'ROUND_START'
-      payload: { round: number; startingPlayer: PlayerSlot; suddenDeath: boolean; deck: DeckSlot[] }
+      payload: { round: number; startingPlayer: PlayerSlot; suddenDeath: boolean }
     }
-  | { type: 'TURN_START'; payload: TurnState }
+  /**
+   * [A VALIDAR COM O BACK] Meu deck (privado): no início do round e depois de cada habilidade
+   * usada. Fora do ROUND_START, que é público, para o oponente não ver.
+   */
+  | { type: 'DECK_UPDATE'; payload: { deck: DeckSlot[] } }
+  | {
+      type: 'TURN_START'
+      payload: TurnState & {
+        /**
+         * [A VALIDAR COM O BACK] Estouros seguidos de cada lado, valor oficial. Zeram quando o
+         * jogador age [RN-ARN-01]; vindo daqui, o front não precisa deduzir isso.
+         */
+        consecutiveTimeouts: Record<PlayerSlot, number>
+      }
+    }
   | { type: 'BOARD_UPDATE'; payload: { board: Cell[] } }
   | {
       type: 'ABILITY_RESOLVED'
