@@ -194,13 +194,17 @@ dois lados.
 ### Servidor simulado (FE-35)
 
 Enquanto o back não está pronto, o front roda contra um **servidor simulado** que vive no próprio
-front (`src/sockets/mock/`), ligado por `VITE_USE_MOCK_SERVER=true`:
+front (`src/sockets/mock/`). Ele fica **ligado por padrão até a FE-18** e desliga com
+`VITE_USE_MOCK_SERVER=false`.
 
-- Expõe **a mesma interface** do cliente STOMP real (conectar, assinar, enviar) e emite os mesmos
-  eventos do contrato acima, com um oponente automático.
-- Tem cenários prontos (vitória, empate absoluto, W.O., Morte Súbita) para testar cada tela.
-- As telas nunca sabem se estão falando com o simulado ou com o real. Trocar um pelo outro é só
-  mudar a variável de ambiente.
+- Implementa a mesma `GameConnection` do cliente STOMP real e emite os eventos do contrato acima.
+  Faz o papel do servidor autoritativo: decide jogada, vitória, placar, timeout e as 10
+  habilidades com as regras de `src/lib`. Você é sempre o P1; o P2 é um oponente automático.
+- Cenários prontos, por `?cenario=` na URL ou `VITE_MOCK_SCENARIO`: `normal`, `vitoria`,
+  `empate-absoluto`, `morte-subita` e `wo`.
+- As telas usam só `src/sockets/gameClient.ts` (`joinRoom`, `sendCommand`, `leaveRoom`) e as
+  stores. Nunca sabem se estão falando com o simulado ou com o real.
+- `[A VALIDAR COM O BACK]` "casa adjacente" (Tornado, Troca Rápida) inclui as diagonais.
 
 ## 7. Setup
 

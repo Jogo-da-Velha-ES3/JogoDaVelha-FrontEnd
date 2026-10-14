@@ -6,6 +6,7 @@ import type { CharacterId } from '../types/game'
 import { BoardShowcase } from './BoardShowcase'
 import { CellShowcase } from './CellShowcase'
 import { CharacterShowcase } from './CharacterShowcase'
+import { MockMatchShowcase } from './MockMatchShowcase'
 import { TimerShowcase } from './TimerShowcase'
 
 const SYSTEM_COLORS = [
@@ -82,6 +83,8 @@ export function ShowcasePage() {
         <BoardShowcase />
 
         <TimerShowcase />
+
+        <MockMatchShowcase />
 
         <section className="flex flex-wrap items-center gap-3">
           <Button size="lg">Criar Sala</Button>

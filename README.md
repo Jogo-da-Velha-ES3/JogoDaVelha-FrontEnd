@@ -73,6 +73,27 @@ sorteio e revanche, e não tem callback de "acabou": timeout e W.O. são do serv
 de relógio do aparelho é corrigida pelo `clockStore`; o cliente STOMP deve chamar
 `syncWithServer(serverTime)` a cada mensagem. A conta fica em `src/lib/timer.ts`.
 
+## Servidor simulado
+
+Até o cliente STOMP real (FE-18), a sala roda contra um servidor simulado no próprio front, com
+um oponente automático. Ele já vem ligado (`VITE_USE_MOCK_SERVER=false` desliga).
+
+- **Telas:** usam `joinRoom(código)`, `sendCommand(intenção)` e `leaveRoom()` de
+  `src/sockets/gameClient.ts`, e leem o estado das stores. O estado só muda com a resposta do
+  servidor.
+- **Cenários:** `?cenario=` na URL (ou `VITE_MOCK_SCENARIO`):
+
+  | Cenário           | O que acontece                                                   |
+  | ----------------- | ---------------------------------------------------------------- |
+  | `normal`          | partida inteira contra o bot (padrão)                            |
+  | `vitoria`         | rounds automáticos: você vence por 2×0                           |
+  | `empate-absoluto` | rounds automáticos 1×1 e empate na Morte Súbita (+20 para cada)  |
+  | `morte-subita`    | 1×1 automático; o round 3 é seu, com 5s por turno                |
+  | `wo`              | o bot não joga e perde por W.O. (para ver o seu W.O., não jogue) |
+
+- **Para testar:** abra `/vitrine?cenario=vitoria` (ou outro): a seção "Partida simulada" já
+  começa a partida.
+
 ## Rotas
 
 Tabela em `src/routes/routes.tsx` e caminhos em `src/routes/paths.ts` (detalhes no
