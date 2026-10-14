@@ -15,6 +15,8 @@ export const DRAW_PICK_SECONDS = 8 // [RN-DRAFT-05]
 export const MATCH_FOUND_COUNTDOWN_SECONDS = 3 // [RF-SAL-03]
 export const REMATCH_WINDOW_SECONDS = 15 // [RN-POS-01]
 export const EFFECT_DURATION_TURNS = 2 // Escudo, Congelar, Campo de Força, Reforço [RN-ARN-07]
+// No W.O., a Arena segura o banner antes de ir para o Resultado (PROJECT_CONTEXT §9, 16/10)
+export const WO_RESULT_DELAY_SECONDS = 2
 
 export const INITIAL_ABILITIES_TO_PICK = 2
 export const DECK_SIZE = 3 // 2 iniciais + 1 sorteada [RN-DRAFT-02]

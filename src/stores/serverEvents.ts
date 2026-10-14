@@ -181,7 +181,11 @@ export function applyServerEvent(envelope: ServerEnvelope, receivedAt = Date.now
     }
 
     case 'MATCH_END':
-      useMatchStore.setState({ outcome: event.payload.outcome, coins: event.payload.coins })
+      useMatchStore.setState({
+        outcome: event.payload.outcome,
+        outcomeReceivedAt: receivedAt,
+        coins: event.payload.coins,
+      })
       useTimerStore.setState({ turn: null })
       usePowersStore.setState({ aim: null })
       return

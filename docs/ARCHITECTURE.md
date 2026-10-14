@@ -83,6 +83,13 @@ switch (room.phase) {
 }
 ```
 
+Implementado na FE-28 em `src/routes/RoomPage.tsx`: ao abrir `/sala/:codigo`, a página chama
+`joinRoom` e, ao sair, `leaveRoom`. Sala de Espera, Preparação e Resultado ainda são placeholders
+(`src/routes/room/RoomPlaceholders.tsx`) que a FE-26, a FE-09 e a FE-15 substituem. No W.O., a
+Arena segura o banner por `WO_RESULT_DELAY_SECONDS` antes do Resultado (PROJECT_CONTEXT §9).
+A Arena fica em `src/features/match/Arena.tsx`, com as regiões prontas para as faixas e banners
+(FE-05), o deck (FE-11) e a mira (FE-27).
+
 ## 3. Stores (Zustand)
 
 | Store          | Guarda                                                                                                 |
