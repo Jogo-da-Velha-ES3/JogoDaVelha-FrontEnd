@@ -1,45 +1,46 @@
-# INITIAL_BACKLOG.md — Backlog do Front-end (v2.1 — ERS MVP 1 V2)
+# INITIAL_BACKLOG.md — Backlog do Front-end (v2.2 — ERS MVP 1 V2)
 
 > Resumo do backlog. O detalhe de cada card (descrição, validação, critérios de aceite, datas e
-> responsáveis) está nas issues do GitHub. Atualizado em 13/10/2026.
+> responsáveis) está nas issues do GitHub. Atualizado em 14/10/2026: cronograma
+> comprimido para todo o front terminar em **30/10**.
 
 ## Como o trabalho está organizado
 
-1. **Base do jogo (Rafael, em sequência, 14/10 a 23/10):** estrutura, visual, rotas, personagens,
+1. **Base do jogo (Rafael, em sequência, 14/10 a 20/10):** estrutura, visual, rotas, personagens,
    tabuleiro, timer, estado da partida, servidor simulado e o esqueleto da Arena.
 2. **Complementos (Vini, Matheus e Lucas):** cada um entra assim que a parte da base de que a sua
    tarefa depende fica pronta, e constrói telas e funcionalidades em cima dela, usando o servidor
    simulado no lugar do back.
-3. **Integração real (Rafael, a partir de 24/10):** troca o servidor simulado pelo back de verdade.
+3. **Integração real (Rafael, 21/10 a 28/10):** troca o servidor simulado pelo back de verdade.
 
 ## Base do jogo — sequência do Rafael
 
 | Ordem | Card  | Entrega                                                     | Data     |
 | ----- | ----- | ----------------------------------------------------------- | -------- |
-| —     | FE-17 | Contrato REST/STOMP com o back (em paralelo)                | 14–16/10 |
-| 1     | FE-22 | Base ERS V2: STOMP, constantes, tipos, pastas, cliente REST | 14/10    |
-| 2     | FE-23 | Tokens neon, componentes base e layout em paisagem          | 15/10    |
-| 3     | FE-07 | Rotas e guarda de sessão                                    | 16/10    |
-| 4     | FE-24 | Os 6 personagens neon                                       | 16–17/10 |
-| 5     | FE-04 | winCheck                                                    | 17/10    |
-| 6     | FE-02 | Cell (todos os estados da casa)                             | 18/10    |
-| 7     | FE-03 | Tabuleiro 4×4                                               | 19/10    |
-| 8     | FE-08 | Timer pelo timestamp do servidor                            | 19/10    |
-| 9     | FE-12 | Estado da partida (stores e regras da MD3)                  | 20–21/10 |
-| 10    | FE-35 | Servidor simulado (mock) para desenvolvimento               | 21–22/10 |
-| 11    | FE-28 | Esqueleto da Arena ligado ao servidor simulado              | 22–23/10 |
+| —     | FE-17 | Contrato REST/STOMP com o back (reuniões, em paralelo)      | 15–16/10 |
+| 1     | FE-22 | Base ERS V2: STOMP, constantes, tipos, pastas, cliente REST | 14/10 ✓  |
+| 2     | FE-23 | Tokens neon, componentes base e layout em paisagem          | 14/10 ✓  |
+| 3     | FE-07 | Rotas e guarda de sessão                                    | 14/10 ✓  |
+| 4     | FE-24 | Os 6 personagens neon                                       | 14/10 ✓  |
+| 5     | FE-04 | winCheck                                                    | 15/10    |
+| 6     | FE-02 | Cell (todos os estados da casa)                             | 15/10    |
+| 7     | FE-03 | Tabuleiro 4×4                                               | 16/10    |
+| 8     | FE-08 | Timer pelo timestamp do servidor                            | 16/10    |
+| 9     | FE-12 | Estado da partida (stores e regras da MD3)                  | 17–18/10 |
+| 10    | FE-35 | Servidor simulado (mock) para desenvolvimento               | 19/10    |
+| 11    | FE-28 | Esqueleto da Arena ligado ao servidor simulado              | 20/10    |
 
-Depois: FE-18 (sala e jogada via STOMP, até o Marco 4), FE-19 (habilidades e timer), FE-20
-(reconexão) e FE-29 (revanche).
+Depois: FE-18 (sala e jogada via STOMP, 21–22/10), FE-19 (habilidades e timer, 23–24/10), FE-20
+(reconexão, 25–26/10) e FE-29 (revanche, 27–28/10). Homologação de todos em 29–30/10.
 
 ## Quando cada pessoa entra
 
-| Pessoa  | Cards (em ordem)                                                                                                            | Começa quando estiver pronto |
-| ------- | --------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
-| Vini    | FE-25 Acesso → FE-06 Hub → FE-26 Sala de Espera → FE-30 REST → FE-16 PWA → FE-31 Loja                                       | FE-23 e FE-07 (16/10)        |
-| Matheus | FE-09 Preparação → FE-10 sorteio → FE-11 deck → FE-27 mira e efeitos → FE-33 Perfil                                         | FE-23 e FE-24 (17/10)        |
-| Lucas   | FE-34 Como Jogar → FE-36 recuperação de senha → FE-05 faixas e banners → FE-13 Morte Súbita → FE-15 Resultado → FE-32 Coins | FE-03 (19/10)                |
-| Todos   | FE-21 homologação                                                                                                           | 05/11                        |
+| Pessoa  | Cards (em ordem, com datas)                                                          | Começa quando estiver pronto |
+| ------- | ------------------------------------------------------------------------------------ | ---------------------------- |
+| Vini    | FE-25 15–17 → FE-06 18–20 → FE-26 21–22 → FE-30 23–24 → FE-16 25–26 → FE-31 27–28/10 | FE-23 e FE-07 (prontas)      |
+| Matheus | FE-09 15–17 → FE-10 18–19 → FE-11 21–22 → FE-27 23–26 → FE-33 27–28/10               | FE-23 e FE-24 (prontas)      |
+| Lucas   | FE-36 15–16 → FE-34 17–18 → FE-15 19–20 → FE-05 21–23 → FE-13 24–26 → FE-32 27/10    | FE-07 (pronta)               |
+| Todos   | FE-21 (homologação) 29–30/10                                                         | 29/10                        |
 
 ## O que mudou da v1 para a v2
 
