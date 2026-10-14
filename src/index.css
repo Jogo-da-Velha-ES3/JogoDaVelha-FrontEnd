@@ -1,23 +1,97 @@
-@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=DM+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700;800&family=DM+Mono:wght@400;500&display=swap');
 @import 'tailwindcss';
 
-:root {
-  font-family: 'DM Mono', monospace;
-  color: #f4efe5;
-  background: #111318;
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
+/* Tokens visuais neon (FE-23) — docs/PROJECT_CONTEXT.md §4 */
+@theme {
+  /* Tipografia: títulos e anúncios em condensada, texto corrido em Barlow, números em mono */
+  --font-display: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  --font-body: 'Barlow', system-ui, sans-serif;
+  --font-mono: 'DM Mono', ui-monospace, monospace;
+
+  /* Personagens — devem bater com src/constants/characters.ts (conferido em tokens.test.ts) */
+  --color-char-x: #b07cff;
+  --color-char-o: #2ee6d6;
+  --color-char-triangulo: #8be04e;
+  --color-char-quadrado: #ff9a3c;
+  --color-char-estrela: #ffd84a;
+  --color-char-coracao: #ff5ca8;
+
+  /* Sistema: vermelho só para perigo, dourado só para Coins, branco nos botões principais */
+  --color-danger: #ff2d3d;
+  --color-coin: #ffd257;
+  --color-primary: #f4f2ff;
+  --color-on-primary: #0d0b1a;
+
+  /* Fundos escuros neon, do mais fundo para o mais elevado */
+  --color-bg-deep: #07060e;
+  --color-bg-base: #0d0b1a;
+  --color-bg-panel: #151229;
+  --color-bg-raised: #1f1b3b;
+  --color-line: #2e2950;
+
+  /* Texto */
+  --color-text: #f4f2ff;
+  --color-text-muted: #a49fc6;
+
+  /* Brilho neon: combinar com a cor, ex. `shadow-glow shadow-char-x/60` */
+  --shadow-glow: 0 0 18px 2px rgb(244 242 255 / 0.45);
+  --shadow-glow-lg: 0 0 36px 6px rgb(244 242 255 / 0.45);
+
+  --animate-neon-flicker: neon-flicker 4s linear infinite;
+
+  @keyframes neon-flicker {
+    0%,
+    18%,
+    22%,
+    62%,
+    64%,
+    100% {
+      opacity: 1;
+    }
+    20%,
+    63% {
+      opacity: 0.55;
+    }
+  }
 }
 
-* {
-  box-sizing: border-box;
+/* Celular deitado: altura útil de ~330–390px */
+@custom-variant short (@media (max-height: 430px));
+
+/* Respeita o notch / a ilha do celular deitado sem colar o conteúdo na borda */
+@utility px-safe {
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
 }
-body {
-  margin: 0;
-  min-width: 320px;
-}
-button,
-input {
-  font: inherit;
+
+@layer base {
+  html {
+    color-scheme: dark;
+    background: var(--color-bg-deep);
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    min-width: 320px;
+    overflow-x: hidden;
+    font-family: var(--font-body);
+    color: var(--color-text);
+    background:
+      radial-gradient(ellipse at 50% 0%, rgb(176 124 255 / 0.12), transparent 60%),
+      var(--color-bg-deep);
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  #root {
+    min-height: 100dvh;
+  }
+
+  button,
+  input {
+    font: inherit;
+  }
 }

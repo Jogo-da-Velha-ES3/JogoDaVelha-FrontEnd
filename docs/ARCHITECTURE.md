@@ -10,7 +10,8 @@ src/
 ├── api/                # cliente REST fino (fetch): auth, perfil, inventário, loja, salas
 ├── assets/             # sons (Howler), imagens, ícones, fontes
 ├── components/         # componentes reutilizáveis e "burros" (sem lógica de negócio)
-│   └── ui/              # botões, modais, inputs, toast, banner — puramente visuais
+│   ├── ui/              # botões, modais, inputs, toast, banner — puramente visuais
+│   └── layout/          # LandscapeShell (safe-area, sem overflow) e o aviso "Gire o celular"
 ├── features/           # lógica de domínio, isolada por área do jogo
 │   ├── auth/            # login, cadastro, sessão
 │   ├── hub/             # Hub, menu lateral, Como Jogar, Instalar App
@@ -29,7 +30,7 @@ src/
 │   ├── winCheck.ts       # verificação de vitória N×N/K, ignorando peças congeladas
 │   └── timer.ts          # cálculo do tempo restante a partir do timestamp do servidor
 ├── constants/          # valores fixos do jogo (seção 4)
-├── hooks/              # hooks customizados (useStomp, useServerTimer, useOrientation...)
+├── hooks/              # hooks customizados (useStomp, useServerTimer, useShouldRotateDevice...)
 ├── stores/             # Zustand — estado global (seção 3)
 ├── types/              # tipos TypeScript compartilhados (seção 5)
 ├── routes/             # páginas roteáveis (seção 2)
@@ -86,6 +87,7 @@ switch (room.phase) {
 | `boardStore`   | as 16 casas e seus efeitos (escudo, congelada, reforço) com contadores             |
 | `powersStore`  | opções do sorteio, deck da rodada, habilidades usadas, mira em andamento           |
 | `timerStore`   | de quem é o turno, prazo do turno (timestamp do servidor), duração (10s/5s)        |
+| `toastStore`   | fila de toasts na tela (só interface, não reflete o servidor)                      |
 
 Regras:
 

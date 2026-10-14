@@ -10,7 +10,7 @@ Front-end do jogo multiplayer Jogo do Velho, desenvolvido com React, TypeScript 
 - STOMP sobre WebSocket (`@stomp/stompjs`)
 - React Router
 - Howler.js
-- Vitest (testes unitários) + oxlint + Prettier
+- Vitest + Testing Library (jsdom) + oxlint + Prettier
 
 ## Desenvolvimento
 
@@ -30,6 +30,18 @@ npm run format:check  # Prettier
 npm test              # Vitest (src/**/*.test.ts[x])
 npm run build
 ```
+
+Os testes rodam no jsdom com `@testing-library/react`; o setup fica em `src/test/setup.ts`
+e `src/test/matchMedia.ts` simula a orientação da tela.
+
+## Tokens visuais
+
+As cores, fontes e brilhos neon são tokens do Tailwind, definidos no `@theme` de
+`src/index.css`: `text-char-x`, `bg-danger`, `text-coin`, `bg-primary`, `bg-bg-panel`,
+`font-display`, `shadow-glow shadow-char-o/50`... O variant `short:` vale para o celular
+deitado (altura até 430px) e `px-safe` respeita o notch nas laterais. Componentes base em
+`src/components/ui` (Button, Modal, Toaster/`showToast`, Banner) e moldura de tela em
+`src/components/layout/LandscapeShell`.
 
 O pre-commit (Husky + lint-staged) roda oxlint e Prettier nos arquivos alterados. O CI
 (`.github/workflows/ci.yml`) roda a validação completa em todo PR para `dev` e `master`.
