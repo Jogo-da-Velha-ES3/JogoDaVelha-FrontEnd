@@ -83,7 +83,7 @@ function ModalDialog({
           SIZE_CLASSES[size],
         ].join(' ')}
       >
-        <header className="flex items-start justify-between gap-4 px-5 pt-4 short:px-4 short:pt-3">
+        <header className="flex items-center justify-between gap-4 px-5 pt-4 short:px-4 short:pt-3">
           <h2
             id={titleId}
             className="font-display text-2xl leading-tight font-bold tracking-wide uppercase short:text-xl"
@@ -95,9 +95,17 @@ function ModalDialog({
               type="button"
               onClick={onClose}
               aria-label="Fechar"
-              className="-mr-2 grid size-9 shrink-0 place-items-center rounded-lg text-2xl leading-none text-text-muted hover:bg-bg-raised hover:text-primary focus-visible:outline-2 focus-visible:outline-primary"
+              className="-mr-2 grid size-9 shrink-0 place-items-center rounded-lg text-text-muted hover:bg-bg-raised hover:text-primary focus-visible:outline-2 focus-visible:outline-primary"
             >
-              ×
+              {/* SVG em vez do caractere "×": o glifo fica fora do centro, varia por fonte */}
+              <svg viewBox="0 0 16 16" className="size-4" aria-hidden="true">
+                <path
+                  d="M3 3l10 10M13 3L3 13"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+              </svg>
             </button>
           )}
         </header>
