@@ -32,7 +32,7 @@ export function resetGameStores() {
 
 export function applyServerEvent(envelope: ServerEnvelope, receivedAt = Date.now()) {
   const { serverTime } = envelope
-  useClockStore.getState().syncWithServer(serverTime, receivedAt)
+  if (!envelope.local) useClockStore.getState().syncWithServer(serverTime, receivedAt)
 
   const event = { type: envelope.type, payload: envelope.payload } as ServerEvent
 

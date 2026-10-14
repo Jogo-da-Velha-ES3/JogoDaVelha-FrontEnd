@@ -1,34 +1,55 @@
 // O que as telas usam para falar com a sala: entrar, mandar intenções e sair. Escolhe entre o
-// servidor simulado (FE-35) e o cliente STOMP real (FE-18) pela variável de ambiente.
+// servidor simulado (FE-35) e o cliente STOMP real (FE-18) pela variável de ambiente. Os dois
+// são carregados sob demanda, só quando alguém entra numa sala.
 import { applyServerEvent, resetGameStores } from '../stores/serverEvents'
 import { useRoomStore } from '../stores/roomStore'
 import type { ClientCommand, ServerEnvelope } from '../types/events'
-import { MockConnection, type MockConnectionOptions } from './mock/mockConnection'
-import { resolveScenario } from './mock/scenarios'
+import type { MockConnectionOptions } from './mock/mockConnection'
+import { isMockServerEnabled } from './mode'
 import type { GameConnection, Unsubscribe } from './types'
 
-/** Simulado por padrão até a FE-18 existir; desliga com VITE_USE_MOCK_SERVER=false */
-export const isMockServerEnabled = () => import.meta.env.VITE_USE_MOCK_SERVER !== 'false'
+export { isMockServerEnabled }
 
-export function createGameConnection(options: MockConnectionOptions = {}): GameConnection {
+export async function createGameConnection(
+  mockOptions: MockConnectionOptions = {},
+): Promise<GameConnection> {
   if (isMockServerEnabled()) {
+    const [{ MockConnection }, { resolveScenario }] = await Promise.all([
+      import('./mock/mockConnection'),
+      import('./mock/scenarios'),
+    ])
     return new MockConnection({
       scenario: resolveScenario(window.location.search, import.meta.env.VITE_MOCK_SCENARIO),
-      ...options,
+      ...mockOptions,
     })
   }
-  throw new Error(
-    'O cliente STOMP real chega na FE-18. Por enquanto, use VITE_USE_MOCK_SERVER=true.',
-  )
+
+  const base = import.meta.env.VITE_WEBSOCKET_URL
+  if (!base) throw new Error('VITE_WEBSOCKET_URL não está configurada.')
+  const { StompConnection, toBrokerUrl } = await import('./stompConnection')
+  return new StompConnection({ brokerURL: toBrokerUrl(base) })
 }
 
 let connection: GameConnection | null = null
 let subscriptions: Unsubscribe[] = []
+/** Cada entrada/saída invalida as anteriores (ex: o efeito duplo do StrictMode) */
+let attempt = 0
 const debugListeners = new Set<(event: ServerEnvelope) => void>()
 
+export interface JoinRoomOptions {
+  /** Conexão pronta (testes); sem isto, cria a do ambiente */
+  connection?: GameConnection
+  /** Opções do simulado (ex: cenário da vitrine) */
+  mock?: MockConnectionOptions
+}
+
 /** Entra na sala: liga os eventos às stores e o status da conexão à roomStore */
-export async function joinRoom(roomCode: string, conn: GameConnection = createGameConnection()) {
+export async function joinRoom(roomCode: string, options: JoinRoomOptions = {}) {
   leaveRoom()
+  const current = ++attempt
+  const conn = options.connection ?? (await createGameConnection(options.mock))
+  if (current !== attempt) return // saiu ou entrou em outra sala enquanto carregava
+
   connection = conn
   subscriptions = [
     conn.onEvent((event) => {
@@ -47,6 +68,7 @@ export function sendCommand(command: ClientCommand) {
 
 /** Sai da sala e limpa o estado da partida */
 export function leaveRoom() {
+  attempt += 1
   if (!connection) return
   connection.send({ type: 'LEAVE', payload: {} })
   subscriptions.forEach((unsubscribe) => unsubscribe())

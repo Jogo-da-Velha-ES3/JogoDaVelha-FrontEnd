@@ -6,13 +6,7 @@ import { ABILITIES, CHARACTERS } from '../constants/game'
 import { Board } from '../features/board'
 import { Arena } from '../features/match'
 import { otherSlot } from '../lib/match'
-import {
-  createGameConnection,
-  joinRoom,
-  leaveRoom,
-  onServerEventForDebug,
-  sendCommand,
-} from '../sockets/gameClient'
+import { joinRoom, leaveRoom, onServerEventForDebug, sendCommand } from '../sockets/gameClient'
 import { adjacentCells } from '../sockets/mock/abilities'
 import { SCENARIOS, type ScenarioId } from '../sockets/mock/scenarios'
 import { useBoardStore } from '../stores/boardStore'
@@ -75,7 +69,7 @@ export function MockMatchShowcase() {
 
   const start = (id: ScenarioId) => {
     setLog([])
-    void joinRoom('0000', createGameConnection({ scenario: SCENARIOS[id] }))
+    void joinRoom('0000', { mock: { scenario: SCENARIOS[id] } })
   }
 
   const onCell = (index: number) => {

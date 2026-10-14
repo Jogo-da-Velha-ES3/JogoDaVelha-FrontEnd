@@ -3,7 +3,14 @@ import { useMatchStore } from '../stores/matchStore'
 import { useRoomStore } from '../stores/roomStore'
 import { resetGameStores } from '../stores/serverEvents'
 import { useTimerStore } from '../stores/timerStore'
-import { isMockServerEnabled, joinRoom, leaveRoom, sendCommand } from './gameClient'
+import {
+  createGameConnection,
+  isMockServerEnabled,
+  joinRoom,
+  leaveRoom,
+  sendCommand,
+} from './gameClient'
+import { StompConnection } from './stompConnection'
 import { MockConnection } from './mock/mockConnection'
 import { MOCK_TIMINGS } from './mock/mockServer'
 import { SCENARIOS } from './mock/scenarios'
@@ -18,11 +25,12 @@ beforeEach(() => {
 afterEach(() => {
   leaveRoom()
   vi.useRealTimers()
+  vi.unstubAllEnvs()
 })
 
 async function join(scenario = SCENARIOS.vitoria) {
   const connection = new MockConnection({ scenario, latencyMs: LATENCY, random: () => 0.3 })
-  const joined = joinRoom('4821', connection)
+  const joined = joinRoom('4821', { connection })
   await vi.advanceTimersByTimeAsync(LATENCY * 2)
   await joined
   return connection
@@ -76,5 +84,28 @@ describe('gameClient + servidor simulado', () => {
     await join()
     leaveRoom()
     expect(useRoomStore.getState()).toMatchObject({ code: null, players: [], connection: 'IDLE' })
+  })
+
+  it('sair enquanto a conexão ainda carrega não deixa conexão pendurada (StrictMode)', async () => {
+    const pending = joinRoom('4821', { mock: { scenario: SCENARIOS.normal, latencyMs: LATENCY } })
+    leaveRoom()
+    await pending
+    await vi.advanceTimersByTimeAsync(5000)
+    expect(useRoomStore.getState().code).toBeNull()
+  })
+})
+
+describe('createGameConnection', () => {
+  it('com VITE_USE_MOCK_SERVER=false usa o cliente STOMP real', async () => {
+    vi.stubEnv('VITE_USE_MOCK_SERVER', 'false')
+    vi.stubEnv('VITE_WEBSOCKET_URL', 'http://localhost:8080')
+    expect(isMockServerEnabled()).toBe(false)
+    expect(await createGameConnection()).toBeInstanceOf(StompConnection)
+  })
+
+  it('real sem VITE_WEBSOCKET_URL avisa a configuração que falta', async () => {
+    vi.stubEnv('VITE_USE_MOCK_SERVER', 'false')
+    vi.stubEnv('VITE_WEBSOCKET_URL', '')
+    await expect(createGameConnection()).rejects.toThrow(/VITE_WEBSOCKET_URL/)
   })
 })

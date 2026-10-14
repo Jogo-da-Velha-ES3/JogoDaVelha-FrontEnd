@@ -213,6 +213,15 @@ front (`src/sockets/mock/`). Ele fica **ligado por padrão até a FE-18** e desl
   stores. Nunca sabem se estão falando com o simulado ou com o real.
 - `[A VALIDAR COM O BACK]` "casa adjacente" (Tornado, Troca Rápida) inclui as diagonais.
 
+### Cliente STOMP real (FE-18)
+
+`src/sockets/stompConnection.ts` implementa a mesma `GameConnection` com o `@stomp/stompjs`:
+token no `CONNECT` a cada tentativa, assinatura de `/topic/rooms/{code}` e `/user/queue/room`,
+`/app/rooms/{code}/connect` para pedir o snapshot (de novo a cada reconexão), status
+`RECONNECTING` quando a rede cai e erro local `NOT_CONNECTED` ao mandar intenção sem conexão.
+Erros gerados no próprio front vêm com `local: true` e não sincronizam o relógio. O simulado e o
+real são carregados sob demanda pelo `gameClient`.
+
 ## 7. Setup
 
 O setup inicial (FE-01) já está na `dev`: Vite + React + TS, Tailwind, Framer Motion, Zustand,
