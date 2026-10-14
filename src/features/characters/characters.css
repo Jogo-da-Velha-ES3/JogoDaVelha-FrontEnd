@@ -1,0 +1,149 @@
+/* Animações dos personagens neon (FE-24). Só rodam dentro de um <Character> animado
+   (.chr-animated) e somem com prefers-reduced-motion. */
+
+.chr-blink,
+.chr-spin,
+.chr-twinkle,
+.chr-beat {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.chr-tilt,
+.chr-stomp {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .chr-animated .chr-bob {
+    animation: chr-bob 2.8s ease-in-out infinite;
+  }
+  .chr-animated .chr-tilt {
+    animation: chr-tilt 2.4s ease-in-out infinite;
+  }
+  .chr-animated .chr-stomp {
+    animation: chr-stomp 1.8s ease-in-out infinite;
+  }
+  .chr-animated .chr-beat {
+    animation: chr-beat 1.3s ease-in-out infinite;
+  }
+  .chr-animated .chr-neon {
+    animation: chr-flicker 6.5s linear infinite;
+  }
+  .chr-animated .chr-flick {
+    animation: chr-flicker 4s linear infinite;
+  }
+  .chr-animated .chr-blink {
+    animation: chr-blink 5s linear infinite;
+  }
+  .chr-animated .chr-scan {
+    animation: chr-scan 2.2s ease-in-out infinite;
+  }
+  .chr-animated .chr-spin {
+    animation: chr-spin 9s linear infinite;
+  }
+  .chr-animated .chr-twinkle {
+    animation: chr-twinkle 2.6s ease-in-out infinite;
+  }
+}
+
+@keyframes chr-bob {
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes chr-tilt {
+  0%,
+  100% {
+    transform: rotate(-5deg);
+  }
+  50% {
+    transform: rotate(5deg);
+  }
+}
+
+@keyframes chr-stomp {
+  0%,
+  60%,
+  100% {
+    transform: none;
+  }
+  25% {
+    transform: translateY(-7px);
+  }
+  45% {
+    transform: scale(1.05, 0.93);
+  }
+}
+
+@keyframes chr-beat {
+  0%,
+  30%,
+  60%,
+  100% {
+    transform: scale(1);
+  }
+  15% {
+    transform: scale(1.08);
+  }
+  45% {
+    transform: scale(1.05);
+  }
+}
+
+@keyframes chr-flicker {
+  0%,
+  44%,
+  48%,
+  52%,
+  100% {
+    opacity: 1;
+  }
+  46% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes chr-blink {
+  0%,
+  94%,
+  100% {
+    transform: scaleY(1);
+  }
+  96% {
+    transform: scaleY(0.1);
+  }
+}
+
+@keyframes chr-scan {
+  0%,
+  100% {
+    transform: translateX(-11px);
+  }
+  50% {
+    transform: translateX(11px);
+  }
+}
+
+@keyframes chr-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes chr-twinkle {
+  0%,
+  100% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}

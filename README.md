@@ -46,6 +46,20 @@ deitado (altura até 430px) e `px-safe` respeita o notch nas laterais. Component
 `src/components/ui` (Button, Modal, Toaster/`showToast`, Banner) e moldura de tela em
 `src/components/layout/LandscapeShell`. Tudo isso aparece em `/vitrine`.
 
+## Personagens
+
+Os 6 personagens no Estilo A (letreiro neon) ficam em `src/features/characters`:
+
+```tsx
+<Character id="ESTRELA" />                                  // versão grande, animada
+<Character id="X" variant="avatar" className="size-10" />   // avatar no círculo
+<Character id="O" variant="piece" className="size-8" />     // peça do tabuleiro
+```
+
+A cor vem do `CHARACTER_INFO`; o tamanho, do `className`. Só a versão grande anima por
+padrão (`animated` muda isso) e tudo para com `prefers-reduced-motion`. Use `decorative`
+quando o nome do personagem já aparece ao lado. Cada desenho fica em `designs/<personagem>.tsx`.
+
 ## Rotas
 
 Tabela em `src/routes/routes.tsx` e caminhos em `src/routes/paths.ts` (detalhes no
