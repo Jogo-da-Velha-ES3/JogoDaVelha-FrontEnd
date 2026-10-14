@@ -28,7 +28,8 @@ src/
 ├── sockets/            # cliente STOMP + servidor simulado (mock/) com a mesma interface
 ├── lib/                # lógica pura, sem React (testável isolado)
 │   ├── winCheck.ts       # verificação de vitória N×N/K, ignorando peças congeladas
-│   └── timer.ts          # cálculo do tempo restante a partir do timestamp do servidor
+│   ├── timer.ts          # cálculo do tempo restante a partir do timestamp do servidor
+│   └── match.ts          # regras da MD3: fim da partida, quem começa, match point, Coins
 ├── constants/          # valores fixos do jogo (seção 4)
 ├── hooks/              # hooks customizados (useStomp, useServerTimer, useShouldRotateDevice...)
 ├── stores/             # Zustand — estado global (seção 3)
@@ -84,24 +85,28 @@ switch (room.phase) {
 
 ## 3. Stores (Zustand)
 
-| Store          | Guarda                                                                              |
-| -------------- | ----------------------------------------------------------------------------------- |
-| `authStore`    | token, usuário logado, status da sessão                                             |
-| `profileStore` | apelido, personagem favorito, Coins, inventário (personagens e habilidades), stats  |
-| `roomStore`    | código da sala, `phase`, jogadores, status da conexão STOMP, se sou Host ou Guest   |
-| `draftStore`   | personagens bloqueados, minhas escolhas, status do oponente, prazo dos 20s          |
-| `matchStore`   | round atual, placar MD3, Morte Súbita, quem começa, estouros consecutivos (0–3)     |
-| `boardStore`   | as 16 casas e seus efeitos (escudo, congelada, reforço) com contadores              |
-| `powersStore`  | opções do sorteio, deck da rodada, habilidades usadas, mira em andamento            |
-| `timerStore`   | de quem é o turno, prazo do turno (timestamp do servidor), duração (10s/5s)         |
-| `clockStore`   | diferença entre o relógio do servidor e o do aparelho (`syncWithServer` a cada msg) |
-| `toastStore`   | fila de toasts na tela (só interface, não reflete o servidor)                       |
+| Store          | Guarda                                                                                                 |
+| -------------- | ------------------------------------------------------------------------------------------------------ |
+| `authStore`    | token, usuário logado, status da sessão                                                                |
+| `profileStore` | apelido, personagem favorito, Coins, inventário (personagens e habilidades), stats                     |
+| `roomStore`    | código da sala, `phase`, jogadores, meu lado (`mySlot`), conexão, queda do oponente, link pendente     |
+| `draftStore`   | personagens reservados por lado, quem está pronto, prazo dos 20s                                       |
+| `matchStore`   | round, placar MD3, Morte Súbita, quem começa, estouros (0–3), fim do round, resultado, Coins, revanche |
+| `boardStore`   | as 16 casas com efeitos e contadores, linha vencedora, última habilidade resolvida                     |
+| `powersStore`  | opções do sorteio, meu deck da rodada, mira em andamento                                               |
+| `timerStore`   | de quem é o turno, prazo do turno (timestamp do servidor), duração (10s/5s)                            |
+| `clockStore`   | diferença entre o relógio do servidor e o do aparelho (`syncWithServer` a cada msg)                    |
+| `toastStore`   | fila de toasts na tela (só interface, não reflete o servidor)                                          |
 
 Regras:
 
 - Cada store reflete **o que o servidor confirmou**, nunca o que o jogador tentou fazer.
-- Mensagens do servidor entram por um único ponto (o cliente STOMP) e são distribuídas para as
-  stores. Componentes não assinam destinos STOMP diretamente.
+- Mensagens do servidor entram por um único ponto, `applyServerEvent` em
+  `src/stores/serverEvents.ts`, chamado pelo cliente STOMP ou pelo servidor simulado, e são
+  distribuídas para as stores. Componentes não assinam destinos STOMP diretamente.
+- As stores de jogo não têm setters: nada muda sem evento. Placar e vencedor vêm prontos do
+  servidor (`ROUND_END`, `MATCH_END`); as regras da MD3 em `src/lib/match.ts` servem ao servidor
+  simulado e à exibição (ex: "MATCH POINT"), nunca para calcular o estado.
 - A mira de habilidade (`powersStore`) é o único estado "local" da Arena: escolher o alvo é
   interface; a resolução vem do servidor.
 
@@ -166,10 +171,14 @@ implementados no back (revisão de telas, 06/10), então usar as rotas e payload
 - **Eventos (servidor → cliente)**, num envelope `{ type, payload, serverTime }`:
   - `ROOM_SNAPSHOT` — estado completo (ao entrar e ao reconectar)
   - `PLAYER_JOINED`, `PLAYER_LEFT`, `PLAYER_DISCONNECTED`, `PLAYER_RECONNECTED`
+  - `PHASE_CHANGE` — nova `phase` da sala (proposto na FE-12)
   - `DRAFT_UPDATE` — personagens bloqueados e status de cada jogador
   - `DRAW_OPTIONS` (privado) — 3 habilidades e prazo de 8s
   - `ROUND_START` — round, quem começa, Morte Súbita
-  - `TURN_START` — jogador, timestamp de início e duração
+  - `DECK_UPDATE` (privado) — meu deck, no início do round e depois de cada habilidade (proposto
+    na FE-12: fora do `ROUND_START`, que é público)
+  - `TURN_START` — jogador, timestamp de início, duração e os estouros seguidos de cada lado
+    (valor oficial; proposto na FE-12 para o front não deduzir quando zeram)
   - `BOARD_UPDATE` — casas e efeitos depois de uma ação
   - `ABILITY_RESOLVED` — quem usou, qual, alvo, se foi anulada pelo Campo de Força, se ficou sem
     efeito
