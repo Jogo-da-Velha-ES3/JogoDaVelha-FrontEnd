@@ -350,6 +350,21 @@ Abrir o jogo → [sem sessão] Acesso → Hub (Jogar; abas Loja / Perfil)
   com o prazo do `TURN_START`. Na sua vez fica na sua cor e vermelho nos últimos 3s; na vez do
   oponente fica na cor dele, com o texto "Vez do oponente" e sem o vermelho (o tempo dele acabando
   não é perigo para você). Assim também dá para ver o efeito da Ampulheta (turno dele com 5s).
+- **Turno perdido e W.O. (decidido em 16/10):** o banner aparece quando chega o `TURN_TIMEOUT` ou o
+  `MATCH_END` do servidor, nunca quando o timer do front chega a 0. Vermelho só para quem está em
+  perigo; para o outro jogador, a cor do personagem de quem é o aviso.
+
+  | Situação                  | Quem vê      | Título                | Subtítulo                             | Cor                   |
+  | ------------------------- | ------------ | --------------------- | ------------------------------------- | --------------------- |
+  | 1º estouro                | quem estoura | TEMPO ESGOTADO!       | Você perdeu a vez · 1/3               | vermelho              |
+  | 2º estouro seguido        | quem estoura | TEMPO ESGOTADO!       | 2/3 · Mais um e é W.O.!               | vermelho              |
+  | 1º/2º estouro do oponente | o outro      | OPONENTE PERDEU A VEZ | 1/3 ou 2/3                            | cor do oponente       |
+  | 3º estouro (W.O.)         | quem estoura | W.O.!                 | 3 tempos esgotados seguidos · Derrota | vermelho              |
+  | 3º estouro do oponente    | o outro      | VITÓRIA POR W.O.      | O oponente esgotou o tempo 3 vezes    | cor do seu personagem |
+
+  No W.O., a Arena segura o banner por **2 segundos** e só então vai para o Resultado. Isso não
+  atrasa nada no servidor: a partida e os Coins já foram resolvidos no `MATCH_END`, e a janela da
+  revanche só conta a partir do pedido. Quem reconecta nesse meio-tempo cai direto no Resultado.
 
 ### Morte Súbita: pacote de pressão
 
