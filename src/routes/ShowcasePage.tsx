@@ -3,6 +3,7 @@ import { Banner, Button, Modal } from '../components/ui'
 import { CHARACTER_INFO } from '../constants/characters'
 import { showToast } from '../stores/toastStore'
 import type { CharacterId } from '../types/game'
+import { CharacterShowcase } from './CharacterShowcase'
 
 const SYSTEM_COLORS = [
   { name: 'Perigo', token: 'bg-danger' },
@@ -70,6 +71,8 @@ export function ShowcasePage() {
             </ul>
           </div>
         </section>
+
+        <CharacterShowcase />
 
         <section className="flex flex-wrap items-center gap-3">
           <Button size="lg">Criar Sala</Button>
