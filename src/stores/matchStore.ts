@@ -20,6 +20,8 @@ export interface MatchState {
   roundEnd: { round: number; winner: PlayerSlot | null; winningLine: number[] | null } | null
   /** Vitória, empate absoluto ou W.O. [RN-ARN-06] */
   outcome: MatchOutcome | null
+  /** Hora do aparelho em que o MATCH_END chegou (null se veio de um snapshot de reconexão) */
+  outcomeReceivedAt: number | null
   /** Coins creditados pelo back a cada lado */
   coins: Score | null
   rematch: { requestedBy: PlayerSlot; deadline: number } | null
@@ -35,6 +37,7 @@ export const INITIAL_MATCH_STATE: MatchState = {
   lastTimeout: null,
   roundEnd: null,
   outcome: null,
+  outcomeReceivedAt: null,
   coins: null,
   rematch: null,
   rematchCancelled: null,
