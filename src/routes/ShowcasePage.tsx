@@ -3,6 +3,7 @@ import { Banner, Button, Modal } from '../components/ui'
 import { CHARACTER_INFO } from '../constants/characters'
 import { showToast } from '../stores/toastStore'
 import type { CharacterId } from '../types/game'
+import { BoardShowcase } from './BoardShowcase'
 import { CellShowcase } from './CellShowcase'
 import { CharacterShowcase } from './CharacterShowcase'
 
@@ -76,6 +77,8 @@ export function ShowcasePage() {
         <CharacterShowcase />
 
         <CellShowcase />
+
+        <BoardShowcase />
 
         <section className="flex flex-wrap items-center gap-3">
           <Button size="lg">Criar Sala</Button>

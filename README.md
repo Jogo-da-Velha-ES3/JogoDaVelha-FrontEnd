@@ -60,9 +60,10 @@ A cor vem do `CHARACTER_INFO`; o tamanho, do `className`. Só a versão grande a
 padrão (`animated` muda isso) e tudo para com `prefers-reduced-motion`. Use `decorative`
 quando o nome do personagem já aparece ao lado. Cada desenho fica em `designs/<personagem>.tsx`.
 
-A casa do tabuleiro é o `<Cell>` de `src/features/board`: recebe a peça, os efeitos
-(`CellEffect[]` do servidor), a mira e a linha vencedora por props, e ocupa a largura de quem a
-envolve. A peça congelada usa o token `ice`.
+O tabuleiro fica em `src/features/board`. O `<Board>` recebe as casas do servidor, os
+personagens de cada lado, a linha vencedora e a mira, e só emite a intenção
+(`onCellSelect(índice)`). Ele ocupa o maior quadrado que cabe no pai, que precisa ter altura
+definida. Cada casa é um `<Cell>`; a peça congelada usa o token `ice`.
 
 ## Rotas
 
