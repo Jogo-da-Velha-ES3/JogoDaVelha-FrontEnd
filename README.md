@@ -34,6 +34,9 @@ npm run build
 Os testes rodam no jsdom com `@testing-library/react`; o setup fica em `src/test/setup.ts`
 e `src/test/matchMedia.ts` simula a orientação da tela.
 
+O pre-commit (Husky + lint-staged) roda oxlint e Prettier nos arquivos alterados. O CI
+(`.github/workflows/ci.yml`) roda a validação completa em todo PR para `dev` e `master`.
+
 ## Tokens visuais
 
 As cores, fontes e brilhos neon são tokens do Tailwind, definidos no `@theme` de
@@ -41,10 +44,14 @@ As cores, fontes e brilhos neon são tokens do Tailwind, definidos no `@theme` d
 `font-display`, `shadow-glow shadow-char-o/50`... O variant `short:` vale para o celular
 deitado (altura até 430px) e `px-safe` respeita o notch nas laterais. Componentes base em
 `src/components/ui` (Button, Modal, Toaster/`showToast`, Banner) e moldura de tela em
-`src/components/layout/LandscapeShell`.
+`src/components/layout/LandscapeShell`. Tudo isso aparece em `/vitrine`.
 
-O pre-commit (Husky + lint-staged) roda oxlint e Prettier nos arquivos alterados. O CI
-(`.github/workflows/ci.yml`) roda a validação completa em todo PR para `dev` e `master`.
+## Rotas
+
+Tabela em `src/routes/routes.tsx` e caminhos em `src/routes/paths.ts` (detalhes no
+[ARCHITECTURE.md §2](docs/ARCHITECTURE.md)). Cada rota ainda é uma página vazia que diz qual
+card a preenche. Enquanto a tela de Acesso (FE-25) não existe, o botão **Entrar (simulado)** em
+`/entrar` cria uma sessão falsa para navegar pelo Hub e pela sala.
 
 ## Fluxo de branches
 
