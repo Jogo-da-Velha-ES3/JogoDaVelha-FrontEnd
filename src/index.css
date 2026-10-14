@@ -21,6 +21,8 @@
   --color-coin: #ffd257;
   --color-primary: #f4f2ff;
   --color-on-primary: #0d0b1a;
+  /* Peça congelada (Congelar): azul-claro, distinto do ciano do O e do vermelho de perigo */
+  --color-ice: #a8e6ff;
 
   /* Fundos escuros neon, do mais fundo para o mais elevado */
   --color-bg-deep: #07060e;
@@ -38,6 +40,14 @@
   --shadow-glow-lg: 0 0 36px 6px rgb(244 242 255 / 0.45);
 
   --animate-neon-flicker: neon-flicker 4s linear infinite;
+  /* Pulso de destaque: mira de habilidade e linha vencedora */
+  --animate-glow-pulse: glow-pulse 1.2s ease-in-out infinite;
+
+  @keyframes glow-pulse {
+    50% {
+      opacity: 0.45;
+    }
+  }
 
   @keyframes neon-flicker {
     0%,

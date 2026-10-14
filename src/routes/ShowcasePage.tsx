@@ -3,6 +3,7 @@ import { Banner, Button, Modal } from '../components/ui'
 import { CHARACTER_INFO } from '../constants/characters'
 import { showToast } from '../stores/toastStore'
 import type { CharacterId } from '../types/game'
+import { CellShowcase } from './CellShowcase'
 import { CharacterShowcase } from './CharacterShowcase'
 
 const SYSTEM_COLORS = [
@@ -73,6 +74,8 @@ export function ShowcasePage() {
         </section>
 
         <CharacterShowcase />
+
+        <CellShowcase />
 
         <section className="flex flex-wrap items-center gap-3">
           <Button size="lg">Criar Sala</Button>

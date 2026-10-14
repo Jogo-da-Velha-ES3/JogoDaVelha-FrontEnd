@@ -60,6 +60,10 @@ A cor vem do `CHARACTER_INFO`; o tamanho, do `className`. Só a versão grande a
 padrão (`animated` muda isso) e tudo para com `prefers-reduced-motion`. Use `decorative`
 quando o nome do personagem já aparece ao lado. Cada desenho fica em `designs/<personagem>.tsx`.
 
+A casa do tabuleiro é o `<Cell>` de `src/features/board`: recebe a peça, os efeitos
+(`CellEffect[]` do servidor), a mira e a linha vencedora por props, e ocupa a largura de quem a
+envolve. A peça congelada usa o token `ice`.
+
 ## Rotas
 
 Tabela em `src/routes/routes.tsx` e caminhos em `src/routes/paths.ts` (detalhes no
