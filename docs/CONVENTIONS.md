@@ -22,7 +22,8 @@
 ## Commits e PR
 
 - Commits pequenos e com mensagem clara (ex: `fix: corrige validação de login`)
-- PR focada em uma tarefa só, com descrição rápida do que mudou
+- PR focada em uma tarefa só (um card), com descrição rápida do que mudou
+- Na descrição do PR, `Closes #<issue>` fecha o card no merge; para entrega parcial, `Refs #<issue>`
 - Se o componente criado for reutilizável (ex: tabuleiro, componente de poder), citar isso
   na descrição do PR
 
@@ -52,58 +53,58 @@
 - Bypass list → **Repository admin**, modo "For pull requests only": o líder técnico pode
   mergear PR sem aprovação (ex: infraestrutura), mas também não faz push direto na branch
 
-## Template de card de tarefa (Trello)
+## Cards (GitHub Issues + Projects)
 
-```
-Nome da Tarefa (colocar no título): Ex: Criar componente de tabuleiro 4x4 responsivo
+Cada tarefa é uma issue no GitHub, dentro do Project **Jogo da Velha Project**
+(https://github.com/orgs/Jogo-da-Velha-ES3/projects/2).
 
-Etiquetas:
-- Front-end em toda tarefa
-- (Feature/Fix/Refactor...) → tipo de mudança da tarefa
+- **Título:** `[WBS-x] FE-XX — Verbo + o quê` (ex: `[WBS-1] FE-03 — Implementar grid 4x4 local`)
+- **Etiquetas:** `Front-End` em toda tarefa + o tipo (`Feature`, `Fix`, `Refactor`, `Docs`,
+  `Test`)
+- **Responsável:** em Assignees. **Prioridade, Start date e Target date:** nos campos da issue
+- **Dependências:** no texto e também como "Blocked by" na issue, para o GitHub mostrar o
+  bloqueio
 
-Categoria: qual parte do sistema front-end essa tarefa afeta?
-(ex: Componentes/UI, Integração WebSocket, Estado Global, Estilização, PWA, Performance,
-Roteamento, Testes)
-
-Membro Atribuído: @Membro do Trello
-
-Objetivo / Descrição: Explique em 2 ou 3 linhas o que deve ser feito e o contexto técnico.
-
-Dependências: campo tipo "Bloqueado por / Depende de"
-
-Anexos / Links de Apoio:
-Links, referência visual (Figma/print), arquivos etc. para apoio na tarefa;
-
-Validação:
-- Pull Request criada no GitHub
-- Link da Pull Request adicionado ao card
-- Código revisado/validado
-- Critérios de aceite atendidos
-- Seguir Regras Gerais do Front-End
-- Testado em Desktop e Mobile (responsivo)
-- Testado nos principais navegadores (Chrome, Firefox, Safari, Edge)
-- README atualizado (se necessário)
-```
-
-## Template de Pull Request (`.github/pull_request_template.md`)
+Corpo da issue:
 
 ```markdown
-## Card do Trello
+**Categoria:** qual parte do front a tarefa afeta (ex: Componentes/UI, Integração WebSocket,
+Estado Global, Estilização, PWA, Roteamento, Testes)
+**Esforço estimado:** ex: 1,5d
 
-Link:
+**Objetivo / Descrição:**
+O que deve ser feito e o contexto técnico, em 2 ou 3 linhas.
 
-## O que foi feito
+**Dependências:** FE-XX, FE-YY (ou —)
 
-## Checklist
+**Anexos / Links de Apoio:** docs, ERS, esboço de telas, prints
 
-- [ ] `npm run build` passou sem erros
-- [ ] Lint sem warnings
-- [ ] `npm test` passou
-- [ ] Testado em desktop e mobile
-- [ ] Sem console.log esquecido
-- [ ] Segue o contrato de API/WebSocket combinado com o back
-- [ ] README atualizado (se necessário)
+**Validação:**
+
+- Como provar que funciona (ex: testado no celular deitado e no desktop)
+
+**Critérios de Aceite (Definição de Pronto):**
+
+- O que precisa estar pronto para o card ir para Done
 ```
+
+### Colunas do Project
+
+| Status              | Quando                                                   |
+| ------------------- | -------------------------------------------------------- |
+| `Backlog Front-End` | ainda tem dependência aberta: não pegar                  |
+| `Ready`             | dependências concluídas: pode pegar                      |
+| `In progress`       | alguém pegou (mover ao começar)                          |
+| `In review`         | PR aberto, esperando revisão                             |
+| `Done`              | PR mergeado (a issue fecha sozinha com `Closes #` no PR) |
+
+Quem conclui um card move para `Ready` os cards que ele destravou.
+
+## Pull Request
+
+O template fica em `.github/pull_request_template.md` e aparece sozinho ao abrir o PR: card
+(`Closes #` ou `Refs #`), o que foi feito, como testar (com o link de preview que a Vercel comenta
+no PR), prints e checklist. O PR vai para a `dev` e precisa de 1 aprovação.
 
 ## CODEOWNERS (`.github/CODEOWNERS`)
 
