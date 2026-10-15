@@ -165,8 +165,9 @@ implementados no back (revisão de telas, 06/10), então usar as rotas e payload
 ### STOMP (`VITE_WEBSOCKET_URL`)
 
 - `CONNECT` com o token no header `Authorization`.
-- **Assinaturas:** `/topic/rooms/{code}` (eventos públicos da sala) e `/user/queue/room` (eventos
-  privados: opções do meu sorteio, meu deck, erros).
+- **Assinaturas:** `/topic/rooms/{code}` (eventos públicos da sala), `/user/queue/room` (eventos
+  privados: opções do meu sorteio, meu deck) e `/user/queue/errors` (erros das minhas ações, já
+  existente no back).
 - **Envio (cliente → servidor), prefixo `/app/rooms/{code}`:**
   - `/draft/character` `{ character }`
   - `/draft/abilities` `{ abilities: [AbilityId, AbilityId] }`
@@ -197,6 +198,18 @@ implementados no back (revisão de telas, 06/10), então usar as rotas e payload
 
 Ponto de partida para discussão com o Victor Hugo (back). Não é definitivo até ser validado dos
 dois lados.
+
+**Contrato do back (15/10):** o back mantém `docs/contrato-integracao.md` no repositório dele,
+com o status de cada rota e evento (✅ disponível, 📝 proposta) e as datas por card. Ele é a fonte
+do que já existe. Já confirmado:
+
+- REST com prefixo **`/api`** (ex: `POST /api/auth/login`): `VITE_API_URL` termina em `/api`.
+- Erro único no REST: `{ code, message, status, timestamp, path, fields? }`.
+- Ids das habilidades no campo `code`, iguais aos do front.
+- STOMP em `/ws` (sem `/api`), com `/topic` e `/queue`. Os erros das minhas ações chegam em
+  `/user/queue/errors`, no formato do REST e fora do envelope; o front traduz para `ERROR`.
+- Temporário até a BE-009.1: sala com `?playerId=` e erros `ROOM_BAD_REQUEST` (inclusive sala
+  inexistente) e `ROOM_CONFLICT`.
 
 ### Servidor simulado (FE-35)
 

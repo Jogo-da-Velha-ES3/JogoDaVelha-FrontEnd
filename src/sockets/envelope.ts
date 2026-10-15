@@ -6,9 +6,10 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
 /**
- * Aceita o formato combinado `{ type, payload, serverTime }` e o `GameMessage` que o back tem
- * hoje (`{ type, payload, timestamp }`). Devolve null para o que não der para entender: mensagem
- * estranha é ignorada em vez de quebrar a tela.
+ * Aceita o formato combinado `{ type, payload, serverTime }`, o `GameMessage` que o back tem hoje
+ * (`{ type, payload, timestamp }`) e o erro da fila `/user/queue/errors`, que vem no formato do
+ * REST (`{ code, message, timestamp }`, sem `type`). Devolve null para o que não der para
+ * entender: mensagem estranha é ignorada em vez de quebrar a tela.
  */
 export function parseServerMessage(body: string, receivedAt = Date.now()): ServerEnvelope | null {
   let data: unknown
@@ -17,7 +18,8 @@ export function parseServerMessage(body: string, receivedAt = Date.now()): Serve
   } catch {
     return null
   }
-  if (!isRecord(data) || typeof data.type !== 'string') return null
+  if (!isRecord(data)) return null
+  if (typeof data.type !== 'string') return parseBackError(data, receivedAt)
 
   const serverTime =
     typeof data.serverTime === 'number'
@@ -27,4 +29,22 @@ export function parseServerMessage(body: string, receivedAt = Date.now()): Serve
         : receivedAt
 
   return { type: data.type, payload: data.payload ?? {}, serverTime } as ServerEnvelope
+}
+
+/**
+ * Erro do back fora do envelope. ⚠️ Hoje o STOMP manda o `code` como nome do status HTTP
+ * (`BAD_REQUEST`, `CONFLICT`…) e a frase em `error`; o pedido é usar o catálogo do REST (BE-044).
+ */
+function parseBackError(data: Record<string, unknown>, receivedAt: number): ServerEnvelope | null {
+  if (typeof data.code !== 'string') return null
+  const text = (key: string) => (typeof data[key] === 'string' ? (data[key] as string) : null)
+  const timestamp = Date.parse(text('timestamp') ?? '')
+  return {
+    type: 'ERROR',
+    payload: {
+      code: data.code,
+      message: text('message') ?? text('error') ?? 'Não foi possível fazer essa ação.',
+    },
+    serverTime: Number.isNaN(timestamp) ? receivedAt : timestamp,
+  } as ServerEnvelope
 }
