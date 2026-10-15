@@ -103,6 +103,7 @@ O cliente STOMP real (`src/sockets/stompConnection.ts`) já está pronto. Para u
 
 ```bash
 VITE_USE_MOCK_SERVER=false
+VITE_API_URL=http://localhost:8080/api     # o REST do back usa o prefixo /api
 VITE_WEBSOCKET_URL=http://localhost:8080   # vira ws://localhost:8080/ws
 ```
 

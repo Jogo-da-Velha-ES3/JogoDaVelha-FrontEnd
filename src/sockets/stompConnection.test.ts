@@ -117,6 +117,7 @@ describe('StompConnection', () => {
     expect(fake.subscriptions.map((s) => s.destination)).toEqual([
       '/topic/rooms/4821',
       '/user/queue/room',
+      '/user/queue/errors',
     ])
     expect(fake.published).toEqual([{ destination: '/app/rooms/4821/connect', body: '{}' }])
   })
@@ -138,6 +139,31 @@ describe('StompConnection', () => {
     )
     fake.deliver('/user/queue/room', 'isso não é JSON')
     expect(events).toEqual([{ type: 'BOARD_UPDATE', payload: { board: [] }, serverTime: 1234 }])
+  })
+
+  it('erro do back na fila de erros (formato do REST) vira ERROR para a tela', async () => {
+    const connection = setup()
+    const connected = connection.connect('4821')
+    fake.open()
+    await connected
+
+    fake.deliver(
+      '/user/queue/errors',
+      JSON.stringify({
+        code: 'CONFLICT',
+        error: 'Conflict',
+        message: 'Não é a sua vez',
+        status: 409,
+        timestamp: '2026-10-15T12:00:00Z',
+      }),
+    )
+    expect(events).toEqual([
+      {
+        type: 'ERROR',
+        payload: { code: 'CONFLICT', message: 'Não é a sua vez' },
+        serverTime: Date.parse('2026-10-15T12:00:00Z'),
+      },
+    ])
   })
 
   it('cada intenção vai para o seu destino', async () => {
@@ -178,7 +204,7 @@ describe('StompConnection', () => {
 
     fake.open()
     expect(statuses.at(-1)).toBe('CONNECTED')
-    expect(fake.subscriptions).toHaveLength(4)
+    expect(fake.subscriptions).toHaveLength(6)
     expect(fake.published.filter((p) => p.destination.endsWith('/connect'))).toHaveLength(2)
   })
 

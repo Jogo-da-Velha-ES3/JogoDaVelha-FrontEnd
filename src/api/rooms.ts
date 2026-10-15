@@ -1,5 +1,5 @@
 // Criar e entrar em sala pelo REST [RF-HUB-04] [RF-HUB-05]. O jogador vem do token.
-// [A VALIDAR COM O BACK] Hoje o back ainda pede `?playerId=`; o combinado é usar o JWT.
+// ⚠️ Hoje o back ainda pede `?playerId=`; a BE-009.1 troca pelo usuário do JWT (contrato do back).
 import { ROOM_CODE_LENGTH } from '../constants/game'
 import { isMockServerEnabled } from '../sockets/mode'
 import { ApiError, apiRequest } from './client'
@@ -12,6 +12,10 @@ const ROOM_ERRORS: Record<string, (code: string) => string> = {
   ROOM_NOT_FOUND: (code) => `Sala ${code} não encontrada.`,
   ROOM_FULL: (code) => `A sala ${code} já está cheia.`,
   MATCH_ALREADY_STARTED: (code) => `A partida da sala ${code} já começou.`,
+  // ⚠️ Códigos temporários do back até a BE-009.1 (contrato-integracao.md do back): sala
+  // inexistente chega como 400 ROOM_BAD_REQUEST, e cheia/começada como 409 ROOM_CONFLICT
+  ROOM_BAD_REQUEST: (code) => `Sala ${code} não encontrada.`,
+  ROOM_CONFLICT: (code) => `A sala ${code} está cheia ou a partida já começou.`,
 }
 
 /** Mensagem para a tela: pelo `code` do back quando houver, senão pelo status HTTP */
