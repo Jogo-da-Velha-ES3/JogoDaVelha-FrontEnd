@@ -98,6 +98,8 @@ describe('Arena', () => {
   it('faixas mostram os dois jogadores e o espaço do Vitão fica vazio com a flag desligada', async () => {
     renderRoom('normal')
     await toPlaying()
+    // O banner do Confronto já saiu (só aparece na fase VERSUS)
+    expect(screen.queryByText(/vs Oponente Simulado/)).not.toBeInTheDocument()
     expect(screen.getByRole('region', { name: /^Oponente Simulado:/ })).toBeInTheDocument()
     expect(screen.getByRole('region', { name: /\(você\):/ })).toBeInTheDocument()
 

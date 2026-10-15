@@ -33,7 +33,7 @@ export const routes: RouteObject[] = [
   // Carregada sob demanda: só o time usa, e ela traz todas as demonstrações
   {
     path: PATHS.showcase,
-    lazy: async () => ({ Component: (await import('./ShowcasePage')).ShowcasePage }),
+    lazy: async () => ({ Component: (await import('./vitrine/ShowcasePage')).ShowcasePage }),
   },
   { path: '*', element: <NotFoundPage /> },
 ]
