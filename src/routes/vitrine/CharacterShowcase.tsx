@@ -1,7 +1,8 @@
-import { CHARACTER_INFO } from '../constants/characters'
-import { CHARACTERS } from '../constants/game'
-import { Character } from '../features/characters'
-import type { CharacterId } from '../types/game'
+import { CHARACTER_INFO } from '../../constants/characters'
+import { CHARACTERS } from '../../constants/game'
+import { Character } from '../../features/characters'
+import type { CharacterId } from '../../types/game'
+import { ShowcaseBlock } from './ShowcaseLayout'
 
 // Tabuleiro de teste com casas de 40px: as peças precisam ser legíveis nesse tamanho
 // prettier-ignore
@@ -15,11 +16,10 @@ const BOARD: (CharacterId | null)[] = [
 // Seção da vitrine com os 6 personagens nas 3 versões (FE-24)
 export function CharacterShowcase() {
   return (
-    <section aria-labelledby="personagens" className="flex flex-col gap-3">
-      <h2 id="personagens" className="font-display text-lg font-bold text-text-muted uppercase">
-        Personagens neon
-      </h2>
-
+    <ShowcaseBlock
+      title="Os 6 personagens"
+      hint="Versão grande (animada), peças em casas de 40px e avatares. Todos na cor oficial de cada personagem."
+    >
       <ul className="grid grid-cols-3 gap-2 sm:grid-cols-6">
         {CHARACTERS.map((id) => (
           <li key={id} className="flex flex-col items-center gap-1">
@@ -58,6 +58,6 @@ export function CharacterShowcase() {
           <span className="font-mono text-xs text-text-muted">avatares</span>
         </div>
       </div>
-    </section>
+    </ShowcaseBlock>
   )
 }
