@@ -26,7 +26,7 @@ estratégico e competitivo, **sem pay-to-win**.
   anúncios gritados, morte súbita intensa)
 - **Multiplayer:** 2 jogadores por sala, em dispositivos diferentes, via WebSocket + STOMP
 - **Atores** (ERS 1.3): Jogador Host (cria a sala), Jogador Guest (entra com o código), Servidor
-  Autoritativo e o NPC espectador **Vitão** (fora do MVP no front — ver seção 9)
+  Autoritativo e o NPC espectador **Vitão** (entra no MVP 1 atrás de uma flag — ver seção 9)
 
 ### Material de referência visual
 
@@ -376,14 +376,23 @@ Abrir o jogo → [sem sessão] Acesso → Hub (Jogar; abas Loja / Perfil)
   segundos. **Vibração** nos 3 últimos segundos (`navigator.vibrate`; o iPhone não suporta).
 - Sempre respeitar `prefers-reduced-motion`.
 
-### Vitão (NPC espectador) — fora do MVP 1 no front
+### Vitão (NPC espectador) e personalidade do jogo
 
 - A ERS prevê o Vitão reagindo à partida, inclusive numa versão "Diabo" na Morte Súbita.
-- **Decisão:** no MVP 1 o front só **reserva o espaço** dele na Arena e deixa a função **desligada
-  por feature flag** (`VITAO_ENABLED=false`). Nada de arte, falas ou lógica de reação por enquanto.
-- Quando for ligado: falas em arquivo editável, no máximo uma a cada 6s, balão que nunca cobre o
-  tabuleiro, linguagem sem filtro por padrão (com opção de filtrar nas Configurações), arte a partir
-  de fotos e vídeos do Vitão.
+- **Decisão (15/10, com o GP):** com um terceiro grupo ajudando no front, o Vitão **entra no MVP 1**,
+  junto com a sonoplastia e a voz do jogo (cards FE-37 a FE-45, grupo WBS-11 — Personalidade).
+  Antes disso (até 14/10), o front só reservava o espaço dele.
+- **Como ele é:** um bonequinho com a **cabeça do Vitão de verdade** (recortes de fotos com
+  expressões), que anda e reage no espaço reservado da Arena, fala besteiras num balão e **com a
+  voz gravada dele**. Na Morte Súbita vira a versão "Diabo".
+- **Regras:** falas em arquivo editável, no máximo uma a cada 6s, balão que nunca cobre o
+  tabuleiro, linguagem sem filtro por padrão (com opção de filtrar nas Configurações). Tudo é
+  feito com `VITAO_ENABLED=false`; a flag é ligada quando o motor de reações (FE-44) for aprovado.
+- **Autorização:** o uso da imagem, das falas e da voz do Vitão num link público precisa do ok
+  dele, registrado na FE-41.
+- **Voz do jogo:** além do Vitão, os textos da interface (anúncios gritados, banners, erros,
+  avisos, Resultado) seguem um guia de tom com humor de narrador estilo Mortal Kombat/Cuphead,
+  centralizados num arquivo (FE-40).
 
 ## 10. Stack técnica
 
@@ -434,7 +443,9 @@ dela. Ordem e responsáveis em `docs/INITIAL_BACKLOG.md`.
 9. Loja (personagens, habilidades, Coins simbólicos) e Perfil (estatísticas e coleção)
 10. PWA (instalável, paisagem, "Gire o celular") e polimento (personagens neon, pacote da Morte
     Súbita, sons)
-11. **Pós-MVP:** Vitão, cosméticos, habilidades por personagem, login com Google
+11. **Personalidade (terceiro grupo, em paralelo desde 15/10):** sonoplastia, Configurações, voz
+    do jogo e o Vitão com voz (FE-37 a FE-45)
+12. **Pós-MVP:** cosméticos, habilidades por personagem, login com Google
 
 Qualquer item pós-MVP proposto antes do item 10 estar pronto deve ser questionado — é desvio de
 escopo do que foi combinado com o time.
