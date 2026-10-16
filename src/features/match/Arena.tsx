@@ -26,6 +26,8 @@ export function Arena() {
   const phase = useRoomStore((s) => s.phase)
   const players = useRoomStore((s) => s.players)
   const me: PlayerSlot = useRoomStore((s) => s.mySlot) ?? 'P1'
+  // Caiu: nada de jogada até o snapshot da volta (o RoomPage mostra "Reconectando…") [FE-20]
+  const reconnecting = useRoomStore((s) => s.connection === 'RECONNECTING')
   const opp = otherSlot(me)
   const round = useMatchStore((s) => s.round)
   const score = useMatchStore((s) => s.score)
@@ -86,6 +88,7 @@ export function Arena() {
           characters={characters}
           winningLine={winningLine}
           selectable={myTurn ? empty : []}
+          disabled={reconnecting}
           onCellSelect={(cell) => sendCommand({ type: 'MOVE', payload: { cell } })}
         />
       </div>

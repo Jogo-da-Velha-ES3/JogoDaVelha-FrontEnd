@@ -211,11 +211,17 @@ estratégico e competitivo, **sem pay-to-win**.
 
 O crédito é feito pelo back; o front só anima a atualização na tela de Resultado.
 
-### Desconexão **[A VALIDAR COM O BACK]**
+### Desconexão (fechado com o back em 15/10)
 
-A ERS não define a regra. Proposta de interface: ao cair, o oponente vê uma contagem de 30s; se o
-jogador não voltar, a partida termina por W.O. Quem caiu vê "Reconectando…" e volta para o mesmo
-ponto da partida (o estado está no servidor).
+A ERS não define a regra; o back decidiu usar a mesma do W.O. por tempo `[RN-ARN-01]`:
+
+- **Sem contagem especial:** os turnos de quem caiu continuam correndo; cada turno perdido é um
+  estouro e **3 seguidos dão W.O.** O contador não zera na troca de round.
+- **Quem ficou** vê "Oponente desconectado" com os estouros dele (x/3), a partir de
+  `PLAYER_DISCONNECTED` / `PLAYER_RECONNECTED` (pedido ao back em 15/10).
+- **Quem caiu** vê "Reconectando…", não consegue jogar até voltar e volta para o mesmo ponto da
+  partida pelo `ROOM_SNAPSHOT` completo (o estado está no servidor).
+- **No Resultado,** cair conta como sair da sala e cancela a revanche **[A VALIDAR COM O BACK]**.
 
 ## 7. Salas, preparação e pós-jogo
 
@@ -425,10 +431,11 @@ Abrir o jogo → [sem sessão] Acesso → Hub (Jogar; abas Loja / Perfil)
 ### A validar com o back antes de implementar
 
 - Contrato REST (auth, perfil, inventário, loja, compra de Coins) e destinos STOMP
-- Fases da sala (`phase`) e o snapshot completo para reconexão
+- Fases da sala (`phase`) e o snapshot completo para reconexão (campos pedidos em 15/10)
 - Pacotes simbólicos de Coins
-- Endpoints de recuperação de senha
-- Regra de desconexão
+- Endpoints de recuperação de senha (formato proposto em 15/10; o front segue com dados
+  simulados)
+- `PLAYER_DISCONNECTED` / `PLAYER_RECONNECTED` e se cair no Resultado cancela a revanche
 
 ## 12. Prioridade de implementação (MVP 1)
 

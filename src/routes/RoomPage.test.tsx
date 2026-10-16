@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { PREPARATION_SECONDS, TURN_DURATION_SECONDS } from '../constants/game'
+import { getMockControls } from '../sockets/gameClient'
 import { MOCK_TIMINGS } from '../sockets/mock/mockServer'
 import { useAuthStore } from '../stores/authStore'
 import { resetGameStores } from '../stores/serverEvents'
@@ -75,6 +76,29 @@ describe('sala: a tela sai da fase', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Voltar ao Lobby' }))
     expect(router.state.location.pathname).toBe('/')
+  })
+})
+
+describe('reconexão (FE-20)', () => {
+  it('minha conexão cai: "Reconectando…", tabuleiro bloqueado e a partida volta pelo snapshot', async () => {
+    renderRoom('wo') // o bot não joga: o tabuleiro só muda com as suas jogadas
+    await toPlaying()
+    await waitForMyTurn()
+    fireEvent.click(emptyCells()[0])
+    await tick(NET)
+    const empty = () =>
+      within(board()).queryAllByRole('img', { name: /vazia/ }).length + emptyCells().length
+    expect(empty()).toBe(15)
+
+    act(() => getMockControls()?.simulateDrop(3000))
+    expect(screen.getByText('Reconectando…')).toBeInTheDocument()
+    expect(emptyCells()).toHaveLength(0) // nada clicável enquanto cai
+
+    await tick(3000 + NET)
+    expect(screen.queryByText('Reconectando…')).not.toBeInTheDocument()
+    // O snapshot remontou a partida: a sua peça continua lá e o turno do oponente segue
+    expect(empty()).toBe(15)
+    expect(screen.getByText('Vez do oponente')).toBeInTheDocument()
   })
 })
 

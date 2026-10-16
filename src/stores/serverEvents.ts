@@ -1,7 +1,7 @@
 // Ponto único de entrada dos eventos do servidor (ARCHITECTURE §3). O cliente STOMP (FE-18) e o
 // servidor simulado (FE-35) chamam applyServerEvent; nenhum componente assina eventos direto.
 // Cada store reflete o que o servidor confirmou: nada aqui calcula placar, vencedor ou timeout.
-import type { PlayerSlot, PlayerState } from '../types/game'
+import type { CharacterId, PlayerSlot, PlayerState } from '../types/game'
 import type { ServerEnvelope, ServerEvent } from '../types/events'
 import { initialBoardState, useBoardStore } from './boardStore'
 import { useClockStore } from './clockStore'
@@ -47,7 +47,6 @@ export function applyServerEvent(envelope: ServerEnvelope, receivedAt = Date.now
         phase: s.phase,
         players: s.players,
         mySlot: s.mySlot,
-        reconnectDeadlines: {},
         closedReason: null,
       })
       useMatchStore.setState({
@@ -59,9 +58,16 @@ export function applyServerEvent(envelope: ServerEnvelope, receivedAt = Date.now
           P2: of('P2')?.consecutiveTimeouts ?? 0,
         },
         outcome: s.outcome,
+        coins: s.coins ?? null,
+        rematch: s.rematch ? { requestedBy: s.rematch.by, deadline: s.rematch.deadline } : null,
       })
+      if (s.draft) {
+        const characters: Partial<Record<PlayerSlot, CharacterId>> = {}
+        for (const p of s.players) if (p.character) characters[p.slot] = p.character
+        useDraftStore.setState({ deadline: s.draft.deadline, ready: s.draft.ready, characters })
+      }
       useBoardStore.setState({ cells: s.board })
-      usePowersStore.setState({ deck: s.myDeck })
+      usePowersStore.setState({ deck: s.myDeck, drawOptions: s.drawOptions ?? null })
       useTimerStore.setState({ turn: s.turn })
       return
     }
@@ -81,22 +87,12 @@ export function applyServerEvent(envelope: ServerEnvelope, receivedAt = Date.now
       }))
       return
 
-    case 'PLAYER_DISCONNECTED': {
-      const { slot, reconnectDeadline } = event.payload
-      useRoomStore.setState((r) => ({
-        players: patchPlayer(r.players, slot, { connected: false }),
-        reconnectDeadlines: { ...r.reconnectDeadlines, [slot]: reconnectDeadline },
-      }))
-      return
-    }
-
+    case 'PLAYER_DISCONNECTED':
     case 'PLAYER_RECONNECTED': {
-      const { slot } = event.payload
-      useRoomStore.setState((r) => {
-        const reconnectDeadlines = { ...r.reconnectDeadlines }
-        delete reconnectDeadlines[slot]
-        return { players: patchPlayer(r.players, slot, { connected: true }), reconnectDeadlines }
-      })
+      const connected = event.type === 'PLAYER_RECONNECTED'
+      useRoomStore.setState((r) => ({
+        players: patchPlayer(r.players, event.payload.slot, { connected }),
+      }))
       return
     }
 

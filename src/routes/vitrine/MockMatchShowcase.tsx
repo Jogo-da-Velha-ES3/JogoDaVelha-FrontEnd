@@ -4,10 +4,16 @@ import { ABILITY_INFO } from '../../constants/abilities'
 import { CHARACTER_INFO } from '../../constants/characters'
 import { ABILITIES, CHARACTERS } from '../../constants/game'
 import { Board } from '../../features/board'
-import { Arena } from '../../features/match'
+import { Arena, useOpponentDisconnect } from '../../features/match'
 import { RematchPanel, useRoomExit } from '../../features/results'
 import { otherSlot } from '../../lib/match'
-import { joinRoom, leaveRoom, onServerEventForDebug, sendCommand } from '../../sockets/gameClient'
+import {
+  getMockControls,
+  joinRoom,
+  leaveRoom,
+  onServerEventForDebug,
+  sendCommand,
+} from '../../sockets/gameClient'
 import { adjacentCells } from '../../sockets/mock/abilities'
 import {
   BOT_REMATCH_BEHAVIORS,
@@ -165,6 +171,7 @@ export function MockMatchShowcase() {
         <NextStep />
         <PhoneFrame onPlayAgain={() => scenario && start(scenario)} onLeave={stop} />
         <DrawPicker />
+        {room.code && <DropControls />}
         <p className="font-mono text-[11px] text-text-muted">
           Fase {room.phase ?? '—'} · Round {match.round} · Placar {match.score.P1}×{match.score.P2}{' '}
           · Estouros {match.consecutiveTimeouts.P1}/3 × {match.consecutiveTimeouts.P2}/3 · Conexão{' '}
@@ -203,6 +210,7 @@ function NextStep() {
   const turn = useTimerStore((s) => s.turn)
   const rematch = useMatchStore((s) => s.rematch)
   const rematchCancelled = useMatchStore((s) => s.rematchCancelled)
+  const opponent = useOpponentDisconnect()
   const me = room.mySlot ?? 'P1'
 
   let text = 'Escolha um cenário acima para começar.'
@@ -233,6 +241,13 @@ function NextStep() {
     } else if (rematchCancelled || room.closedReason !== null) {
       text = 'A sala foi encerrada. Toque em Voltar ao Lobby ou escolha outro cenário.'
     } else text = 'Fim de jogo. Peça revanche ou volte ao Lobby.'
+  }
+
+  // Quedas (FE-20) têm prioridade sobre o passo da fase
+  if (room.connection === 'RECONNECTING') {
+    text = 'Sua conexão caiu. Reconectando… (o seu tempo de turno continua correndo)'
+  } else if (opponent.disconnected && room.phase !== 'RESULT') {
+    text = `O robô caiu: os turnos dele estouram sozinhos (${opponent.consecutiveTimeouts}/3). No 3º seguido, ele perde por W.O.`
   }
 
   return (
@@ -354,6 +369,36 @@ function ResultScreen({ onPlayAgain, onLeave }: { onPlayAgain: () => void; onLea
       <RematchPanel onLeave={onLeave} />
       <Button variant="ghost" size="sm" onClick={onPlayAgain}>
         Jogar de novo (mesmo cenário)
+      </Button>
+    </div>
+  )
+}
+
+/** Quedas de conexão sob demanda (FE-20). O aviso do oponente na Arena é da FE-05. */
+function DropControls() {
+  const { disconnected } = useOpponentDisconnect()
+  const reconnecting = useRoomStore((s) => s.connection === 'RECONNECTING')
+  const controls = () => getMockControls()
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="text-xs text-text-muted">Simular queda:</span>
+      <Button
+        size="sm"
+        variant="secondary"
+        disabled={reconnecting}
+        onClick={() => controls()?.simulateDrop(5000)}
+      >
+        Minha conexão cai (5s)
+      </Button>
+      <Button
+        size="sm"
+        variant="secondary"
+        onClick={() =>
+          disconnected ? controls()?.reconnectOpponent() : controls()?.dropOpponent()
+        }
+      >
+        {disconnected ? 'Robô volta' : 'Robô cai'}
       </Button>
     </div>
   )

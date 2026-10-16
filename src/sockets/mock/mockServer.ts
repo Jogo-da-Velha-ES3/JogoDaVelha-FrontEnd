@@ -37,12 +37,13 @@ import type {
   PlayerSlot,
   PlayerState,
   RoomPhase,
+  RoomSnapshot,
   TurnState,
 } from '../../types/game'
 import type { ClientCommand, ServerEnvelope, ServerEvent } from '../../types/events'
 import { isBlockedFor, resolveAbility, type ShieldOwners, tickEffects } from './abilities'
 import { chooseBotAction } from './bot'
-import { type BotRematch, SCENARIOS, type Scenario } from './scenarios'
+import { type BotDrop, type BotRematch, SCENARIOS, type Scenario } from './scenarios'
 
 /** Pausas do simulado (ms). As durações de jogo vêm das constantes da ERS. */
 export const MOCK_TIMINGS = {
@@ -59,6 +60,8 @@ export const MOCK_TIMINGS = {
   rematchAccept: 2000,
   /** Quanto o bot espera no Resultado antes de pedir revanche ou sair (`pede`, `sai`) */
   botRematch: 3000,
+  /** `?queda=volta`: o bot volta logo depois de perder o turno em que caiu */
+  botReconnect: TURN_DURATION_SECONDS * 1000 + 1500,
 }
 
 const ROOM_CLOSED_REASON = {
@@ -82,6 +85,8 @@ export interface MockServerOptions {
   scenario?: Scenario
   /** O que o bot faz no Resultado; padrão: aceita a revanche */
   botRematch?: BotRematch
+  /** O bot cai no primeiro turno dele (FE-20); padrão: não cai */
+  botDrop?: BotDrop | null
   nickname?: string
   random?: () => number
 }
@@ -117,11 +122,19 @@ export class MockGameServer {
   private turn: TurnState | null = null
   private hourglassFor: PlayerSlot | null = null
   private draftDeadline = 0
+  private drawDeadline = 0
+  private outcome: MatchOutcome | null = null
+  private coins: Record<PlayerSlot, number> | null = null
+  private botDropped = false
   private timers = new Set<ReturnType<typeof setTimeout>>()
   private turnTimer: ReturnType<typeof setTimeout> | null = null
   private phaseTimer: ReturnType<typeof setTimeout> | null = null
   /** Pedido de revanche em aberto e o prazo dos 15s [RN-POS-01] */
-  private rematch: { by: PlayerSlot; timer: ReturnType<typeof setTimeout> } | null = null
+  private rematch: {
+    by: PlayerSlot
+    deadline: number
+    timer: ReturnType<typeof setTimeout>
+  } | null = null
   /** Sala encerrada (revanche cancelada ou alguém saiu): não aceita mais nada */
   private closed = false
   private stopped = false
@@ -139,20 +152,65 @@ export class MockGameServer {
 
   start() {
     this.players.P1 = this.newPlayer('P1', this.options.nickname ?? 'Você')
-    this.emit('ROOM_SNAPSHOT', {
+    this.emit('ROOM_SNAPSHOT', this.snapshotFor('P1'), 'P1')
+    this.later(MOCK_TIMINGS.botJoin, () => this.botJoin())
+  }
+
+  /** Estado completo da sala para quem entra ou volta (FE-20), com o que é privado dele */
+  private snapshotFor(slot: PlayerSlot): RoomSnapshot {
+    const me = this.player(slot)
+    const present = (['P1', 'P2'] as const).filter((s) => this.players[s])
+    const ready = { P1: false, P2: false }
+    for (const s of present) {
+      const p = this.player(s)
+      ready[s] = p.character !== null && p.initialAbilities !== null
+    }
+    return {
       code: this.options.roomCode,
       phase: this.phase,
-      players: [this.publicState('P1')],
-      mySlot: 'P1',
-      round: 0,
-      suddenDeath: false,
+      players: present.map((s) => this.publicState(s)),
+      mySlot: slot,
+      round: this.round,
+      suddenDeath: this.suddenDeath,
       board: this.cells,
-      turn: null,
-      myDeck: [],
-      outcome: null,
+      turn: this.turn,
+      myDeck: this.round > 0 ? this.deckOf(slot) : [],
+      outcome: this.outcome,
       serverTime: Date.now(),
-    })
-    this.later(MOCK_TIMINGS.botJoin, () => this.botJoin())
+      draft: this.phase === 'DRAFT' ? { deadline: this.draftDeadline, ready } : null,
+      drawOptions:
+        this.phase === 'ROUND_DRAW' && !me.drawn
+          ? { options: me.drawOptions, deadline: this.drawDeadline }
+          : null,
+      coins: this.coins,
+      rematch: this.rematch ? { by: this.rematch.by, deadline: this.rematch.deadline } : null,
+    }
+  }
+
+  // ---------------------------------------------------------------- queda e volta (FE-20)
+
+  /**
+   * Alguém caiu. Sem prazo especial: os turnos dele continuam correndo e 3 estouros seguidos dão
+   * W.O. [RN-ARN-01]. No Resultado, cair conta como sair da sala [A VALIDAR COM O BACK].
+   */
+  disconnect(slot: PlayerSlot) {
+    const p = this.players[slot]
+    if (!p || !p.connected || this.closed) return
+    if (this.phase === 'RESULT') return this.leave(slot)
+    p.connected = false
+    this.emit('PLAYER_DISCONNECTED', { slot })
+  }
+
+  /** Voltou: avisa o outro e manda o estado completo para quem voltou */
+  reconnect(slot: PlayerSlot) {
+    const p = this.players[slot]
+    if (!p || p.connected || this.closed) return
+    p.connected = true
+    this.emit('PLAYER_RECONNECTED', { slot })
+    this.emit('ROOM_SNAPSHOT', this.snapshotFor(slot), slot)
+    if (slot === 'P2' && this.phase === 'PLAYING' && this.turn?.player === 'P2') {
+      this.later(MOCK_TIMINGS.botThinkMin, () => this.botAct())
+    }
   }
 
   stop() {
@@ -287,6 +345,8 @@ export class MockGameServer {
 
   private startDraft() {
     this.rematch = null
+    this.outcome = null
+    this.coins = null
     for (const slot of ['P1', 'P2'] as const) {
       const p = this.player(slot)
       this.players[slot] = this.newPlayer(slot, p.nickname)
@@ -342,7 +402,7 @@ export class MockGameServer {
   }
 
   private botDraft() {
-    if (this.phase !== 'DRAFT') return
+    if (this.phase !== 'DRAFT' || !this.player('P2').connected) return
     const bot = this.player('P2')
     const taken = this.player('P1').character
     if (!bot.character) bot.character = this.pick(CHARACTERS.filter((c) => c !== taken))
@@ -413,6 +473,7 @@ export class MockGameServer {
 
     this.setPhase('ROUND_DRAW')
     const deadline = Date.now() + DRAW_PICK_SECONDS * 1000
+    this.drawDeadline = deadline
     for (const slot of ['P1', 'P2'] as const) {
       const p = this.player(slot)
       // Pool completo menos as 2 iniciais; pode trazer habilidade não comprada [RF-DRAFT-03]
@@ -424,9 +485,10 @@ export class MockGameServer {
       this.emit('DRAW_OPTIONS', { options: p.drawOptions, deadline }, slot)
     }
     this.phaseTimer = this.later(DRAW_PICK_SECONDS * 1000, () => this.finishDraw())
-    this.later(MOCK_TIMINGS.botDraw, () =>
-      this.pickDraw('P2', this.pick(this.player('P2').drawOptions)),
-    )
+    this.later(MOCK_TIMINGS.botDraw, () => {
+      const bot = this.player('P2')
+      if (bot.connected) this.pickDraw('P2', this.pick(bot.drawOptions))
+    })
   }
 
   private playScriptedRound(winner: RoundResult) {
@@ -484,6 +546,14 @@ export class MockGameServer {
     })
     this.turnTimer = this.later(durationSeconds * 1000, () => this.timeout(slot))
 
+    // ?queda=: o bot cai no primeiro turno dele e perde esse turno por tempo
+    const drop = this.options.botDrop
+    if (slot === 'P2' && drop && !this.botDropped) {
+      this.botDropped = true
+      this.disconnect('P2')
+      if (drop === 'volta') this.later(MOCK_TIMINGS.botReconnect, () => this.reconnect('P2'))
+    }
+
     if (slot === 'P2' && !this.scenario.botIdle) {
       const { botThinkMin: min, botThinkMax: max } = MOCK_TIMINGS
       this.later(min + this.random() * (max - min), () => this.botAct())
@@ -492,6 +562,7 @@ export class MockGameServer {
 
   private botAct() {
     if (this.phase !== 'PLAYING' || this.turn?.player !== 'P2') return
+    if (!this.player('P2').connected) return // caído: o turno estoura sozinho
     const input = {
       cells: this.cells,
       shieldOwners: this.shieldOwners,
@@ -648,10 +719,9 @@ export class MockGameServer {
   private endMatch(outcome: MatchOutcome) {
     this.cancel(this.turnTimer)
     this.turn = null
-    this.emit('MATCH_END', {
-      outcome,
-      coins: { P1: coinsFor(outcome, 'P1'), P2: coinsFor(outcome, 'P2') },
-    })
+    this.outcome = outcome
+    this.coins = { P1: coinsFor(outcome, 'P1'), P2: coinsFor(outcome, 'P2') }
+    this.emit('MATCH_END', { outcome, coins: this.coins })
     this.setPhase('RESULT')
 
     if (this.botRematch === 'pede') {
@@ -671,14 +741,13 @@ export class MockGameServer {
     if (this.rematch?.by === otherSlot(slot)) return this.respondRematch(slot, true)
     if (this.rematch) return this.error(slot, 'REMATCH_PENDING', 'Você já pediu revanche.')
 
+    const deadline = Date.now() + REMATCH_WINDOW_SECONDS * 1000
     this.rematch = {
       by: slot,
+      deadline,
       timer: this.later(REMATCH_WINDOW_SECONDS * 1000, () => this.cancelRematch('TIMEOUT')),
     }
-    this.emit('REMATCH_REQUESTED', {
-      by: slot,
-      deadline: Date.now() + REMATCH_WINDOW_SECONDS * 1000,
-    })
+    this.emit('REMATCH_REQUESTED', { by: slot, deadline })
 
     if (slot === 'P1' && (this.botRematch === 'aceita' || this.botRematch === 'recusa')) {
       const accept = this.botRematch === 'aceita'

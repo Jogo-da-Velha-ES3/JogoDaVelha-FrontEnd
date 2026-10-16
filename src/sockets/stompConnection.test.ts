@@ -208,6 +208,30 @@ describe('StompConnection', () => {
     expect(fake.published.filter((p) => p.destination.endsWith('/connect'))).toHaveLength(2)
   })
 
+  it('várias quedas seguidas: cada mensagem chega uma vez só (FE-20)', async () => {
+    const connection = setup()
+    const connected = connection.connect('4821')
+    fake.open()
+    await connected
+
+    for (let i = 0; i < 3; i++) {
+      fake.drop()
+      fake.subscriptions = [] // as assinaturas morrem com a conexão, como no broker de verdade
+      fake.open()
+    }
+    expect(fake.subscriptions).toHaveLength(3)
+
+    fake.deliver(
+      '/topic/rooms/4821',
+      JSON.stringify({ type: 'PHASE_CHANGE', payload: { phase: 'DRAFT' }, serverTime: 1 }),
+    )
+    expect(events).toHaveLength(1)
+
+    const current = [...fake.subscriptions]
+    connection.disconnect()
+    current.forEach((s) => expect(s.unsubscribe).toHaveBeenCalledOnce())
+  })
+
   it('servidor recusa a conexão (ex: token inválido): status de erro e connect rejeitado', async () => {
     const connection = setup()
     const connected = connection.connect('4821')
