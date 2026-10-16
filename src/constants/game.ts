@@ -17,6 +17,9 @@ export const REMATCH_WINDOW_SECONDS = 15 // [RN-POS-01]
 export const EFFECT_DURATION_TURNS = 2 // Escudo, Congelar, Campo de Força, Reforço [RN-ARN-07]
 // No W.O., a Arena segura o banner antes de ir para o Resultado (PROJECT_CONTEXT §9, 16/10)
 export const WO_RESULT_DELAY_SECONDS = 2
+/** Banner de início do round (ROUND N, MATCH POINT, MORTE SÚBITA) e, no round 1, a moeda girando */
+export const ROUND_BANNER_SECONDS = 2.5
+export const ROUND_COIN_FLIP_SECONDS = 1.2
 
 export const INITIAL_ABILITIES_TO_PICK = 2
 export const DECK_SIZE = 3 // 2 iniciais + 1 sorteada [RN-DRAFT-02]

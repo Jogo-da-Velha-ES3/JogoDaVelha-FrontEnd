@@ -18,11 +18,22 @@ export interface MatchState {
   /** Estouros seguidos de cada lado (0–3). Não zera na troca de round [RN-ARN-01] */
   consecutiveTimeouts: Score
   /** Último estouro, para disparar o aviso "1/3", "2/3" (serverTime diferencia avisos iguais) */
-  lastTimeout: { player: PlayerSlot; consecutiveTimeouts: number; serverTime: number } | null
+  lastTimeout: {
+    player: PlayerSlot
+    consecutiveTimeouts: number
+    serverTime: number
+    /** Hora do aparelho em que chegou, para o aviso durar poucos segundos */
+    receivedAt: number
+  } | null
   /** Fim do último round: vencedor (null = empate) e linha vencedora */
   roundEnd: { round: number; winner: PlayerSlot | null; winningLine: number[] | null } | null
   /** Vitória, empate absoluto ou W.O. [RN-ARN-06] */
   outcome: MatchOutcome | null
+  /**
+   * Hora do aparelho em que o ROUND_START chegou, para o banner de início do round durar poucos
+   * segundos (null se veio de um snapshot de reconexão: sem banner)
+   */
+  roundStartedAt: number | null
   /** Hora do aparelho em que o MATCH_END chegou (null se veio de um snapshot de reconexão) */
   outcomeReceivedAt: number | null
   /** Coins creditados pelo back a cada lado */
@@ -42,6 +53,7 @@ export const INITIAL_MATCH_STATE: MatchState = {
   lastTimeout: null,
   roundEnd: null,
   outcome: null,
+  roundStartedAt: null,
   outcomeReceivedAt: null,
   coins: null,
   rematch: null,

@@ -118,7 +118,13 @@ export function applyServerEvent(envelope: ServerEnvelope, receivedAt = Date.now
     case 'ROUND_START': {
       const { round, startingPlayer, suddenDeath } = event.payload
       // Os estouros NÃO zeram aqui: persistem entre rounds [RN-ARN-01]
-      useMatchStore.setState({ round, startingPlayer, suddenDeath, roundEnd: null })
+      useMatchStore.setState({
+        round,
+        startingPlayer,
+        suddenDeath,
+        roundEnd: null,
+        roundStartedAt: receivedAt,
+      })
       useBoardStore.setState({ winningLine: null, lastAbility: null })
       usePowersStore.setState({ aim: null })
       return
@@ -155,7 +161,7 @@ export function applyServerEvent(envelope: ServerEnvelope, receivedAt = Date.now
       const { player, consecutiveTimeouts } = event.payload
       useMatchStore.setState((m) => ({
         consecutiveTimeouts: { ...m.consecutiveTimeouts, [player]: consecutiveTimeouts },
-        lastTimeout: { player, consecutiveTimeouts, serverTime },
+        lastTimeout: { player, consecutiveTimeouts, serverTime, receivedAt },
       }))
       useRoomStore.setState((r) => ({
         players: patchPlayer(r.players, player, { consecutiveTimeouts }),

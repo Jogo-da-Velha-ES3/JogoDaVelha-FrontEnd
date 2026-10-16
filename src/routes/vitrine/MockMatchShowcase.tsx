@@ -271,7 +271,7 @@ function PhoneFrame({ onPlayAgain, onLeave }: { onPlayAgain: () => void; onLeave
     screen = <Centered text="Sala 0000 · Aguardando adversário…" />
   } else if (phase === 'MATCHED') screen = <Centered text="MATCH FEITO! O robô entrou!" />
   else if (phase === 'DRAFT') screen = <DraftScreen />
-  else if (phase && ARENA_PHASES.includes(phase)) screen = <Arena />
+  else if (phase && ARENA_PHASES.includes(phase)) screen = <Arena onQuit={onLeave} />
   else if (phase === 'RESULT') screen = <ResultScreen onPlayAgain={onPlayAgain} onLeave={onLeave} />
 
   return (
