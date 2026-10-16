@@ -3,7 +3,10 @@ import type { Score } from '../lib/match'
 import type { MatchOutcome, PlayerSlot } from '../types/game'
 import type { ServerEvent } from '../types/events'
 
-type CancelReason = Extract<ServerEvent, { type: 'REMATCH_CANCELLED' }>['payload']['reason']
+export type RematchCancelReason = Extract<
+  ServerEvent,
+  { type: 'REMATCH_CANCELLED' }
+>['payload']['reason']
 
 export interface MatchState {
   /** 0 = a partida ainda não começou */
@@ -24,8 +27,10 @@ export interface MatchState {
   outcomeReceivedAt: number | null
   /** Coins creditados pelo back a cada lado */
   coins: Score | null
+  /** Pedido de revanche em aberto e o prazo dos 15s (timestamp do servidor) [RN-POS-01] */
   rematch: { requestedBy: PlayerSlot; deadline: number } | null
-  rematchCancelled: CancelReason | null
+  /** Pedido cancelado: o motivo e quem tinha pedido (quem pediu volta ao Hub) [RN-POS-02] */
+  rematchCancelled: { reason: RematchCancelReason; requestedBy: PlayerSlot | null } | null
 }
 
 export const INITIAL_MATCH_STATE: MatchState = {

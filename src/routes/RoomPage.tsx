@@ -1,7 +1,8 @@
 import { useEffect } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { WO_RESULT_DELAY_SECONDS } from '../constants/game'
 import { Arena } from '../features/match'
+import { useRoomExit } from '../features/results'
 import { useIsBefore } from '../hooks/useIsBefore'
 import { isValidRoomCode } from '../lib/roomCode'
 import { joinRoom, leaveRoom } from '../sockets/gameClient'
@@ -10,6 +11,7 @@ import { useRoomStore } from '../stores/roomStore'
 import { showToast } from '../stores/toastStore'
 import { NotFoundPage } from './NotFoundPage'
 import { PagePlaceholder } from './PagePlaceholder'
+import { PATHS } from './paths'
 import {
   PreparationPlaceholder,
   ResultPlaceholder,
@@ -40,6 +42,13 @@ export function RoomPage() {
   useEffect(() => {
     if (lastError) showToast({ message: lastError.message, tone: 'danger' })
   }, [lastError])
+
+  // Revanche cancelada para quem pediu ou sala encerrada: avisa e volta ao Hub [RN-POS-02]
+  const navigate = useNavigate()
+  useRoomExit((message) => {
+    showToast({ message, tone: 'info' })
+    navigate(PATHS.play)
+  })
 
   if (!isValid) return <NotFoundPage />
 

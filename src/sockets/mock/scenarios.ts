@@ -28,3 +28,25 @@ export function resolveScenario(search: string, envScenario?: string): Scenario 
   if (isScenarioId(envScenario)) return SCENARIOS[envScenario]
   return SCENARIOS.normal
 }
+
+/**
+ * O que o bot faz no Resultado (FE-29), independente do cenário da partida:
+ * - `aceita` / `recusa`: responde ao seu pedido de revanche
+ * - `ignora`: não responde, e o pedido cai depois de 15s
+ * - `pede`: ele mesmo pede revanche, e você aceita ou recusa
+ * - `sai`: volta ao Lobby logo depois do fim da partida
+ */
+export const BOT_REMATCH_BEHAVIORS = ['aceita', 'recusa', 'ignora', 'pede', 'sai'] as const
+
+export type BotRematch = (typeof BOT_REMATCH_BEHAVIORS)[number]
+
+const isBotRematch = (value: string | null | undefined): value is BotRematch =>
+  BOT_REMATCH_BEHAVIORS.some((b) => b === value)
+
+/** `?revanche=` na URL tem prioridade sobre `VITE_MOCK_REMATCH`; sem nada, `aceita` */
+export function resolveBotRematch(search: string, envRematch?: string): BotRematch {
+  const fromUrl = new URLSearchParams(search).get('revanche')
+  if (isBotRematch(fromUrl)) return fromUrl
+  if (isBotRematch(envRematch)) return envRematch
+  return 'aceita'
+}

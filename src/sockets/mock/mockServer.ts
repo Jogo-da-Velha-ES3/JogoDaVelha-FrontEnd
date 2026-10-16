@@ -42,7 +42,7 @@ import type {
 import type { ClientCommand, ServerEnvelope, ServerEvent } from '../../types/events'
 import { isBlockedFor, resolveAbility, type ShieldOwners, tickEffects } from './abilities'
 import { chooseBotAction } from './bot'
-import { SCENARIOS, type Scenario } from './scenarios'
+import { type BotRematch, SCENARIOS, type Scenario } from './scenarios'
 
 /** Pausas do simulado (ms). As durações de jogo vêm das constantes da ERS. */
 export const MOCK_TIMINGS = {
@@ -55,8 +55,17 @@ export const MOCK_TIMINGS = {
   botDraw: 1500,
   botThinkMin: 800,
   botThinkMax: 2000,
+  /** Quanto o bot demora para responder à revanche */
   rematchAccept: 2000,
+  /** Quanto o bot espera no Resultado antes de pedir revanche ou sair (`pede`, `sai`) */
+  botRematch: 3000,
 }
+
+const ROOM_CLOSED_REASON = {
+  TIMEOUT: 'O tempo da revanche acabou.',
+  DECLINED: 'A revanche foi recusada.',
+  LEFT: 'O oponente saiu da sala.',
+} as const
 
 interface MockPlayer extends PlayerState {
   initialAbilities: AbilityId[] | null
@@ -71,6 +80,8 @@ export interface MockServerOptions {
   roomCode: string
   emit: (envelope: ServerEnvelope) => void
   scenario?: Scenario
+  /** O que o bot faz no Resultado; padrão: aceita a revanche */
+  botRematch?: BotRematch
   nickname?: string
   random?: () => number
 }
@@ -92,6 +103,7 @@ function scriptedBoard(winner: RoundResult): { cells: Cell[]; line: number[] | n
 
 export class MockGameServer {
   private readonly scenario: Scenario
+  private readonly botRematch: BotRematch
   private readonly random: () => number
   private phase: RoomPhase = 'WAITING'
   private players: Partial<Record<PlayerSlot, MockPlayer>> = {}
@@ -108,6 +120,10 @@ export class MockGameServer {
   private timers = new Set<ReturnType<typeof setTimeout>>()
   private turnTimer: ReturnType<typeof setTimeout> | null = null
   private phaseTimer: ReturnType<typeof setTimeout> | null = null
+  /** Pedido de revanche em aberto e o prazo dos 15s [RN-POS-01] */
+  private rematch: { by: PlayerSlot; timer: ReturnType<typeof setTimeout> } | null = null
+  /** Sala encerrada (revanche cancelada ou alguém saiu): não aceita mais nada */
+  private closed = false
   private stopped = false
 
   private readonly options: MockServerOptions
@@ -115,6 +131,7 @@ export class MockGameServer {
   constructor(options: MockServerOptions) {
     this.options = options
     this.scenario = options.scenario ?? SCENARIOS.normal
+    this.botRematch = options.botRematch ?? 'aceita'
     this.random = options.random ?? Math.random
   }
 
@@ -233,6 +250,10 @@ export class MockGameServer {
 
   /** Intenção de qualquer lado. O P2 é o bot; os testes usam isto para controlá-lo. */
   receive(slot: PlayerSlot, command: ClientCommand) {
+    if (this.closed) {
+      if (command.type === 'LEAVE') return this.stop()
+      return this.error(slot, 'ROOM_CLOSED', 'A sala foi encerrada.')
+    }
     switch (command.type) {
       case 'DRAFT_CHARACTER':
         return this.pickCharacter(slot, command.payload.character)
@@ -249,10 +270,9 @@ export class MockGameServer {
       case 'REMATCH_REQUEST':
         return this.requestRematch(slot)
       case 'REMATCH_RESPOND':
-        return this.error(slot, 'NO_REMATCH', 'Não há pedido de revanche para responder.')
+        return this.respondRematch(slot, command.payload.accept)
       case 'LEAVE':
-        this.emit('ROOM_CLOSED', { reason: 'Você saiu da sala.' })
-        return this.stop()
+        return this.leave(slot)
     }
   }
 
@@ -266,6 +286,7 @@ export class MockGameServer {
   }
 
   private startDraft() {
+    this.rematch = null
     for (const slot of ['P1', 'P2'] as const) {
       const p = this.player(slot)
       this.players[slot] = this.newPlayer(slot, p.nickname)
@@ -632,19 +653,74 @@ export class MockGameServer {
       coins: { P1: coinsFor(outcome, 'P1'), P2: coinsFor(outcome, 'P2') },
     })
     this.setPhase('RESULT')
+
+    if (this.botRematch === 'pede') {
+      this.later(MOCK_TIMINGS.botRematch, () => this.requestRematch('P2'))
+    } else if (this.botRematch === 'sai') {
+      this.later(MOCK_TIMINGS.botRematch, () => this.leave('P2'))
+    }
   }
 
-  // ---------------------------------------------------------------- revanche
+  // ---------------------------------------------------------------- revanche e saída
 
   private requestRematch(slot: PlayerSlot) {
     if (this.phase !== 'RESULT') {
       return this.error(slot, 'WRONG_PHASE', 'A revanche só pode ser pedida no Resultado.')
     }
+    // Os dois pediram: vale como aceite
+    if (this.rematch?.by === otherSlot(slot)) return this.respondRematch(slot, true)
+    if (this.rematch) return this.error(slot, 'REMATCH_PENDING', 'Você já pediu revanche.')
+
+    this.rematch = {
+      by: slot,
+      timer: this.later(REMATCH_WINDOW_SECONDS * 1000, () => this.cancelRematch('TIMEOUT')),
+    }
     this.emit('REMATCH_REQUESTED', {
       by: slot,
       deadline: Date.now() + REMATCH_WINDOW_SECONDS * 1000,
     })
-    // O bot sempre aceita: a sala é mantida e tudo recomeça na Preparação [RN-POS-03]
-    this.later(MOCK_TIMINGS.rematchAccept, () => this.startDraft())
+
+    if (slot === 'P1' && (this.botRematch === 'aceita' || this.botRematch === 'recusa')) {
+      const accept = this.botRematch === 'aceita'
+      this.later(MOCK_TIMINGS.rematchAccept, () => this.respondRematch('P2', accept))
+    }
+  }
+
+  private respondRematch(slot: PlayerSlot, accept: boolean) {
+    if (this.phase !== 'RESULT' || !this.rematch || this.rematch.by === slot) {
+      return this.error(slot, 'NO_REMATCH', 'Não há pedido de revanche para responder.')
+    }
+    if (!accept) return this.cancelRematch('DECLINED')
+    this.cancel(this.rematch.timer)
+    // Aceita pelos dois: a sala é mantida e tudo recomeça na Preparação [RN-POS-03]
+    this.startDraft()
+  }
+
+  /** Pedido cancelado: a sala é encerrada e quem pediu volta ao Hub [RN-POS-02] */
+  private cancelRematch(reason: keyof typeof ROOM_CLOSED_REASON) {
+    if (!this.rematch) return
+    this.cancel(this.rematch.timer)
+    this.rematch = null
+    this.emit('REMATCH_CANCELLED', { reason })
+    this.closeRoom(ROOM_CLOSED_REASON[reason])
+  }
+
+  /** Voltar ao Lobby (ou fechar o app): encerra a sala e avisa o outro na hora */
+  private leave(slot: PlayerSlot) {
+    if (this.rematch) {
+      this.cancel(this.rematch.timer)
+      this.rematch = null
+      this.emit('REMATCH_CANCELLED', { reason: 'LEFT' })
+    }
+    this.emit('PLAYER_LEFT', { slot })
+    this.closeRoom(slot === 'P1' ? 'Você saiu da sala.' : ROOM_CLOSED_REASON.LEFT)
+    if (slot === 'P1') this.stop()
+  }
+
+  private closeRoom(reason: string) {
+    this.closed = true
+    this.timers.forEach(clearTimeout)
+    this.timers.clear()
+    this.emit('ROOM_CLOSED', { reason })
   }
 }

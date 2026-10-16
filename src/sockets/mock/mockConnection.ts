@@ -1,10 +1,11 @@
 import type { ClientCommand, ServerEnvelope } from '../../types/events'
 import type { ConnectionStatus, GameConnection, Unsubscribe } from '../types'
 import { MockGameServer } from './mockServer'
-import type { Scenario } from './scenarios'
+import type { BotRematch, Scenario } from './scenarios'
 
 export interface MockConnectionOptions {
   scenario?: Scenario
+  botRematch?: BotRematch
   nickname?: string
   /** Atraso simulado da "rede", ida e volta (ms) */
   latencyMs?: number
@@ -36,6 +37,7 @@ export class MockConnection implements GameConnection {
     this.server = new MockGameServer({
       roomCode,
       scenario: this.options.scenario,
+      botRematch: this.options.botRematch,
       nickname: this.options.nickname,
       random: this.options.random,
       emit: (envelope) =>

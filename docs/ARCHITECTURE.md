@@ -90,6 +90,11 @@ Arena segura o banner por `WO_RESULT_DELAY_SECONDS` antes do Resultado (PROJECT_
 A Arena fica em `src/features/match/Arena.tsx`, com as regiões prontas para as faixas e banners
 (FE-05), o deck (FE-11) e a mira (FE-27).
 
+Revanche e saída (FE-29) ficam em `src/features/results/`: o `RematchPanel` (Revanche, Aceitar /
+Recusar com a barra dos 15s e Voltar ao Lobby) entra na tela de Resultado da FE-15, e o
+`useRoomExit` (usado pelo `RoomPage`) avisa e leva ao Hub quem teve o pedido cancelado ou viu a
+sala ser encerrada fora do Resultado. A revanche aceita chega como `PHASE_CHANGE` para `DRAFT`.
+
 ## 3. Stores (Zustand)
 
 | Store          | Guarda                                                                                                 |
@@ -222,6 +227,8 @@ front (`src/sockets/mock/`). Ele fica **ligado por padrão até a FE-18** e desl
   habilidades com as regras de `src/lib`. Você é sempre o P1; o P2 é um oponente automático.
 - Cenários prontos, por `?cenario=` na URL ou `VITE_MOCK_SCENARIO`: `normal`, `vitoria`,
   `empate-absoluto`, `morte-subita` e `wo`.
+- O que o bot faz no Resultado, por `?revanche=` ou `VITE_MOCK_REMATCH`: `aceita` (padrão),
+  `recusa`, `ignora`, `pede` e `sai` (FE-29).
 - As telas usam só `src/sockets/gameClient.ts` (`joinRoom`, `sendCommand`, `leaveRoom`) e as
   stores. Nunca sabem se estão falando com o simulado ou com o real.
 - `[A VALIDAR COM O BACK]` "casa adjacente" (Tornado, Troca Rápida) inclui as diagonais.

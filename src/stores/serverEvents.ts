@@ -198,7 +198,13 @@ export function applyServerEvent(envelope: ServerEnvelope, receivedAt = Date.now
       return
 
     case 'REMATCH_CANCELLED':
-      useMatchStore.setState({ rematch: null, rematchCancelled: event.payload.reason })
+      useMatchStore.setState((m) => ({
+        rematch: null,
+        rematchCancelled: {
+          reason: event.payload.reason,
+          requestedBy: m.rematch?.requestedBy ?? null,
+        },
+      }))
       return
 
     case 'ROOM_CLOSED':

@@ -276,11 +276,14 @@ describe('fase, revanche e sala', () => {
     expect(useRoomStore.getState().players).toHaveLength(2)
   })
 
-  it('pedido de revanche e cancelamento', () => {
+  it('pedido de revanche e cancelamento guardam quem tinha pedido', () => {
     send('REMATCH_REQUESTED', { by: 'P2', deadline: clock + 15_000 })
     expect(match().rematch).toMatchObject({ requestedBy: 'P2' })
     send('REMATCH_CANCELLED', { reason: 'TIMEOUT' })
-    expect(match()).toMatchObject({ rematch: null, rematchCancelled: 'TIMEOUT' })
+    expect(match()).toMatchObject({
+      rematch: null,
+      rematchCancelled: { reason: 'TIMEOUT', requestedBy: 'P2' },
+    })
   })
 
   it('sala encerrada, erro e saída do jogador', () => {
