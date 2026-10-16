@@ -7,6 +7,8 @@ interface ImportMetaEnv {
   readonly VITE_USE_MOCK_SERVER?: string
   /** Cenário do simulado: normal, vitoria, empate-absoluto, morte-subita, wo */
   readonly VITE_MOCK_SCENARIO?: string
+  /** O que o bot faz no Resultado: aceita, recusa, ignora, pede, sai */
+  readonly VITE_MOCK_REMATCH?: string
 }
 
 interface ImportMeta {

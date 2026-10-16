@@ -5,16 +5,24 @@ import { CHARACTER_INFO } from '../../constants/characters'
 import { ABILITIES, CHARACTERS } from '../../constants/game'
 import { Board } from '../../features/board'
 import { Arena } from '../../features/match'
+import { RematchPanel, useRoomExit } from '../../features/results'
 import { otherSlot } from '../../lib/match'
 import { joinRoom, leaveRoom, onServerEventForDebug, sendCommand } from '../../sockets/gameClient'
 import { adjacentCells } from '../../sockets/mock/abilities'
-import { SCENARIOS, type ScenarioId } from '../../sockets/mock/scenarios'
+import {
+  BOT_REMATCH_BEHAVIORS,
+  type BotRematch,
+  resolveBotRematch,
+  SCENARIOS,
+  type ScenarioId,
+} from '../../sockets/mock/scenarios'
 import { useBoardStore } from '../../stores/boardStore'
 import { useDraftStore } from '../../stores/draftStore'
 import { useMatchStore } from '../../stores/matchStore'
 import { usePowersStore } from '../../stores/powersStore'
 import { useRoomStore } from '../../stores/roomStore'
 import { useTimerStore } from '../../stores/timerStore'
+import { showToast } from '../../stores/toastStore'
 import type { AbilityId, PlayerSlot, RoomPhase } from '../../types/game'
 import { ShowcaseBlock } from './ShowcaseLayout'
 
@@ -46,6 +54,14 @@ const SCENARIO_CARDS: { id: ScenarioId; title: string; description: string }[] =
   },
 ]
 
+const BOT_REMATCH_LABEL: Record<BotRematch, string> = {
+  aceita: 'Aceita',
+  recusa: 'Recusa',
+  ignora: 'Não responde',
+  pede: 'Pede revanche',
+  sai: 'Sai da sala',
+}
+
 const ARENA_PHASES: RoomPhase[] = ['VERSUS', 'ROUND_DRAW', 'PLAYING', 'ROUND_END']
 
 const OUTCOME_TITLE = { WIN: 'Vitória', ABSOLUTE_DRAW: 'Empate absoluto', WO: 'W.O.' } as const
@@ -61,6 +77,9 @@ const initialScenario = (): ScenarioId | null => {
  */
 export function MockMatchShowcase() {
   const [scenario, setScenario] = useState<ScenarioId | null>(initialScenario)
+  const [botRematch, setBotRematch] = useState<BotRematch>(() =>
+    resolveBotRematch(window.location.search),
+  )
   const [log, setLog] = useState<string[]>([])
   const room = useRoomStore()
   const match = useMatchStore()
@@ -78,13 +97,19 @@ export function MockMatchShowcase() {
   const start = (id: ScenarioId) => {
     setScenario(id)
     setLog([])
-    void joinRoom('0000', { mock: { scenario: SCENARIOS[id] } })
+    void joinRoom('0000', { mock: { scenario: SCENARIOS[id], botRematch } })
   }
 
   const stop = () => {
     leaveRoom()
     setScenario(null)
   }
+
+  // Como na sala de verdade: quem pediu revanche e teve o pedido cancelado volta ao "Hub"
+  useRoomExit((message) => {
+    showToast({ message, tone: 'info' })
+    stop()
+  })
 
   return (
     <div className="flex flex-col gap-4">
@@ -110,8 +135,24 @@ export function MockMatchShowcase() {
             </li>
           ))}
         </ul>
+        <fieldset className="flex flex-wrap items-center gap-2 border-t border-line/60 pt-2">
+          <legend className="mb-1 text-xs text-text-muted">
+            No fim da partida, o robô… (vale para a próxima partida que você começar)
+          </legend>
+          {BOT_REMATCH_BEHAVIORS.map((behavior) => (
+            <Button
+              key={behavior}
+              size="sm"
+              variant={botRematch === behavior ? 'primary' : 'ghost'}
+              aria-pressed={botRematch === behavior}
+              onClick={() => setBotRematch(behavior)}
+            >
+              {BOT_REMATCH_LABEL[behavior]}
+            </Button>
+          ))}
+        </fieldset>
         {room.code && (
-          <Button variant="ghost" size="sm" className="self-start" onClick={stop}>
+          <Button variant="secondary" size="sm" className="self-start" onClick={stop}>
             Encerrar partida
           </Button>
         )}
@@ -122,7 +163,7 @@ export function MockMatchShowcase() {
         hint="A caixa abaixo é a tela de um celular deitado. Siga o que aparece em “Agora”."
       >
         <NextStep />
-        <PhoneFrame onPlayAgain={() => scenario && start(scenario)} />
+        <PhoneFrame onPlayAgain={() => scenario && start(scenario)} onLeave={stop} />
         <DrawPicker />
         <p className="font-mono text-[11px] text-text-muted">
           Fase {room.phase ?? '—'} · Round {match.round} · Placar {match.score.P1}×{match.score.P2}{' '}
@@ -160,6 +201,8 @@ function NextStep() {
   const draft = useDraftStore()
   const drawOptions = usePowersStore((s) => s.drawOptions)
   const turn = useTimerStore((s) => s.turn)
+  const rematch = useMatchStore((s) => s.rematch)
+  const rematchCancelled = useMatchStore((s) => s.rematchCancelled)
   const me = room.mySlot ?? 'P1'
 
   let text = 'Escolha um cenário acima para começar.'
@@ -181,7 +224,16 @@ function NextStep() {
         ? 'Sua vez: toque numa casa vazia do tabuleiro.'
         : 'Vez do robô. Espere a jogada dele.'
   } else if (room.phase === 'ROUND_END') text = 'Fim do round! O próximo começa em instantes.'
-  else if (room.phase === 'RESULT') text = 'Fim de jogo. Peça revanche ou jogue de novo.'
+  else if (room.phase === 'RESULT') {
+    if (rematch) {
+      text =
+        rematch.requestedBy === me
+          ? 'Revanche pedida. Esperando o robô responder (até 15 segundos)…'
+          : 'O robô pediu revanche: aceite ou recuse em até 15 segundos.'
+    } else if (rematchCancelled || room.closedReason !== null) {
+      text = 'A sala foi encerrada. Toque em Voltar ao Lobby ou escolha outro cenário.'
+    } else text = 'Fim de jogo. Peça revanche ou volte ao Lobby.'
+  }
 
   return (
     <p
@@ -195,7 +247,7 @@ function NextStep() {
 }
 
 /** A "tela do celular deitado": mostra a fase atual do começo ao fim */
-function PhoneFrame({ onPlayAgain }: { onPlayAgain: () => void }) {
+function PhoneFrame({ onPlayAgain, onLeave }: { onPlayAgain: () => void; onLeave: () => void }) {
   const phase = useRoomStore((s) => s.phase)
   const code = useRoomStore((s) => s.code)
 
@@ -205,7 +257,7 @@ function PhoneFrame({ onPlayAgain }: { onPlayAgain: () => void }) {
   } else if (phase === 'MATCHED') screen = <Centered text="MATCH FEITO! O robô entrou!" />
   else if (phase === 'DRAFT') screen = <DraftScreen />
   else if (phase && ARENA_PHASES.includes(phase)) screen = <Arena />
-  else if (phase === 'RESULT') screen = <ResultScreen onPlayAgain={onPlayAgain} />
+  else if (phase === 'RESULT') screen = <ResultScreen onPlayAgain={onPlayAgain} onLeave={onLeave} />
 
   return (
     <div className="h-[390px] w-[844px] max-w-full overflow-hidden rounded-[28px] border-4 border-line bg-bg-deep px-4 py-2">
@@ -280,8 +332,8 @@ function DraftScreen() {
   )
 }
 
-/** Resultado simplificado (a tela de verdade é a FE-15) */
-function ResultScreen({ onPlayAgain }: { onPlayAgain: () => void }) {
+/** Resultado simplificado (a tela de verdade é a FE-15), com a revanche de verdade (FE-29) */
+function ResultScreen({ onPlayAgain, onLeave }: { onPlayAgain: () => void; onLeave: () => void }) {
   const me = useRoomStore((s) => s.mySlot) ?? 'P1'
   const outcome = useMatchStore((s) => s.outcome)
   const score = useMatchStore((s) => s.score)
@@ -289,7 +341,7 @@ function ResultScreen({ onPlayAgain }: { onPlayAgain: () => void }) {
   const won = outcome && outcome.kind !== 'ABSOLUTE_DRAW' && outcome.winner === me
 
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
+    <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
       <p className="font-display text-4xl font-extrabold uppercase">
         {outcome?.kind === 'ABSOLUTE_DRAW'
           ? 'Empate absoluto'
@@ -299,14 +351,10 @@ function ResultScreen({ onPlayAgain }: { onPlayAgain: () => void }) {
         {score[me]} × {score[otherSlot(me)]}
       </p>
       <p className="font-mono text-coin">+{coins?.[me] ?? 0} Coins</p>
-      <div className="flex gap-2">
-        <Button onClick={() => sendCommand({ type: 'REMATCH_REQUEST', payload: {} })}>
-          Revanche
-        </Button>
-        <Button variant="secondary" onClick={onPlayAgain}>
-          Jogar de novo
-        </Button>
-      </div>
+      <RematchPanel onLeave={onLeave} />
+      <Button variant="ghost" size="sm" onClick={onPlayAgain}>
+        Jogar de novo (mesmo cenário)
+      </Button>
     </div>
   )
 }

@@ -5,15 +5,16 @@ import { PREPARATION_SECONDS, TURN_DURATION_SECONDS } from '../constants/game'
 import { MOCK_TIMINGS } from '../sockets/mock/mockServer'
 import { useAuthStore } from '../stores/authStore'
 import { resetGameStores } from '../stores/serverEvents'
+import { useToastStore } from '../stores/toastStore'
 import { routes } from './routes'
 
 const NET = 200 // folga para a "rede" simulada (80ms ida e volta)
 
 const tick = (ms: number) => act(() => vi.advanceTimersByTimeAsync(ms))
 
-function renderRoom(scenario: string) {
-  // O simulado lê o cenário da URL (?cenario=)
-  window.history.replaceState({}, '', `/?cenario=${scenario}`)
+function renderRoom(scenario: string, rematch = 'aceita') {
+  // O simulado lê o cenário e o comportamento do bot no fim da URL (?cenario=, ?revanche=)
+  window.history.replaceState({}, '', `/?cenario=${scenario}&revanche=${rematch}`)
   const router = createMemoryRouter(routes, { initialEntries: ['/sala/4821'] })
   render(<RouterProvider router={router} />)
   return router
@@ -72,8 +73,49 @@ describe('sala: a tela sai da fase', () => {
     expect(screen.getByText('2 × 0')).toBeInTheDocument()
     expect(screen.getByText('+50 Coins')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Voltar ao Hub' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Voltar ao Lobby' }))
     expect(router.state.location.pathname).toBe('/')
+  })
+})
+
+describe('revanche (FE-29)', () => {
+  /** Cenário "vitoria" até a tela de Resultado */
+  async function toResult(rematch: string) {
+    const router = renderRoom('vitoria', rematch)
+    await tick(NET + MOCK_TIMINGS.botJoin + MOCK_TIMINGS.matched + NET)
+    await tick(PREPARATION_SECONDS * 1000 + NET)
+    await tick(30_000)
+    expect(screen.getByRole('heading', { name: 'Vitória' })).toBeInTheDocument()
+    return router
+  }
+
+  it('aceita: a sala é mantida e volta para a Preparação do zero [RN-POS-03]', async () => {
+    const router = await toResult('aceita')
+    fireEvent.click(screen.getByRole('button', { name: 'Revanche' }))
+    await tick(NET)
+    expect(screen.getByRole('button', { name: 'Revanche pedida' })).toBeDisabled()
+
+    await tick(MOCK_TIMINGS.rematchAccept + NET)
+    expect(screen.getByRole('heading', { name: 'Preparação' })).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/sala/4821')
+  })
+
+  it('recusa: quem pediu é avisado e levado ao Hub [RN-POS-02]', async () => {
+    const router = await toResult('recusa')
+    fireEvent.click(screen.getByRole('button', { name: 'Revanche' }))
+    await tick(NET + MOCK_TIMINGS.rematchAccept + NET)
+    expect(router.state.location.pathname).toBe('/')
+    expect(useToastStore.getState().toasts.map((t) => t.message)).toContain(
+      'O oponente recusou a revanche.',
+    )
+  })
+
+  it('o oponente sai: quem não pediu fica no Resultado com a revanche desabilitada', async () => {
+    const router = await toResult('sai')
+    await tick(MOCK_TIMINGS.botRematch + NET)
+    expect(router.state.location.pathname).toBe('/sala/4821')
+    expect(screen.getByText('O oponente saiu da sala.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Revanche' })).toBeDisabled()
   })
 })
 

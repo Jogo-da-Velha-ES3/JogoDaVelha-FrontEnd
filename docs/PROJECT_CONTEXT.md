@@ -260,6 +260,12 @@ ponto da partida (o estado está no servidor).
   (personagem, iniciais e sorteios novos).
 - **Voltar ao Lobby** encerra a sala; o oponente é avisado em tempo real e o botão de revanche dele
   é desabilitado na hora.
+- **Quem fica no Resultado (decidido em 15/10, FE-29):** só quem **pediu** a revanche é levado ao
+  Hub quando ela é cancelada (recusa, 15s sem resposta ou saída do outro). Quem não pediu continua
+  no Resultado para ver placar e Coins, com o aviso ("O oponente saiu da sala.", "O tempo para
+  aceitar a revanche acabou.") e a revanche desabilitada; sai pelo "Voltar ao Lobby". Se os dois
+  pedirem ao mesmo tempo, vale como aceite. **[A VALIDAR COM O BACK]** os nomes dos eventos
+  (`REMATCH_REQUESTED`, `REMATCH_CANCELLED`, `ROOM_CLOSED`).
 
 ## 8. Hub, Loja e economia
 

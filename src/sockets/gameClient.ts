@@ -14,12 +14,14 @@ export async function createGameConnection(
   mockOptions: MockConnectionOptions = {},
 ): Promise<GameConnection> {
   if (isMockServerEnabled()) {
-    const [{ MockConnection }, { resolveScenario }] = await Promise.all([
+    const [{ MockConnection }, { resolveBotRematch, resolveScenario }] = await Promise.all([
       import('./mock/mockConnection'),
       import('./mock/scenarios'),
     ])
+    const { search } = window.location
     return new MockConnection({
-      scenario: resolveScenario(window.location.search, import.meta.env.VITE_MOCK_SCENARIO),
+      scenario: resolveScenario(search, import.meta.env.VITE_MOCK_SCENARIO),
+      botRematch: resolveBotRematch(search, import.meta.env.VITE_MOCK_REMATCH),
       ...mockOptions,
     })
   }

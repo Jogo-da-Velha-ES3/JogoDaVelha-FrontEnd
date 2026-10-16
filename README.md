@@ -91,6 +91,9 @@ um oponente automático. Ele já vem ligado (`VITE_USE_MOCK_SERVER=false` deslig
   | `morte-subita`    | 1×1 automático; o round 3 é seu, com 5s por turno                |
   | `wo`              | o bot não joga e perde por W.O. (para ver o seu W.O., não jogue) |
 
+- **Revanche:** `?revanche=` na URL (ou `VITE_MOCK_REMATCH`) diz o que o bot faz no Resultado,
+  em qualquer cenário: `aceita` (padrão), `recusa`, `ignora` (o pedido cai em 15s), `pede` (ele
+  pede e você responde) ou `sai` (volta ao Lobby). Ex: `/vitrine?cenario=vitoria&revanche=pede`.
 - **Para testar:** abra `/vitrine` (sem login). A aba "Jogar contra o robô" guia a partida
   passo a passo; `/vitrine?cenario=vitoria` (ou outro) já começa a partida. As outras abas mostram
   os personagens, o tabuleiro e os componentes. `?aba=` abre direto numa aba.
