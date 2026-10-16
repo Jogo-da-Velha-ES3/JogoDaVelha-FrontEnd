@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react'
+﻿import type { CSSProperties } from 'react'
 import { CHARACTER_INFO } from '../../constants/characters'
 import type { CellEffect, CellEffectKind, CharacterId } from '../../types/game'
 import { Character } from '../characters'
@@ -31,9 +31,9 @@ const EFFECT_LABEL: Record<CellEffectKind, string> = {
 }
 
 const BADGE_CLASSES: Record<CellEffectKind, string> = {
-  ESCUDO: 'bg-primary text-on-primary',
+  ESCUDO: 'bg-(--cell-color) text-bg-base',
   CONGELAR: 'bg-ice text-on-primary',
-  REFORCO: 'border border-primary bg-bg-deep text-primary',
+  REFORCO: 'border border-(--cell-color) bg-bg-deep text-(--cell-color)',
 }
 
 const turns = (n: number) => (n === 1 ? '1 turno' : `${n} turnos`)
@@ -91,7 +91,7 @@ export function Cell(props: CellProps) {
         <svg
           data-layer="shield"
           viewBox="0 0 24 24"
-          className="absolute size-[58%] text-primary drop-shadow-[0_0_6px_currentColor]"
+          className="absolute size-[58%] text-(--cell-color) drop-shadow-[0_0_6px_currentColor]"
         >
           <path
             d="M12 2.5 L19.5 5.5 V11 C19.5 15.8 16.4 19.2 12 21.5 C7.6 19.2 4.5 15.8 4.5 11 V5.5 Z"

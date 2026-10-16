@@ -65,7 +65,7 @@ describe('sala: a tela sai da fase', () => {
 
     await tick(PREPARATION_SECONDS * 1000 + NET)
     expect(board()).toBeInTheDocument()
-    expect(screen.getByText(/vs Oponente Simulado/)).toBeInTheDocument() // banner do Confronto
+    expect(screen.getByRole('status', { name: /vs Oponente Simulado/i })).toBeInTheDocument() // banner do Confronto (VsBanner)
 
     await tick(30_000)
     expect(screen.getByRole('heading', { name: 'Vitória' })).toBeInTheDocument()
@@ -82,17 +82,20 @@ describe('Arena', () => {
     renderRoom('normal')
     await toPlaying()
     await waitForMyTurn()
+    // Timer na faixa do jogador da vez (não na coluna direita)
     expect(screen.getByRole('progressbar', { name: 'Seu tempo' })).toBeInTheDocument()
+    expect(screen.queryByRole('progressbar', { name: 'Tempo do turno' })).not.toBeInTheDocument()
 
     const before = emptyCells().length
     fireEvent.click(emptyCells()[0])
     expect(emptyCells()).toHaveLength(before) // ainda sem resposta
 
     await tick(NET)
-    expect(screen.getByText('Vez do oponente')).toBeInTheDocument()
+    expect(screen.getByText(/Vez de .*/)).toBeInTheDocument()
     expect(emptyCells()).toHaveLength(0) // vez do oponente: nada clicável
     expect(within(board()).getAllByRole('img', { name: /vazia/ })).toHaveLength(before - 1)
     expect(screen.getByRole('progressbar', { name: 'Tempo do turno' })).toBeInTheDocument()
+    expect(screen.queryByRole('progressbar', { name: 'Seu tempo' })).not.toBeInTheDocument()
   })
 
   it('faixas mostram os dois jogadores e o espaço do Vitão fica vazio com a flag desligada', async () => {

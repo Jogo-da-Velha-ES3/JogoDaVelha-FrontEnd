@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { Button, TimerBar } from '../components/ui'
 import { ABILITY_INFO } from '../constants/abilities'
 import { CHARACTER_INFO } from '../constants/characters'
@@ -188,7 +188,7 @@ export function MockMatchShowcase() {
 
       {room.phase && ['VERSUS', 'ROUND_DRAW', 'PLAYING', 'ROUND_END'].includes(room.phase) && (
         <figure className="flex flex-col gap-1">
-          <div className="h-[390px] w-[844px] max-w-full overflow-hidden rounded-2xl border-2 border-line px-3">
+          <div className="h-[390px] w-[844px] max-w-full overflow-hidden rounded-2xl border-2 border-line">
             <Arena />
           </div>
           <figcaption className="font-mono text-xs text-text-muted">
