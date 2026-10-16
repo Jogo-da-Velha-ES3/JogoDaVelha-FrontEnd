@@ -1,4 +1,4 @@
-﻿import type { CSSProperties } from 'react'
+import type { CSSProperties } from 'react'
 import { CHARACTER_INFO } from '../../constants/characters'
 import type { CellEffect, CellEffectKind, CharacterId } from '../../types/game'
 import { Character } from '../characters'

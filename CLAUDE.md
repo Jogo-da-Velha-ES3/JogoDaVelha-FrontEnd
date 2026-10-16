@@ -37,8 +37,9 @@ Antes de dar uma tarefa como pronta: `npm run lint`, `npm run format:check`, `np
   (ARCHITECTURE.md §6) ser validado com o back — até lá, usar mocks.
 - **Paisagem:** toda tela precisa funcionar no celular deitado (~330–390px de altura) e no
   desktop, sem overflow horizontal.
-- **Vitão desligado:** só o espaço reservado e a flag `VITAO_ENABLED=false`. Não implementar arte,
-  falas nem reações.
+- **Vitão atrás da flag:** desde 15/10 o Vitão entra no MVP 1 pelos cards FE-41 a FE-45 (grupo de
+  Personalidade). Arte, animação, falas, reações e voz são feitas com `VITAO_ENABLED=false`; a flag
+  só é ligada quando a FE-44 for aprovada. O balão nunca cobre o tabuleiro.
 - **Fora do MVP 1:** cosméticos, habilidades por personagem, login com Google,
   modo convidado. Questionar antes de implementar.
 - Regras puras ficam em `src/lib/`, sem React, com testes no Vitest.

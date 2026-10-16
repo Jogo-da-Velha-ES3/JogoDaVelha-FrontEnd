@@ -117,6 +117,7 @@ describe('StompConnection', () => {
     expect(fake.subscriptions.map((s) => s.destination)).toEqual([
       '/topic/rooms/4821',
       '/user/queue/room',
+      '/user/queue/errors',
     ])
     expect(fake.published).toEqual([{ destination: '/app/rooms/4821/connect', body: '{}' }])
   })
@@ -138,6 +139,31 @@ describe('StompConnection', () => {
     )
     fake.deliver('/user/queue/room', 'isso não é JSON')
     expect(events).toEqual([{ type: 'BOARD_UPDATE', payload: { board: [] }, serverTime: 1234 }])
+  })
+
+  it('erro do back na fila de erros (formato do REST) vira ERROR para a tela', async () => {
+    const connection = setup()
+    const connected = connection.connect('4821')
+    fake.open()
+    await connected
+
+    fake.deliver(
+      '/user/queue/errors',
+      JSON.stringify({
+        code: 'CONFLICT',
+        error: 'Conflict',
+        message: 'Não é a sua vez',
+        status: 409,
+        timestamp: '2026-10-15T12:00:00Z',
+      }),
+    )
+    expect(events).toEqual([
+      {
+        type: 'ERROR',
+        payload: { code: 'CONFLICT', message: 'Não é a sua vez' },
+        serverTime: Date.parse('2026-10-15T12:00:00Z'),
+      },
+    ])
   })
 
   it('cada intenção vai para o seu destino', async () => {
@@ -178,8 +204,32 @@ describe('StompConnection', () => {
 
     fake.open()
     expect(statuses.at(-1)).toBe('CONNECTED')
-    expect(fake.subscriptions).toHaveLength(4)
+    expect(fake.subscriptions).toHaveLength(6)
     expect(fake.published.filter((p) => p.destination.endsWith('/connect'))).toHaveLength(2)
+  })
+
+  it('várias quedas seguidas: cada mensagem chega uma vez só (FE-20)', async () => {
+    const connection = setup()
+    const connected = connection.connect('4821')
+    fake.open()
+    await connected
+
+    for (let i = 0; i < 3; i++) {
+      fake.drop()
+      fake.subscriptions = [] // as assinaturas morrem com a conexão, como no broker de verdade
+      fake.open()
+    }
+    expect(fake.subscriptions).toHaveLength(3)
+
+    fake.deliver(
+      '/topic/rooms/4821',
+      JSON.stringify({ type: 'PHASE_CHANGE', payload: { phase: 'DRAFT' }, serverTime: 1 }),
+    )
+    expect(events).toHaveLength(1)
+
+    const current = [...fake.subscriptions]
+    connection.disconnect()
+    current.forEach((s) => expect(s.unsubscribe).toHaveBeenCalledOnce())
   })
 
   it('servidor recusa a conexão (ex: token inválido): status de erro e connect rejeitado', async () => {

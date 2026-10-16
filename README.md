@@ -91,8 +91,15 @@ um oponente automático. Ele já vem ligado (`VITE_USE_MOCK_SERVER=false` deslig
   | `morte-subita`    | 1×1 automático; o round 3 é seu, com 5s por turno                |
   | `wo`              | o bot não joga e perde por W.O. (para ver o seu W.O., não jogue) |
 
-- **Para testar:** abra `/vitrine?cenario=vitoria` (ou outro): a seção "Partida simulada" já
-  começa a partida.
+- **Revanche:** `?revanche=` na URL (ou `VITE_MOCK_REMATCH`) diz o que o bot faz no Resultado,
+  em qualquer cenário: `aceita` (padrão), `recusa`, `ignora` (o pedido cai em 15s), `pede` (ele
+  pede e você responde) ou `sai` (volta ao Lobby). Ex: `/vitrine?cenario=vitoria&revanche=pede`.
+- **Quedas:** `?queda=volta` (o bot cai no primeiro turno dele e volta) ou `?queda=wo` (não volta
+  e perde por W.O.). Na vitrine, os botões "Minha conexão cai" e "Robô cai" simulam a qualquer
+  momento.
+- **Para testar:** abra `/vitrine` (sem login). A aba "Jogar contra o robô" guia a partida
+  passo a passo; `/vitrine?cenario=vitoria` (ou outro) já começa a partida. As outras abas mostram
+  os personagens, o tabuleiro e os componentes. `?aba=` abre direto numa aba.
 - **Criar e entrar em sala (Hub):** `createRoom()` e `joinRoomByCode(código)` de
   `src/api/rooms.ts`. No simulado, criar só sorteia o código e entrar sempre funciona; no real,
   os erros já vêm prontos para a tela ("Sala 4821 não encontrada", sala cheia, partida começada).
@@ -103,6 +110,7 @@ O cliente STOMP real (`src/sockets/stompConnection.ts`) já está pronto. Para u
 
 ```bash
 VITE_USE_MOCK_SERVER=false
+VITE_API_URL=http://localhost:8080/api     # o REST do back usa o prefixo /api
 VITE_WEBSOCKET_URL=http://localhost:8080   # vira ws://localhost:8080/ws
 ```
 

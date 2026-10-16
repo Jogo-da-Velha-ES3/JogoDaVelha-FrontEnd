@@ -3,7 +3,13 @@
 import { Client, type IMessage, type StompConfig, type StompSubscription } from '@stomp/stompjs'
 import { getAuthToken } from '../api/session'
 import type { ClientCommand, ServerEnvelope } from '../types/events'
-import { commandDestination, joinDestination, PRIVATE_QUEUE, roomTopic } from './destinations'
+import {
+  commandDestination,
+  ERRORS_QUEUE,
+  joinDestination,
+  PRIVATE_QUEUE,
+  roomTopic,
+} from './destinations'
 import { parseServerMessage } from './envelope'
 import type { ConnectionStatus, GameConnection, Unsubscribe } from './types'
 
@@ -99,7 +105,7 @@ export class StompConnection implements GameConnection {
     const code = this.roomCode
     if (!client || !code) return
     // Depois de uma queda as assinaturas antigas morreram junto com a conexão
-    this.subscriptions = [roomTopic(code), PRIVATE_QUEUE].map((destination) =>
+    this.subscriptions = [roomTopic(code), PRIVATE_QUEUE, ERRORS_QUEUE].map((destination) =>
       client.subscribe(destination, (message: IMessage) => this.receive(message.body)),
     )
     client.publish({ destination: joinDestination(code), body: '{}' })

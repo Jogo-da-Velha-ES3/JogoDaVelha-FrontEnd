@@ -42,6 +42,23 @@ Depois: FE-18 (sala e jogada via STOMP, 21–22/10), FE-19 (habilidades e timer,
 | Lucas   | FE-36 15–16 → FE-34 17–18 → FE-15 19–20 → FE-05 21–23 → FE-13 24–26 → FE-32 27/10    | FE-07 (pronta)               |
 | Todos   | FE-21 (homologação) 29–30/10                                                         | 29/10                        |
 
+## Personalidade: som, voz e Vitão (terceiro grupo)
+
+Decidido com o GP em 15/10. Corre em paralelo e não depende da base, que já está pronta. O Vitão
+é feito atrás da flag `VITAO_ENABLED=false`, ligada quando a FE-44 for aprovada.
+
+| Card  | Entrega                                                      | Data     | Depende de          |
+| ----- | ------------------------------------------------------------ | -------- | ------------------- |
+| FE-37 | Motor de som (Howler, um som por evento do servidor)         | 16–18/10 | —                   |
+| FE-38 | Banco de sons e trilhas (licença livre)                      | 16–20/10 | —                   |
+| FE-39 | Modal de Configurações (som, música, vibração, filtro)       | 19–20/10 | —                   |
+| FE-40 | Voz do jogo: textos e humor num arquivo único                | 16–20/10 | —                   |
+| FE-41 | Arte do Vitão (cabeça real + corpo de bonequinho)            | 16–21/10 | ok do Vitão         |
+| FE-42 | Bonequinho animado (andar, reações, balão)                   | 22–24/10 | FE-41               |
+| FE-43 | Falas do Vitão por momento da partida                        | 21–22/10 | FE-40               |
+| FE-44 | Motor de reações (1 fala a cada 6s, "Diabo" na Morte Súbita) | 25–26/10 | FE-42, FE-43        |
+| FE-45 | Voz gravada do Vitão                                         | 27–28/10 | FE-37, FE-43, FE-44 |
+
 ## O que mudou da v1 para a v2
 
 - **Saiu:** mata-mata após empate no round 3 (FE-14 fechada), código alfanumérico, Socket.IO,

@@ -26,7 +26,7 @@ estratégico e competitivo, **sem pay-to-win**.
   anúncios gritados, morte súbita intensa)
 - **Multiplayer:** 2 jogadores por sala, em dispositivos diferentes, via WebSocket + STOMP
 - **Atores** (ERS 1.3): Jogador Host (cria a sala), Jogador Guest (entra com o código), Servidor
-  Autoritativo e o NPC espectador **Vitão** (fora do MVP no front — ver seção 9)
+  Autoritativo e o NPC espectador **Vitão** (entra no MVP 1 atrás de uma flag — ver seção 9)
 
 ### Material de referência visual
 
@@ -211,11 +211,17 @@ estratégico e competitivo, **sem pay-to-win**.
 
 O crédito é feito pelo back; o front só anima a atualização na tela de Resultado.
 
-### Desconexão **[A VALIDAR COM O BACK]**
+### Desconexão (fechado com o back em 15/10)
 
-A ERS não define a regra. Proposta de interface: ao cair, o oponente vê uma contagem de 30s; se o
-jogador não voltar, a partida termina por W.O. Quem caiu vê "Reconectando…" e volta para o mesmo
-ponto da partida (o estado está no servidor).
+A ERS não define a regra; o back decidiu usar a mesma do W.O. por tempo `[RN-ARN-01]`:
+
+- **Sem contagem especial:** os turnos de quem caiu continuam correndo; cada turno perdido é um
+  estouro e **3 seguidos dão W.O.** O contador não zera na troca de round.
+- **Quem ficou** vê "Oponente desconectado" com os estouros dele (x/3), a partir de
+  `PLAYER_DISCONNECTED` / `PLAYER_RECONNECTED` (pedido ao back em 15/10).
+- **Quem caiu** vê "Reconectando…", não consegue jogar até voltar e volta para o mesmo ponto da
+  partida pelo `ROOM_SNAPSHOT` completo (o estado está no servidor).
+- **No Resultado,** cair conta como sair da sala e cancela a revanche **[A VALIDAR COM O BACK]**.
 
 ## 7. Salas, preparação e pós-jogo
 
@@ -260,6 +266,12 @@ ponto da partida (o estado está no servidor).
   (personagem, iniciais e sorteios novos).
 - **Voltar ao Lobby** encerra a sala; o oponente é avisado em tempo real e o botão de revanche dele
   é desabilitado na hora.
+- **Quem fica no Resultado (decidido em 15/10, FE-29):** só quem **pediu** a revanche é levado ao
+  Hub quando ela é cancelada (recusa, 15s sem resposta ou saída do outro). Quem não pediu continua
+  no Resultado para ver placar e Coins, com o aviso ("O oponente saiu da sala.", "O tempo para
+  aceitar a revanche acabou.") e a revanche desabilitada; sai pelo "Voltar ao Lobby". Se os dois
+  pedirem ao mesmo tempo, vale como aceite. **[A VALIDAR COM O BACK]** os nomes dos eventos
+  (`REMATCH_REQUESTED`, `REMATCH_CANCELLED`, `ROOM_CLOSED`).
 
 ## 8. Hub, Loja e economia
 
@@ -376,14 +388,23 @@ Abrir o jogo → [sem sessão] Acesso → Hub (Jogar; abas Loja / Perfil)
   segundos. **Vibração** nos 3 últimos segundos (`navigator.vibrate`; o iPhone não suporta).
 - Sempre respeitar `prefers-reduced-motion`.
 
-### Vitão (NPC espectador) — fora do MVP 1 no front
+### Vitão (NPC espectador) e personalidade do jogo
 
 - A ERS prevê o Vitão reagindo à partida, inclusive numa versão "Diabo" na Morte Súbita.
-- **Decisão:** no MVP 1 o front só **reserva o espaço** dele na Arena e deixa a função **desligada
-  por feature flag** (`VITAO_ENABLED=false`). Nada de arte, falas ou lógica de reação por enquanto.
-- Quando for ligado: falas em arquivo editável, no máximo uma a cada 6s, balão que nunca cobre o
-  tabuleiro, linguagem sem filtro por padrão (com opção de filtrar nas Configurações), arte a partir
-  de fotos e vídeos do Vitão.
+- **Decisão (15/10, com o GP):** com um terceiro grupo ajudando no front, o Vitão **entra no MVP 1**,
+  junto com a sonoplastia e a voz do jogo (cards FE-37 a FE-45, grupo WBS-11 — Personalidade).
+  Antes disso (até 14/10), o front só reservava o espaço dele.
+- **Como ele é:** um bonequinho com a **cabeça do Vitão de verdade** (recortes de fotos com
+  expressões), que anda e reage no espaço reservado da Arena, fala besteiras num balão e **com a
+  voz gravada dele**. Na Morte Súbita vira a versão "Diabo".
+- **Regras:** falas em arquivo editável, no máximo uma a cada 6s, balão que nunca cobre o
+  tabuleiro, linguagem sem filtro por padrão (com opção de filtrar nas Configurações). Tudo é
+  feito com `VITAO_ENABLED=false`; a flag é ligada quando o motor de reações (FE-44) for aprovado.
+- **Autorização:** o uso da imagem, das falas e da voz do Vitão num link público precisa do ok
+  dele, registrado na FE-41.
+- **Voz do jogo:** além do Vitão, os textos da interface (anúncios gritados, banners, erros,
+  avisos, Resultado) seguem um guia de tom com humor de narrador estilo Mortal Kombat/Cuphead,
+  centralizados num arquivo (FE-40).
 
 ## 10. Stack técnica
 
@@ -410,10 +431,11 @@ Abrir o jogo → [sem sessão] Acesso → Hub (Jogar; abas Loja / Perfil)
 ### A validar com o back antes de implementar
 
 - Contrato REST (auth, perfil, inventário, loja, compra de Coins) e destinos STOMP
-- Fases da sala (`phase`) e o snapshot completo para reconexão
+- Fases da sala (`phase`) e o snapshot completo para reconexão (campos pedidos em 15/10)
 - Pacotes simbólicos de Coins
-- Endpoints de recuperação de senha
-- Regra de desconexão
+- Endpoints de recuperação de senha (formato proposto em 15/10; o front segue com dados
+  simulados)
+- `PLAYER_DISCONNECTED` / `PLAYER_RECONNECTED` e se cair no Resultado cancela a revanche
 
 ## 12. Prioridade de implementação (MVP 1)
 
@@ -434,7 +456,9 @@ dela. Ordem e responsáveis em `docs/INITIAL_BACKLOG.md`.
 9. Loja (personagens, habilidades, Coins simbólicos) e Perfil (estatísticas e coleção)
 10. PWA (instalável, paisagem, "Gire o celular") e polimento (personagens neon, pacote da Morte
     Súbita, sons)
-11. **Pós-MVP:** Vitão, cosméticos, habilidades por personagem, login com Google
+11. **Personalidade (terceiro grupo, em paralelo desde 15/10):** sonoplastia, Configurações, voz
+    do jogo e o Vitão com voz (FE-37 a FE-45)
+12. **Pós-MVP:** cosméticos, habilidades por personagem, login com Google
 
 Qualquer item pós-MVP proposto antes do item 10 estar pronto deve ser questionado — é desvio de
 escopo do que foi combinado com o time.

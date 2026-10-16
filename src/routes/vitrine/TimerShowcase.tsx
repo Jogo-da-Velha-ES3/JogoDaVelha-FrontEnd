@@ -1,15 +1,16 @@
 import { useEffect, useState } from 'react'
-import { Button, TimerBar } from '../components/ui'
-import { CHARACTER_INFO } from '../constants/characters'
+import { Button, TimerBar } from '../../components/ui'
+import { CHARACTER_INFO } from '../../constants/characters'
 import {
   DRAW_PICK_SECONDS,
   PREPARATION_SECONDS,
   REMATCH_WINDOW_SECONDS,
   SUDDEN_DEATH_TURN_DURATION_SECONDS,
   TURN_DURATION_SECONDS,
-} from '../constants/game'
-import type { TimerDeadline } from '../lib/timer'
-import { useClockStore } from '../stores/clockStore'
+} from '../../constants/game'
+import type { TimerDeadline } from '../../lib/timer'
+import { useClockStore } from '../../stores/clockStore'
+import { ShowcaseBlock } from './ShowcaseLayout'
 
 const DURATIONS = [
   { label: 'Turno', seconds: TURN_DURATION_SECONDS },
@@ -40,10 +41,10 @@ export function TimerShowcase() {
   }
 
   return (
-    <section aria-labelledby="timer" className="flex flex-col gap-3">
-      <h2 id="timer" className="font-display text-lg font-bold text-text-muted uppercase">
-        Timer do servidor
-      </h2>
+    <ShowcaseBlock
+      title="Timer do servidor"
+      hint="Toque numa duração para o “servidor” mandar um prazo. A barra fica vermelha nos últimos 3 segundos."
+    >
       <div className="flex flex-wrap gap-2">
         {DURATIONS.map(({ label, seconds }) => (
           <Button key={label} variant="secondary" size="sm" onClick={() => start(seconds)}>
@@ -82,9 +83,9 @@ export function TimerShowcase() {
       </div>
       <p className="max-w-xl font-mono text-xs text-text-muted">
         {deadline === null
-          ? `Este exemplo finge que o relógio do celular está ${CLIENT_AHEAD_MS / 1000}s adiantado em relação ao servidor. Clique numa duração para o "servidor" mandar o prazo.`
+          ? `Este exemplo finge que o relógio do celular está ${CLIENT_AHEAD_MS / 1000}s adiantado em relação ao servidor. Clique numa duração para o “servidor” mandar o prazo.`
           : `Relógio do celular ${-offsetMs / 1000}s adiantado em relação ao servidor: o timer desconta essa diferença (correção de ${offsetMs} ms) e por isso começa cheio, como no servidor.`}
       </p>
-    </section>
+    </ShowcaseBlock>
   )
 }

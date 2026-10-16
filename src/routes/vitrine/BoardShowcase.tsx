@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { Button } from '../components/ui'
-import { BOARD_CELLS } from '../constants/game'
-import { Board } from '../features/board'
-import { evaluateBoard } from '../lib/winCheck'
-import type { Cell, PlayerSlot } from '../types/game'
+import { Button } from '../../components/ui'
+import { BOARD_CELLS } from '../../constants/game'
+import { Board } from '../../features/board'
+import { evaluateBoard } from '../../lib/winCheck'
+import type { Cell, PlayerSlot } from '../../types/game'
+import { ShowcaseBlock } from './ShowcaseLayout'
 
 const emptyBoard = (): Cell[] =>
   Array.from({ length: BOARD_CELLS }, (_, index) => ({ index, owner: null, effects: [] }))
@@ -38,10 +39,10 @@ export function BoardShowcase() {
         : `Vez do ${turn}`
 
   return (
-    <section aria-labelledby="tabuleiro" className="flex flex-col gap-3">
-      <h2 id="tabuleiro" className="font-display text-lg font-bold text-text-muted uppercase">
-        Tabuleiro
-      </h2>
+    <ShowcaseBlock
+      title="Tabuleiro jogável"
+      hint="Toque nas casas para alternar as peças do P1 e do P2. Ao alinhar 4, a linha vencedora acende. A caixa tem a altura de um celular deitado."
+    >
       <div className="flex flex-wrap items-start gap-4">
         <div className="h-[340px] w-full max-w-[520px] rounded-xl border border-dashed border-line p-2">
           <Board
@@ -63,6 +64,6 @@ export function BoardShowcase() {
           </p>
         </div>
       </div>
-    </section>
+    </ShowcaseBlock>
   )
 }

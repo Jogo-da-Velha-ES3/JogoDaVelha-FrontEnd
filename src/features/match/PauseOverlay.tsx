@@ -8,7 +8,6 @@ interface PauseOverlayProps {
   open: boolean
   onClose: () => void
   onHowToPlay: () => void
-  onSettings: () => void
   onQuit: () => void
 }
 
@@ -17,13 +16,7 @@ interface PauseOverlayProps {
  * card central com título MENU, timer correndo no topo, e os 4 botões em grid 2×2.
  * O timer do servidor CONTINUA correndo — o menu é só um overlay visual [PROJECT_CONTEXT §6].
  */
-export function PauseOverlay({
-  open,
-  onClose,
-  onHowToPlay,
-  onSettings,
-  onQuit,
-}: PauseOverlayProps) {
+export function PauseOverlay({ open, onClose, onHowToPlay, onQuit }: PauseOverlayProps) {
   const turn = useTimerStore((s) => s.turn)
   const players = useRoomStore((s) => s.players)
   const mySlot = useRoomStore((s) => s.mySlot) ?? 'P1'
@@ -80,8 +73,9 @@ export function PauseOverlay({
               <Button variant="secondary" size="sm" block onClick={onHowToPlay}>
                 Como Jogar
               </Button>
-              <Button variant="secondary" size="sm" block onClick={onSettings}>
-                Configurações
+              {/* O modal de Configurações é a FE-39 (grupo de Personalidade) */}
+              <Button variant="secondary" size="sm" block disabled>
+                Configurações · em breve
               </Button>
               <Button variant="danger" size="sm" block onClick={onQuit}>
                 Desistir

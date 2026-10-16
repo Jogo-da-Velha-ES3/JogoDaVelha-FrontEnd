@@ -1,9 +1,11 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import { useEffect, useRef, useState } from 'react'
 import { CHARACTER_INFO } from '../../constants/characters'
 import { MAX_CONSECUTIVE_TIMEOUTS } from '../../constants/game'
+import { useIsBefore } from '../../hooks/useIsBefore'
 import { useMatchStore } from '../../stores/matchStore'
 import { useRoomStore } from '../../stores/roomStore'
+
+const TOAST_MS = 3000
 
 /**
  * Toast de aviso de turno perdido, fiel ao esboço (estado "Perdeu a vez"):
@@ -21,23 +23,8 @@ export function TurnTimeoutToast() {
   const players = useRoomStore((s) => s.players)
   const lastTimeout = useMatchStore((s) => s.lastTimeout)
 
-  const [visible, setVisible] = useState(false)
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const lastServerTime = useRef<number | null>(null)
-
-  useEffect(() => {
-    if (!lastTimeout) return
-    // serverTime diferencia dois toasts consecutivos com o mesmo texto (ex: 1/3 em rounds diferentes)
-    if (lastTimeout.serverTime === lastServerTime.current) return
-    lastServerTime.current = lastTimeout.serverTime
-
-    setVisible(true)
-    if (timerRef.current) clearTimeout(timerRef.current)
-    timerRef.current = setTimeout(() => setVisible(false), 3000)
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current)
-    }
-  }, [lastTimeout])
+  // 3s a partir da chegada do TURN_TIMEOUT (cada estouro novo tem o seu receivedAt)
+  const visible = useIsBefore(lastTimeout ? lastTimeout.receivedAt + TOAST_MS : null)
 
   if (!lastTimeout) return null
 
@@ -69,6 +56,7 @@ export function TurnTimeoutToast() {
     <AnimatePresence>
       {visible && (
         <motion.div
+          key={lastTimeout.receivedAt}
           role="status"
           aria-live="assertive"
           initial={{ opacity: 0, y: -6 }}

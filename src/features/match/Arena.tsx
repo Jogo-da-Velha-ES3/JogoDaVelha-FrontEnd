@@ -1,8 +1,11 @@
 import { useState } from 'react'
-import { Banner } from '../../components/ui'
+import { useNavigate } from 'react-router-dom'
+import { Banner, TimerBar } from '../../components/ui'
 import { ABILITY_INFO } from '../../constants/abilities'
 import { CHARACTER_INFO } from '../../constants/characters'
+import { DRAW_PICK_SECONDS } from '../../constants/game'
 import { otherSlot } from '../../lib/match'
+import { PATHS } from '../../routes/paths'
 import { sendCommand } from '../../sockets/gameClient'
 import { useBoardStore } from '../../stores/boardStore'
 import { useMatchStore } from '../../stores/matchStore'
@@ -11,34 +14,41 @@ import { useRoomStore } from '../../stores/roomStore'
 import { useTimerStore } from '../../stores/timerStore'
 import type { CharacterId, PlayerSlot } from '../../types/game'
 import { Board } from '../board'
+import { HowToPlayModal } from '../hub/HowToPlayModal'
 import { VitaoSlot } from '../vitao/VitaoSlot'
-import { HowToPlayModal } from './HowToPlayModal'
-import { OpponentDisconnectedToast } from './OpponentDisconnectedToast'
+import { OpponentDisconnectedNotice } from './OpponentDisconnectedNotice'
 import { PauseOverlay } from './PauseOverlay'
 import { PlayerStrip } from './PlayerStrip'
 import { QuitModal } from './QuitModal'
 import { RoundStartBanner } from './RoundStartBanner'
-import { SettingsModal } from './SettingsModal'
 import { TurnTimeoutToast } from './TurnTimeoutToast'
 import { VsBanner } from './VsBanner'
 
-type ModalKind = 'howToPlay' | 'settings' | 'quit' | null
+type ModalKind = 'howToPlay' | 'quit' | null
 
 const colorOf = (character: CharacterId | null | undefined) =>
   character ? CHARACTER_INFO[character].color : undefined
+
+export interface ArenaProps {
+  /** "Desistir" no menu de pausa. Padrão: volta ao Hub (a sala avisa o servidor ao sair) */
+  onQuit?: () => void
+}
 
 /**
  * Arena (FE-28 + FE-05), em paisagem: jogadores à esquerda, tabuleiro no centro com a
  * altura toda, aviso do turno e deck à direita. Só lê as stores e manda intenções.
  * Precisa de um pai com altura definida (a tela inteira na sala).
  */
-export function Arena() {
+export function Arena({ onQuit }: ArenaProps) {
+  const navigate = useNavigate()
   const [pauseOpen, setPauseOpen] = useState(false)
   const [activeModal, setActiveModal] = useState<ModalKind>(null)
 
   const phase = useRoomStore((s) => s.phase)
   const players = useRoomStore((s) => s.players)
   const me: PlayerSlot = useRoomStore((s) => s.mySlot) ?? 'P1'
+  // Caiu: nada de jogada até o snapshot da volta (o RoomPage mostra "Reconectando…") [FE-20]
+  const reconnecting = useRoomStore((s) => s.connection === 'RECONNECTING')
   const opp = otherSlot(me)
   const round = useMatchStore((s) => s.round)
   const score = useMatchStore((s) => s.score)
@@ -49,6 +59,7 @@ export function Arena() {
   const cells = useBoardStore((s) => s.cells)
   const winningLine = useBoardStore((s) => s.winningLine)
   const deck = usePowersStore((s) => s.deck)
+  const drawOptions = usePowersStore((s) => s.drawOptions)
   const turn = useTimerStore((s) => s.turn)
 
   const player = (slot: PlayerSlot) => players.find((p) => p.slot === slot)
@@ -74,10 +85,16 @@ export function Arena() {
     setActiveModal(kind)
   }
 
-  // Ao fechar qualquer modal placeholder, volta a abrir a pausa
+  // Ao fechar qualquer modal, volta a abrir a pausa
   const closeModalToPause = () => {
     setActiveModal(null)
     setPauseOpen(true)
+  }
+
+  const quit = () => {
+    setActiveModal(null)
+    if (onQuit) onQuit()
+    else navigate(PATHS.play)
   }
 
   return (
@@ -114,6 +131,8 @@ export function Arena() {
             roundsWon={score[opp]}
             timeouts={timeouts[opp]}
           />
+          {/* Fora do tabuleiro: quem ficou continua jogando os próprios turnos */}
+          <OpponentDisconnectedNotice />
           <VitaoSlot />
           <PlayerStrip
             player={player(me)}
@@ -131,11 +150,12 @@ export function Arena() {
             characters={characters}
             winningLine={winningLine}
             selectable={myTurn ? empty : []}
+            disabled={reconnecting}
             onCellSelect={(cell) => sendCommand({ type: 'MOVE', payload: { cell } })}
           />
         </div>
 
-        {/* ── Coluna direita: subtexto de vez + deck (timer ficou dentro de cada faixa) ── */}
+        {/* ── Coluna direita: subtexto de vez + deck (o timer do turno fica na faixa) ── */}
         <aside
           aria-label="Turno e habilidades"
           className="flex min-h-0 min-w-0 flex-col gap-2 pr-3 short:pr-2"
@@ -156,10 +176,12 @@ export function Arena() {
                   </p>
                 </>
               ) : (
-                /* "Vez de [Nome]…" quando é vez do adversário */
+                /* "Vez de [Nome]…" quando é vez do adversário. Apelido sem espaço (até 15
+                   letras) não quebra linha: corta com "…" para não vazar da coluna */
                 <p
-                  className="font-display text-base leading-tight font-bold uppercase short:text-sm"
+                  className="truncate font-display text-base leading-tight font-bold uppercase short:text-sm"
                   style={{ color: turnColor }}
+                  title={player(opp)?.nickname}
                 >
                   {`Vez de ${player(opp)?.nickname ?? 'Oponente'}…`}
                 </p>
@@ -167,9 +189,23 @@ export function Arena() {
             </div>
           )}
           {phase === 'ROUND_DRAW' && (
-            <p role="status" className="font-display text-lg leading-tight font-bold uppercase">
-              Sorteio da 3ª habilidade
-            </p>
+            <>
+              <p role="status" className="font-display text-lg leading-tight font-bold uppercase">
+                Sorteio da 3ª habilidade
+              </p>
+              {/* No sorteio não há turno: o prazo é o das cartas (8s) */}
+              <TimerBar
+                deadline={
+                  drawOptions
+                    ? {
+                        startedAt: drawOptions.deadline - DRAW_PICK_SECONDS * 1000,
+                        durationSeconds: DRAW_PICK_SECONDS,
+                      }
+                    : null
+                }
+                label="Tempo do sorteio"
+              />
+            </>
           )}
 
           {/* Deck só para exibição: o deck clicável é a FE-11 e a mira, a FE-27 */}
@@ -193,7 +229,7 @@ export function Arena() {
           {/* VS: cobre tudo */}
           <VsBanner />
 
-          {/* Início de round / MATCH POINT — inset-x-0 garante largura total */}
+          {/* Início de round / MATCH POINT: só nos primeiros segundos do round */}
           <RoundStartBanner />
 
           {/* Fim de round — centralizado verticalmente, largura total */}
@@ -229,9 +265,6 @@ export function Arena() {
 
           {/* Toast de turno perdido (TURN_TIMEOUT) */}
           <TurnTimeoutToast />
-
-          {/* Toast de oponente desconectado */}
-          <OpponentDisconnectedToast />
         </div>
 
         {/* Overlay de pausa (pointer-events-auto: intercepta cliques) */}
@@ -239,22 +272,13 @@ export function Arena() {
           open={pauseOpen}
           onClose={() => setPauseOpen(false)}
           onHowToPlay={() => openModal('howToPlay')}
-          onSettings={() => openModal('settings')}
           onQuit={() => openModal('quit')}
         />
       </div>
 
       {/* Modais (fora do grid, montados no portal do dialog nativo) */}
       <HowToPlayModal open={activeModal === 'howToPlay'} onClose={closeModalToPause} />
-      <SettingsModal open={activeModal === 'settings'} onClose={closeModalToPause} />
-      <QuitModal
-        open={activeModal === 'quit'}
-        onContinue={() => {
-          setActiveModal(null)
-          setPauseOpen(true)
-        }}
-        onQuit={() => setActiveModal(null)}
-      />
+      <QuitModal open={activeModal === 'quit'} onContinue={closeModalToPause} onQuit={quit} />
     </>
   )
 }

@@ -7,6 +7,9 @@ export const roomTopic = (roomCode: string) => `/topic/rooms/${roomCode}`
 /** Eventos privados do jogador (opções do sorteio, deck, erros) */
 export const PRIVATE_QUEUE = '/user/queue/room'
 
+/** Erros das minhas ações, no formato de erro do REST (contrato-integracao.md do back, §3) */
+export const ERRORS_QUEUE = '/user/queue/errors'
+
 /**
  * Avisa que o jogador entrou (ou voltou) na sala; o servidor responde com o ROOM_SNAPSHOT.
  * [A VALIDAR COM O BACK] Hoje o back tem `/app/room/{code}/connect`.

@@ -1,9 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { PREPARATION_SECONDS, TURN_DURATION_SECONDS } from '../../constants/game'
+import {
+  PREPARATION_SECONDS,
+  REMATCH_WINDOW_SECONDS,
+  TURN_DURATION_SECONDS,
+} from '../../constants/game'
 import type { AbilityId, PlayerSlot } from '../../types/game'
 import type { ClientCommand, ServerEnvelope, ServerEvent } from '../../types/events'
-import { MOCK_TIMINGS, MockGameServer } from './mockServer'
-import { type Scenario, SCENARIOS } from './scenarios'
+import { MOCK_TIMINGS, MockGameServer, type MockServerOptions } from './mockServer'
+import { type BotRematch, resolveBotRematch, type Scenario, SCENARIOS } from './scenarios'
 
 type Payload<T extends ServerEvent['type']> = Extract<ServerEvent, { type: T }>['payload']
 
@@ -19,13 +23,18 @@ function seeded(seed: number) {
   }
 }
 
-function setup(scenario: Scenario = MANUAL, seed = 7) {
+function setup(
+  scenario: Scenario = MANUAL,
+  seed = 7,
+  extra: Pick<MockServerOptions, 'botRematch' | 'botDrop'> = {},
+) {
   const events: ServerEnvelope[] = []
   const server = new MockGameServer({
     roomCode: '4821',
     emit: (e) => events.push(e),
     scenario,
     random: seeded(seed),
+    ...extra,
   })
   server.start()
   const all = <T extends ServerEvent['type']>(type: T) =>
@@ -321,19 +330,195 @@ describe('cenários prontos', () => {
   })
 })
 
+describe('queda e volta (FE-20)', () => {
+  /** Joga casas que não fecham linha até o fim da partida (ou acabar as tentativas) */
+  function playUntilMatchEnd(ctx: Ctx) {
+    const mine = [0, 5, 10, 3, 6]
+    for (let i = 0; i < 12 && !ctx.last('MATCH_END'); i++) {
+      if (ctx.turnOf() === 'P1') ctx.move(mine.shift()!)
+      else vi.advanceTimersByTime(TURN_DURATION_SECONDS * 1000)
+    }
+  }
+
+  it('?queda=wo: o bot cai no primeiro turno dele, os turnos estouram e ele perde por W.O.', () => {
+    const ctx = setup(SCENARIOS.normal, 7, { botDrop: 'wo' })
+    toFirstTurn(ctx)
+    playUntilMatchEnd(ctx)
+
+    expect(ctx.all('PLAYER_DISCONNECTED')).toEqual([{ slot: 'P2' }])
+    expect(ctx.all('BOARD_UPDATE').some((b) => b.board.some((c) => c.owner === 'P2'))).toBe(false)
+    expect(ctx.all('TURN_TIMEOUT').map((t) => t.consecutiveTimeouts)).toEqual([1, 2, 3])
+    expect(ctx.last('MATCH_END')?.outcome).toEqual({ kind: 'WO', winner: 'P1' })
+    expect(ctx.last('PLAYER_RECONNECTED')).toBeUndefined()
+  })
+
+  it('?queda=volta: perde o turno em que caiu, volta e joga de novo', () => {
+    const ctx = setup(SCENARIOS.normal, 7, { botDrop: 'volta' })
+    toFirstTurn(ctx)
+    if (ctx.turnOf() === 'P1') ctx.move(0) // o bot cai quando chega o primeiro turno dele
+    expect(ctx.last('PLAYER_DISCONNECTED')).toEqual({ slot: 'P2' })
+
+    vi.advanceTimersByTime(MOCK_TIMINGS.botReconnect)
+    expect(ctx.last('TURN_TIMEOUT')).toEqual({ player: 'P2', consecutiveTimeouts: 1 })
+    expect(ctx.last('PLAYER_RECONNECTED')).toEqual({ slot: 'P2' })
+
+    // De volta, ele age no turno seguinte (jogada ou habilidade) e a vez volta sem estouro
+    ctx.move(5)
+    expect(ctx.turnOf()).toBe('P2')
+    vi.advanceTimersByTime(MOCK_TIMINGS.botThinkMax)
+    expect(ctx.turnOf()).toBe('P1')
+    expect(ctx.all('TURN_TIMEOUT')).toHaveLength(1)
+  })
+
+  it('você cai e volta: o servidor manda o estado completo da partida', () => {
+    const ctx = setup()
+    toFirstTurn(ctx)
+    ensureMyTurn(ctx)
+    ctx.move(0)
+    ctx.server.disconnect('P1')
+    expect(ctx.last('PLAYER_DISCONNECTED')).toEqual({ slot: 'P1' })
+
+    ctx.server.reconnect('P1')
+    expect(ctx.last('PLAYER_RECONNECTED')).toEqual({ slot: 'P1' })
+    const snapshot = ctx.last('ROOM_SNAPSHOT')!
+    expect(snapshot).toMatchObject({
+      phase: 'PLAYING',
+      mySlot: 'P1',
+      round: 1,
+      turn: { player: 'P2' },
+      draft: null,
+      drawOptions: null,
+    })
+    expect(snapshot.board[0].owner).toBe('P1')
+    expect(snapshot.myDeck.map((d) => d.ability)).toEqual(
+      expect.arrayContaining(['BOMBA', 'SILENCIO']),
+    )
+    expect(snapshot.players.find((p) => p.slot === 'P1')?.connected).toBe(true)
+  })
+
+  it('o snapshot leva a Preparação e as cartas do sorteio de quem volta', () => {
+    const ctx = setup()
+    vi.advanceTimersByTime(MOCK_TIMINGS.botJoin + MOCK_TIMINGS.matched)
+    ctx.server.disconnect('P1')
+    ctx.server.reconnect('P1')
+    expect(ctx.last('ROOM_SNAPSHOT')?.draft).toMatchObject({ ready: { P1: false, P2: false } })
+
+    ctx.send({ type: 'DRAFT_CHARACTER', payload: { character: 'X' } })
+    ctx.send({ type: 'DRAFT_ABILITIES', payload: { abilities: ['BOMBA', 'SILENCIO'] } })
+    vi.advanceTimersByTime(MOCK_TIMINGS.botDraft + MOCK_TIMINGS.versus)
+    ctx.server.disconnect('P1')
+    ctx.server.reconnect('P1')
+    expect(ctx.last('ROOM_SNAPSHOT')?.drawOptions).toEqual(ctx.last('DRAW_OPTIONS'))
+  })
+})
+
 describe('revanche e saída', () => {
-  it('revanche aceita volta para a Preparação do zero [RN-POS-03]', () => {
-    const ctx = setup(SCENARIOS.vitoria)
+  /** Cenário "vitoria" até o Resultado, com o comportamento do bot no fim */
+  function toResult(botRematch?: BotRematch) {
+    const ctx = setup(SCENARIOS.vitoria, 7, { botRematch })
     vi.advanceTimersByTime(MOCK_TIMINGS.botJoin + MOCK_TIMINGS.matched)
     vi.advanceTimersByTime(PREPARATION_SECONDS * 1000 + MOCK_TIMINGS.versus)
     vi.advanceTimersByTime(2 * (2 * MOCK_TIMINGS.scriptedStep + MOCK_TIMINGS.roundEnd))
     expect(ctx.phases().at(-1)).toBe('RESULT')
+    return ctx
+  }
 
-    ctx.send({ type: 'REMATCH_REQUEST', payload: {} })
-    expect(ctx.last('REMATCH_REQUESTED')?.by).toBe('P1')
+  const requestRematch = (ctx: Ctx, slot: PlayerSlot = 'P1') =>
+    ctx.send({ type: 'REMATCH_REQUEST', payload: {} }, slot)
+  const respond = (ctx: Ctx, accept: boolean, slot: PlayerSlot = 'P1') =>
+    ctx.send({ type: 'REMATCH_RESPOND', payload: { accept } }, slot)
+
+  it('aceita: volta para a Preparação do zero [RN-POS-03]', () => {
+    const ctx = toResult()
+    requestRematch(ctx)
+    expect(ctx.last('REMATCH_REQUESTED')).toEqual({
+      by: 'P1',
+      deadline: Date.now() + REMATCH_WINDOW_SECONDS * 1000,
+    })
     vi.advanceTimersByTime(MOCK_TIMINGS.rematchAccept)
     expect(ctx.phases().at(-1)).toBe('DRAFT')
     expect(ctx.last('DRAFT_UPDATE')?.characters).toEqual({})
+    expect(ctx.last('REMATCH_CANCELLED')).toBeUndefined()
+  })
+
+  it('recusa: pedido cancelado e sala encerrada', () => {
+    const ctx = toResult('recusa')
+    requestRematch(ctx)
+    vi.advanceTimersByTime(MOCK_TIMINGS.rematchAccept)
+    expect(ctx.last('REMATCH_CANCELLED')).toEqual({ reason: 'DECLINED' })
+    expect(ctx.last('ROOM_CLOSED')).toBeDefined()
+
+    requestRematch(ctx)
+    expect(ctx.last('ERROR')?.code).toBe('ROOM_CLOSED')
+  })
+
+  it('ignora: o pedido cai depois de 15s [RN-POS-01]', () => {
+    const ctx = toResult('ignora')
+    requestRematch(ctx)
+    vi.advanceTimersByTime(REMATCH_WINDOW_SECONDS * 1000 - 1)
+    expect(ctx.last('REMATCH_CANCELLED')).toBeUndefined()
+    vi.advanceTimersByTime(1)
+    expect(ctx.last('REMATCH_CANCELLED')).toEqual({ reason: 'TIMEOUT' })
+    expect(ctx.last('ROOM_CLOSED')).toBeDefined()
+  })
+
+  it('pede: o bot pede e você aceita, recusa ou pede junto', () => {
+    const accept = toResult('pede')
+    vi.advanceTimersByTime(MOCK_TIMINGS.botRematch)
+    expect(accept.last('REMATCH_REQUESTED')?.by).toBe('P2')
+    respond(accept, true)
+    expect(accept.phases().at(-1)).toBe('DRAFT')
+
+    const decline = toResult('pede')
+    vi.advanceTimersByTime(MOCK_TIMINGS.botRematch)
+    respond(decline, false)
+    expect(decline.last('REMATCH_CANCELLED')).toEqual({ reason: 'DECLINED' })
+
+    // Os dois pediram: vale como aceite
+    const both = toResult('pede')
+    vi.advanceTimersByTime(MOCK_TIMINGS.botRematch)
+    requestRematch(both)
+    expect(both.phases().at(-1)).toBe('DRAFT')
+  })
+
+  it('responder sem pedido (ou ao próprio pedido) é erro', () => {
+    const ctx = toResult('ignora')
+    respond(ctx, true)
+    expect(ctx.last('ERROR')?.code).toBe('NO_REMATCH')
+    requestRematch(ctx)
+    respond(ctx, true)
+    expect(ctx.last('ERROR')?.code).toBe('NO_REMATCH')
+    requestRematch(ctx)
+    expect(ctx.last('ERROR')?.code).toBe('REMATCH_PENDING')
+  })
+
+  it('sai: o bot volta ao Lobby e cancela o seu pedido', () => {
+    const ctx = toResult('sai')
+    requestRematch(ctx)
+    vi.advanceTimersByTime(MOCK_TIMINGS.botRematch)
+    expect(ctx.last('REMATCH_CANCELLED')).toEqual({ reason: 'LEFT' })
+    expect(ctx.last('PLAYER_LEFT')).toEqual({ slot: 'P2' })
+    expect(ctx.last('ROOM_CLOSED')).toBeDefined()
+
+    // Nada mais acontece: o prazo dos 15s também foi cancelado
+    const count = ctx.events.length
+    vi.advanceTimersByTime(60_000)
+    expect(ctx.events).toHaveLength(count)
+  })
+
+  it('cair no Resultado conta como sair da sala', () => {
+    const ctx = toResult('ignora')
+    requestRematch(ctx)
+    ctx.server.disconnect('P2')
+    expect(ctx.last('REMATCH_CANCELLED')).toEqual({ reason: 'LEFT' })
+    expect(ctx.last('PLAYER_LEFT')).toEqual({ slot: 'P2' })
+    expect(ctx.last('ROOM_CLOSED')).toBeDefined()
+  })
+
+  it('?revanche= na URL tem prioridade sobre a variável de ambiente', () => {
+    expect(resolveBotRematch('?revanche=sai', 'recusa')).toBe('sai')
+    expect(resolveBotRematch('?revanche=xyz', 'recusa')).toBe('recusa')
+    expect(resolveBotRematch('', undefined)).toBe('aceita')
   })
 
   it('sair encerra a sala e para tudo', () => {

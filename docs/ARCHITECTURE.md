@@ -24,7 +24,7 @@ src/
 │   ├── match/           # Arena: turnos, timer, placar MD3, Morte Súbita, banners
 │   ├── results/         # Resultado, Coins, revanche
 │   ├── characters/      # os 6 personagens em SVG (estilo neon) + paleta
-│   └── vitao/           # só o espaço reservado + feature flag (desligado no MVP 1)
+│   └── vitao/           # Vitão: arte, animação, falas e reações, atrás da flag VITAO_ENABLED
 ├── sockets/            # cliente STOMP + servidor simulado (mock/) com a mesma interface
 ├── lib/                # lógica pura, sem React (testável isolado)
 │   ├── winCheck.ts       # verificação de vitória N×N/K, ignorando peças congeladas
@@ -89,6 +89,11 @@ Implementado na FE-28 em `src/routes/RoomPage.tsx`: ao abrir `/sala/:codigo`, a 
 Arena segura o banner por `WO_RESULT_DELAY_SECONDS` antes do Resultado (PROJECT_CONTEXT §9).
 A Arena fica em `src/features/match/Arena.tsx`, com as regiões prontas para as faixas e banners
 (FE-05), o deck (FE-11) e a mira (FE-27).
+
+Revanche e saída (FE-29) ficam em `src/features/results/`: o `RematchPanel` (Revanche, Aceitar /
+Recusar com a barra dos 15s e Voltar ao Lobby) entra na tela de Resultado da FE-15, e o
+`useRoomExit` (usado pelo `RoomPage`) avisa e leva ao Hub quem teve o pedido cancelado ou viu a
+sala ser encerrada fora do Resultado. A revanche aceita chega como `PHASE_CHANGE` para `DRAFT`.
 
 ## 3. Stores (Zustand)
 
@@ -165,8 +170,9 @@ implementados no back (revisão de telas, 06/10), então usar as rotas e payload
 ### STOMP (`VITE_WEBSOCKET_URL`)
 
 - `CONNECT` com o token no header `Authorization`.
-- **Assinaturas:** `/topic/rooms/{code}` (eventos públicos da sala) e `/user/queue/room` (eventos
-  privados: opções do meu sorteio, meu deck, erros).
+- **Assinaturas:** `/topic/rooms/{code}` (eventos públicos da sala), `/user/queue/room` (eventos
+  privados: opções do meu sorteio, meu deck) e `/user/queue/errors` (erros das minhas ações, já
+  existente no back).
 - **Envio (cliente → servidor), prefixo `/app/rooms/{code}`:**
   - `/draft/character` `{ character }`
   - `/draft/abilities` `{ abilities: [AbilityId, AbilityId] }`
@@ -176,8 +182,11 @@ implementados no back (revisão de telas, 06/10), então usar as rotas e payload
   - `/rematch/request`, `/rematch/respond` `{ accept }`
   - `/leave`
 - **Eventos (servidor → cliente)**, num envelope `{ type, payload, serverTime }`:
-  - `ROOM_SNAPSHOT` — estado completo (ao entrar e ao reconectar)
-  - `PLAYER_JOINED`, `PLAYER_LEFT`, `PLAYER_DISCONNECTED`, `PLAYER_RECONNECTED`
+  - `ROOM_SNAPSHOT` — estado completo (ao entrar e ao reconectar): fase, jogadores, round, placar,
+    tabuleiro, turno, meu deck e resultado; e, pedidos na FE-20, o prazo e o "pronto" da
+    Preparação, as minhas 3 cartas do sorteio, os Coins e o pedido de revanche em aberto
+  - `PLAYER_JOINED`, `PLAYER_LEFT`, `PLAYER_DISCONNECTED`, `PLAYER_RECONNECTED` (`{ slot }`, sem
+    prazo: quem cai segue a regra dos 3 estouros)
   - `PHASE_CHANGE` — nova `phase` da sala (proposto na FE-12)
   - `DRAFT_UPDATE` — personagens bloqueados e status de cada jogador
   - `DRAW_OPTIONS` (privado) — 3 habilidades e prazo de 8s
@@ -198,6 +207,23 @@ implementados no back (revisão de telas, 06/10), então usar as rotas e payload
 Ponto de partida para discussão com o Victor Hugo (back). Não é definitivo até ser validado dos
 dois lados.
 
+**Contrato do back (15/10):** o back mantém `docs/contrato-integracao.md` no repositório dele,
+com o status de cada rota e evento (✅ disponível, 📝 proposta) e as datas por card. Ele é a fonte
+do que já existe. Já confirmado:
+
+- REST com prefixo **`/api`** (ex: `POST /api/auth/login`): `VITE_API_URL` termina em `/api`.
+- Erro único no REST: `{ code, message, status, timestamp, path, fields? }`.
+- Ids das habilidades no campo `code`, iguais aos do front.
+- STOMP em `/ws` (sem `/api`), com `/topic` e `/queue`. Os erros das minhas ações chegam em
+  `/user/queue/errors`, no formato do REST e fora do envelope; o front traduz para `ERROR`.
+- Temporário até a BE-009.1: sala com `?playerId=` e erros `ROOM_BAD_REQUEST` (inclusive sala
+  inexistente) e `ROOM_CONFLICT`.
+- Respostas do Victor (15/10): tópico no plural (`/topic/rooms/{code}`), `MATCH_END` (não
+  `GAME_OVER`), erros STOMP com o mesmo catálogo de códigos do REST, "casa adjacente" inclui as
+  diagonais, desconexão segue a regra dos 3 estouros (PROJECT_CONTEXT §6) e o cadastro não devolve
+  token (o front faz o login logo depois). BE-040 (JWT no `CONNECT`) e o `ROOM_SNAPSHOT` mínimo
+  antes de 22/10.
+
 ### Servidor simulado (FE-35)
 
 Enquanto o back não está pronto, o front roda contra um **servidor simulado** que vive no próprio
@@ -209,9 +235,14 @@ front (`src/sockets/mock/`). Ele fica **ligado por padrão até a FE-18** e desl
   habilidades com as regras de `src/lib`. Você é sempre o P1; o P2 é um oponente automático.
 - Cenários prontos, por `?cenario=` na URL ou `VITE_MOCK_SCENARIO`: `normal`, `vitoria`,
   `empate-absoluto`, `morte-subita` e `wo`.
+- O que o bot faz no Resultado, por `?revanche=` ou `VITE_MOCK_REMATCH`: `aceita` (padrão),
+  `recusa`, `ignora`, `pede` e `sai` (FE-29).
 - As telas usam só `src/sockets/gameClient.ts` (`joinRoom`, `sendCommand`, `leaveRoom`) e as
   stores. Nunca sabem se estão falando com o simulado ou com o real.
-- `[A VALIDAR COM O BACK]` "casa adjacente" (Tornado, Troca Rápida) inclui as diagonais.
+- "Casa adjacente" (Tornado, Troca Rápida) inclui as diagonais, como no back.
+- Quedas (FE-20): `?queda=volta` (o bot cai no primeiro turno dele e volta) ou `?queda=wo` (não
+  volta e perde por W.O.). Na vitrine, os botões "Minha conexão cai" e "Robô cai" usam
+  `getMockControls()` do `gameClient`, que só existe no simulado.
 
 ### Cliente STOMP real (FE-18)
 
@@ -221,6 +252,12 @@ token no `CONNECT` a cada tentativa, assinatura de `/topic/rooms/{code}` e `/use
 `RECONNECTING` quando a rede cai e erro local `NOT_CONNECTED` ao mandar intenção sem conexão.
 Erros gerados no próprio front vêm com `local: true` e não sincronizam o relógio. O simulado e o
 real são carregados sob demanda pelo `gameClient`.
+
+Reconexão (FE-20): a cada volta as assinaturas antigas morrem com a conexão e são refeitas uma
+vez só; o `ROOM_SNAPSHOT` remonta todas as stores (`applyServerEvent`). Enquanto o status é
+`RECONNECTING`, o `RoomPage` mostra "Reconectando…" e a Arena bloqueia o tabuleiro. Para o aviso
+"Oponente desconectado" (FE-05), o hook `useOpponentDisconnect()` de `src/features/match` diz se
+o oponente caiu e quantos estouros ele tem.
 
 ## 7. Setup
 

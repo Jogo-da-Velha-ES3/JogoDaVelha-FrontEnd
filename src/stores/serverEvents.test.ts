@@ -200,15 +200,60 @@ describe('reconexão', () => {
     expect(usePowersStore.getState().deck).toEqual(deck)
   })
 
-  it('oponente cai e volta', () => {
-    send('PLAYER_DISCONNECTED', { slot: 'P2', reconnectDeadline: clock + 30_000 })
-    const room = () => useRoomStore.getState()
-    expect(room().players.find((p) => p.slot === 'P2')?.connected).toBe(false)
-    expect(room().reconnectDeadlines.P2).toBeDefined()
+  it('snapshot completo restaura Preparação, sorteio, Coins e revanche (FE-20)', () => {
+    const base: RoomSnapshot = {
+      code: '4821',
+      phase: 'DRAFT',
+      players: [player('P1', { character: 'X' }), player('P2')],
+      mySlot: 'P1',
+      round: 0,
+      suddenDeath: false,
+      board: cells('................'),
+      turn: null,
+      myDeck: [],
+      outcome: null,
+      serverTime: clock,
+      draft: { deadline: clock + 12_000, ready: { P1: false, P2: true } },
+    }
+    send('ROOM_SNAPSHOT', base)
+    expect(useDraftStore.getState()).toMatchObject({
+      deadline: clock - 1000 + 12_000,
+      ready: { P1: false, P2: true },
+      characters: { P1: 'X' },
+    })
 
+    const draw = { options: ['TORNADO', 'CONGELAR', 'REFORCO'] as const, deadline: clock + 5000 }
+    send('ROOM_SNAPSHOT', {
+      ...base,
+      phase: 'ROUND_DRAW',
+      draft: null,
+      drawOptions: { ...draw, options: [...draw.options] },
+    })
+    expect(usePowersStore.getState().drawOptions?.options).toEqual(draw.options)
+    expect(useDraftStore.getState().deadline).toBeNull()
+
+    send('ROOM_SNAPSHOT', {
+      ...base,
+      phase: 'RESULT',
+      draft: null,
+      outcome: { kind: 'WIN', winner: 'P1', score: [2, 0] },
+      coins: { P1: 50, P2: 10 },
+      rematch: { by: 'P2', deadline: clock + 9000 },
+    })
+    expect(match()).toMatchObject({
+      coins: { P1: 50, P2: 10 },
+      rematch: { requestedBy: 'P2' },
+      outcomeReceivedAt: null, // reconectou: vai direto ao Resultado, sem segurar o banner
+    })
+    expect(usePowersStore.getState().drawOptions).toBeNull()
+  })
+
+  it('oponente cai e volta: só muda o "conectado" (os estouros seguem a regra normal)', () => {
+    const p2 = () => useRoomStore.getState().players.find((p) => p.slot === 'P2')
+    send('PLAYER_DISCONNECTED', { slot: 'P2' })
+    expect(p2()?.connected).toBe(false)
     send('PLAYER_RECONNECTED', { slot: 'P2' })
-    expect(room().players.find((p) => p.slot === 'P2')?.connected).toBe(true)
-    expect(room().reconnectDeadlines.P2).toBeUndefined()
+    expect(p2()?.connected).toBe(true)
   })
 })
 
@@ -276,11 +321,14 @@ describe('fase, revanche e sala', () => {
     expect(useRoomStore.getState().players).toHaveLength(2)
   })
 
-  it('pedido de revanche e cancelamento', () => {
+  it('pedido de revanche e cancelamento guardam quem tinha pedido', () => {
     send('REMATCH_REQUESTED', { by: 'P2', deadline: clock + 15_000 })
     expect(match().rematch).toMatchObject({ requestedBy: 'P2' })
     send('REMATCH_CANCELLED', { reason: 'TIMEOUT' })
-    expect(match()).toMatchObject({ rematch: null, rematchCancelled: 'TIMEOUT' })
+    expect(match()).toMatchObject({
+      rematch: null,
+      rematchCancelled: { reason: 'TIMEOUT', requestedBy: 'P2' },
+    })
   })
 
   it('sala encerrada, erro e saída do jogador', () => {

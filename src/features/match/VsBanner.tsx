@@ -42,7 +42,7 @@ export function VsBanner() {
             style={
               {
                 clipPath: 'polygon(0 0, 100% 0, 82% 100%, 0 100%)',
-                background: `linear-gradient(115deg, ${myColor}88, #08091200 75%)`,
+                background: `linear-gradient(115deg, color-mix(in srgb, ${myColor} 55%, transparent), transparent 75%)`,
               } as CSSProperties
             }
           >
@@ -72,7 +72,7 @@ export function VsBanner() {
             style={
               {
                 clipPath: 'polygon(18% 0, 100% 0, 100% 100%, 0 100%)',
-                background: `linear-gradient(295deg, ${oppColor}72, #08091200 75%)`,
+                background: `linear-gradient(295deg, color-mix(in srgb, ${oppColor} 45%, transparent), transparent 75%)`,
               } as CSSProperties
             }
           >
@@ -106,7 +106,7 @@ export function VsBanner() {
             transition={{ delay: 0.1, type: 'spring', stiffness: 380, damping: 22 }}
             className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-display text-6xl font-extrabold text-primary short:text-5xl"
             style={{
-              textShadow: `3px 0 ${myColor}, -3px 0 ${oppColor}, 0 0 24px rgba(255,255,255,0.6)`,
+              textShadow: `3px 0 ${myColor}, -3px 0 ${oppColor}, 0 0 24px var(--color-primary)`,
             }}
           >
             VS

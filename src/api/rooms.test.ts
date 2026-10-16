@@ -48,6 +48,17 @@ describe('back de verdade', () => {
     [409, undefined, 'A sala 4821 está cheia ou a partida já começou.'],
     [409, { code: 'ROOM_FULL', message: '…' }, 'A sala 4821 já está cheia.'],
     [409, { code: 'MATCH_ALREADY_STARTED' }, 'A partida da sala 4821 já começou.'],
+    // Códigos temporários de hoje no back (até a BE-009.1)
+    [
+      400,
+      { code: 'ROOM_BAD_REQUEST', message: 'Sala não encontrada' },
+      'Sala 4821 não encontrada.',
+    ],
+    [
+      409,
+      { code: 'ROOM_CONFLICT', message: '…' },
+      'A sala 4821 está cheia ou a partida já começou.',
+    ],
   ])('erro %i %o vira "%s" [RN-SAL-01]', async (status, body, message) => {
     respond(status, body)
     await expect(joinRoomByCode('4821')).rejects.toMatchObject({ status, message })

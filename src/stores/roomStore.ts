@@ -9,8 +9,6 @@ export interface RoomGameState {
   phase: RoomPhase | null
   players: PlayerState[]
   mySlot: PlayerSlot | null
-  /** Prazo para o oponente voltar depois de cair (timestamp do servidor) */
-  reconnectDeadlines: Partial<Record<PlayerSlot, number>>
   closedReason: string | null
   lastError: { code: string; message: string; serverTime: number } | null
   connection: ConnectionStatus
@@ -32,7 +30,6 @@ export const INITIAL_ROOM_STATE: RoomGameState = {
   phase: null,
   players: [],
   mySlot: null,
-  reconnectDeadlines: {},
   closedReason: null,
   lastError: null,
   connection: 'IDLE',

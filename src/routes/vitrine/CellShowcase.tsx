@@ -1,5 +1,6 @@
-import { Cell, type CellProps } from '../features/board'
-import { showToast } from '../stores/toastStore'
+import { Cell, type CellProps } from '../../features/board'
+import { showToast } from '../../stores/toastStore'
+import { ShowcaseBlock } from './ShowcaseLayout'
 
 type Example = Omit<CellProps, 'row' | 'col'> & { title: string }
 
@@ -26,10 +27,10 @@ const EXAMPLES: Example[] = [
 // Seção da vitrine com uma casa de cada estado (FE-02)
 export function CellShowcase() {
   return (
-    <section aria-labelledby="casas" className="flex flex-col gap-3">
-      <h2 id="casas" className="font-display text-lg font-bold text-text-muted uppercase">
-        Casas do tabuleiro
-      </h2>
+    <ShowcaseBlock
+      title="Estados da casa"
+      hint="Uma casa de cada estado da ERS. Os números nos cantos são os turnos que faltam para o efeito acabar. Toque numa casa para ver que ela responde."
+    >
       <ul className="flex flex-wrap gap-4">
         {EXAMPLES.map(({ title, ...cell }, i) => (
           <li key={title} className="flex w-16 flex-col items-center gap-1 text-center">
@@ -45,6 +46,6 @@ export function CellShowcase() {
           </li>
         ))}
       </ul>
-    </section>
+    </ShowcaseBlock>
   )
 }
