@@ -182,8 +182,11 @@ implementados no back (revisão de telas, 06/10), então usar as rotas e payload
   - `/rematch/request`, `/rematch/respond` `{ accept }`
   - `/leave`
 - **Eventos (servidor → cliente)**, num envelope `{ type, payload, serverTime }`:
-  - `ROOM_SNAPSHOT` — estado completo (ao entrar e ao reconectar)
-  - `PLAYER_JOINED`, `PLAYER_LEFT`, `PLAYER_DISCONNECTED`, `PLAYER_RECONNECTED`
+  - `ROOM_SNAPSHOT` — estado completo (ao entrar e ao reconectar): fase, jogadores, round, placar,
+    tabuleiro, turno, meu deck e resultado; e, pedidos na FE-20, o prazo e o "pronto" da
+    Preparação, as minhas 3 cartas do sorteio, os Coins e o pedido de revanche em aberto
+  - `PLAYER_JOINED`, `PLAYER_LEFT`, `PLAYER_DISCONNECTED`, `PLAYER_RECONNECTED` (`{ slot }`, sem
+    prazo: quem cai segue a regra dos 3 estouros)
   - `PHASE_CHANGE` — nova `phase` da sala (proposto na FE-12)
   - `DRAFT_UPDATE` — personagens bloqueados e status de cada jogador
   - `DRAW_OPTIONS` (privado) — 3 habilidades e prazo de 8s
@@ -215,6 +218,11 @@ do que já existe. Já confirmado:
   `/user/queue/errors`, no formato do REST e fora do envelope; o front traduz para `ERROR`.
 - Temporário até a BE-009.1: sala com `?playerId=` e erros `ROOM_BAD_REQUEST` (inclusive sala
   inexistente) e `ROOM_CONFLICT`.
+- Respostas do Victor (15/10): tópico no plural (`/topic/rooms/{code}`), `MATCH_END` (não
+  `GAME_OVER`), erros STOMP com o mesmo catálogo de códigos do REST, "casa adjacente" inclui as
+  diagonais, desconexão segue a regra dos 3 estouros (PROJECT_CONTEXT §6) e o cadastro não devolve
+  token (o front faz o login logo depois). BE-040 (JWT no `CONNECT`) e o `ROOM_SNAPSHOT` mínimo
+  antes de 22/10.
 
 ### Servidor simulado (FE-35)
 
@@ -231,7 +239,10 @@ front (`src/sockets/mock/`). Ele fica **ligado por padrão até a FE-18** e desl
   `recusa`, `ignora`, `pede` e `sai` (FE-29).
 - As telas usam só `src/sockets/gameClient.ts` (`joinRoom`, `sendCommand`, `leaveRoom`) e as
   stores. Nunca sabem se estão falando com o simulado ou com o real.
-- `[A VALIDAR COM O BACK]` "casa adjacente" (Tornado, Troca Rápida) inclui as diagonais.
+- "Casa adjacente" (Tornado, Troca Rápida) inclui as diagonais, como no back.
+- Quedas (FE-20): `?queda=volta` (o bot cai no primeiro turno dele e volta) ou `?queda=wo` (não
+  volta e perde por W.O.). Na vitrine, os botões "Minha conexão cai" e "Robô cai" usam
+  `getMockControls()` do `gameClient`, que só existe no simulado.
 
 ### Cliente STOMP real (FE-18)
 
@@ -241,6 +252,12 @@ token no `CONNECT` a cada tentativa, assinatura de `/topic/rooms/{code}` e `/use
 `RECONNECTING` quando a rede cai e erro local `NOT_CONNECTED` ao mandar intenção sem conexão.
 Erros gerados no próprio front vêm com `local: true` e não sincronizam o relógio. O simulado e o
 real são carregados sob demanda pelo `gameClient`.
+
+Reconexão (FE-20): a cada volta as assinaturas antigas morrem com a conexão e são refeitas uma
+vez só; o `ROOM_SNAPSHOT` remonta todas as stores (`applyServerEvent`). Enquanto o status é
+`RECONNECTING`, o `RoomPage` mostra "Reconectando…" e a Arena bloqueia o tabuleiro. Para o aviso
+"Oponente desconectado" (FE-05), o hook `useOpponentDisconnect()` de `src/features/match` diz se
+o oponente caiu e quantos estouros ele tem.
 
 ## 7. Setup
 

@@ -4,7 +4,7 @@
 import { applyServerEvent, resetGameStores } from '../stores/serverEvents'
 import { useRoomStore } from '../stores/roomStore'
 import type { ClientCommand, ServerEnvelope } from '../types/events'
-import type { MockConnectionOptions } from './mock/mockConnection'
+import type { MockConnectionOptions, MockControls } from './mock/mockConnection'
 import { isMockServerEnabled } from './mode'
 import type { GameConnection, Unsubscribe } from './types'
 
@@ -14,14 +14,13 @@ export async function createGameConnection(
   mockOptions: MockConnectionOptions = {},
 ): Promise<GameConnection> {
   if (isMockServerEnabled()) {
-    const [{ MockConnection }, { resolveBotRematch, resolveScenario }] = await Promise.all([
-      import('./mock/mockConnection'),
-      import('./mock/scenarios'),
-    ])
+    const [{ MockConnection }, { resolveBotDrop, resolveBotRematch, resolveScenario }] =
+      await Promise.all([import('./mock/mockConnection'), import('./mock/scenarios')])
     const { search } = window.location
     return new MockConnection({
       scenario: resolveScenario(search, import.meta.env.VITE_MOCK_SCENARIO),
       botRematch: resolveBotRematch(search, import.meta.env.VITE_MOCK_REMATCH),
+      botDrop: resolveBotDrop(search),
       ...mockOptions,
     })
   }
@@ -78,6 +77,13 @@ export function leaveRoom() {
   connection.disconnect()
   connection = null
   resetGameStores()
+}
+
+/** Só no servidor simulado (vitrine e testes): simular quedas de conexão (FE-20) */
+export function getMockControls(): MockControls | null {
+  const isMock = (c: GameConnection | null): c is GameConnection & MockControls =>
+    c !== null && 'simulateDrop' in c
+  return isMock(connection) ? connection : null
 }
 
 /** Só para depuração (log de eventos na vitrine). Telas usam as stores. */

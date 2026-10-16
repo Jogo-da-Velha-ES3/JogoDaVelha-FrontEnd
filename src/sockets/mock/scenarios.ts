@@ -43,6 +43,18 @@ export type BotRematch = (typeof BOT_REMATCH_BEHAVIORS)[number]
 const isBotRematch = (value: string | null | undefined): value is BotRematch =>
   BOT_REMATCH_BEHAVIORS.some((b) => b === value)
 
+/**
+ * Queda do bot no primeiro turno dele (FE-20), por `?queda=` na URL:
+ * - `volta`: cai, perde esse turno por tempo e volta
+ * - `wo`: cai e não volta; os estouros seguem até o W.O. [RN-ARN-01]
+ */
+export type BotDrop = 'volta' | 'wo'
+
+export function resolveBotDrop(search: string): BotDrop | null {
+  const fromUrl = new URLSearchParams(search).get('queda')
+  return fromUrl === 'volta' || fromUrl === 'wo' ? fromUrl : null
+}
+
 /** `?revanche=` na URL tem prioridade sobre `VITE_MOCK_REMATCH`; sem nada, `aceita` */
 export function resolveBotRematch(search: string, envRematch?: string): BotRematch {
   const fromUrl = new URLSearchParams(search).get('revanche')

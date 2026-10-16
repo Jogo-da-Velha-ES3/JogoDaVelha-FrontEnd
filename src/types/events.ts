@@ -26,7 +26,11 @@ export type ServerEvent =
   | { type: 'ROOM_SNAPSHOT'; payload: RoomSnapshot }
   | { type: 'PLAYER_JOINED'; payload: { player: PlayerState } }
   | { type: 'PLAYER_LEFT'; payload: { slot: PlayerSlot } }
-  | { type: 'PLAYER_DISCONNECTED'; payload: { slot: PlayerSlot; reconnectDeadline: number } }
+  /**
+   * Caiu ou voltou. Sem prazo especial: os turnos de quem caiu continuam correndo e 3 estouros
+   * seguidos dão W.O. (regra fechada com o back em 15/10) [RN-ARN-01]
+   */
+  | { type: 'PLAYER_DISCONNECTED'; payload: { slot: PlayerSlot } }
   | { type: 'PLAYER_RECONNECTED'; payload: { slot: PlayerSlot } }
   | {
       type: 'DRAFT_UPDATE'

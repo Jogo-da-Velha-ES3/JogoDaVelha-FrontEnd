@@ -51,8 +51,8 @@ export const isBlockedFor = (
 export const isFree = (cell: Cell) => cell.owner === null && !has(cell, 'ESCUDO')
 
 /**
- * Casas vizinhas, incluindo as diagonais. [A VALIDAR COM O BACK] A ERS diz "casa adjacente"
- * sem dizer se a diagonal conta.
+ * Casas vizinhas, incluindo as diagonais. A ERS diz só "casa adjacente"; o back confirmou a
+ * diagonal em 15/10.
  */
 export function adjacentCells(index: number, size = BOARD_SIZE): number[] {
   const row = Math.floor(index / size)

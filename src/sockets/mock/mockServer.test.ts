@@ -6,7 +6,7 @@ import {
 } from '../../constants/game'
 import type { AbilityId, PlayerSlot } from '../../types/game'
 import type { ClientCommand, ServerEnvelope, ServerEvent } from '../../types/events'
-import { MOCK_TIMINGS, MockGameServer } from './mockServer'
+import { MOCK_TIMINGS, MockGameServer, type MockServerOptions } from './mockServer'
 import { type BotRematch, resolveBotRematch, type Scenario, SCENARIOS } from './scenarios'
 
 type Payload<T extends ServerEvent['type']> = Extract<ServerEvent, { type: T }>['payload']
@@ -23,14 +23,18 @@ function seeded(seed: number) {
   }
 }
 
-function setup(scenario: Scenario = MANUAL, seed = 7, botRematch?: BotRematch) {
+function setup(
+  scenario: Scenario = MANUAL,
+  seed = 7,
+  extra: Pick<MockServerOptions, 'botRematch' | 'botDrop'> = {},
+) {
   const events: ServerEnvelope[] = []
   const server = new MockGameServer({
     roomCode: '4821',
     emit: (e) => events.push(e),
     scenario,
-    botRematch,
     random: seeded(seed),
+    ...extra,
   })
   server.start()
   const all = <T extends ServerEvent['type']>(type: T) =>
@@ -326,10 +330,92 @@ describe('cenários prontos', () => {
   })
 })
 
+describe('queda e volta (FE-20)', () => {
+  /** Joga casas que não fecham linha até o fim da partida (ou acabar as tentativas) */
+  function playUntilMatchEnd(ctx: Ctx) {
+    const mine = [0, 5, 10, 3, 6]
+    for (let i = 0; i < 12 && !ctx.last('MATCH_END'); i++) {
+      if (ctx.turnOf() === 'P1') ctx.move(mine.shift()!)
+      else vi.advanceTimersByTime(TURN_DURATION_SECONDS * 1000)
+    }
+  }
+
+  it('?queda=wo: o bot cai no primeiro turno dele, os turnos estouram e ele perde por W.O.', () => {
+    const ctx = setup(SCENARIOS.normal, 7, { botDrop: 'wo' })
+    toFirstTurn(ctx)
+    playUntilMatchEnd(ctx)
+
+    expect(ctx.all('PLAYER_DISCONNECTED')).toEqual([{ slot: 'P2' }])
+    expect(ctx.all('BOARD_UPDATE').some((b) => b.board.some((c) => c.owner === 'P2'))).toBe(false)
+    expect(ctx.all('TURN_TIMEOUT').map((t) => t.consecutiveTimeouts)).toEqual([1, 2, 3])
+    expect(ctx.last('MATCH_END')?.outcome).toEqual({ kind: 'WO', winner: 'P1' })
+    expect(ctx.last('PLAYER_RECONNECTED')).toBeUndefined()
+  })
+
+  it('?queda=volta: perde o turno em que caiu, volta e joga de novo', () => {
+    const ctx = setup(SCENARIOS.normal, 7, { botDrop: 'volta' })
+    toFirstTurn(ctx)
+    if (ctx.turnOf() === 'P1') ctx.move(0) // o bot cai quando chega o primeiro turno dele
+    expect(ctx.last('PLAYER_DISCONNECTED')).toEqual({ slot: 'P2' })
+
+    vi.advanceTimersByTime(MOCK_TIMINGS.botReconnect)
+    expect(ctx.last('TURN_TIMEOUT')).toEqual({ player: 'P2', consecutiveTimeouts: 1 })
+    expect(ctx.last('PLAYER_RECONNECTED')).toEqual({ slot: 'P2' })
+
+    // De volta, ele age no turno seguinte (jogada ou habilidade) e a vez volta sem estouro
+    ctx.move(5)
+    expect(ctx.turnOf()).toBe('P2')
+    vi.advanceTimersByTime(MOCK_TIMINGS.botThinkMax)
+    expect(ctx.turnOf()).toBe('P1')
+    expect(ctx.all('TURN_TIMEOUT')).toHaveLength(1)
+  })
+
+  it('você cai e volta: o servidor manda o estado completo da partida', () => {
+    const ctx = setup()
+    toFirstTurn(ctx)
+    ensureMyTurn(ctx)
+    ctx.move(0)
+    ctx.server.disconnect('P1')
+    expect(ctx.last('PLAYER_DISCONNECTED')).toEqual({ slot: 'P1' })
+
+    ctx.server.reconnect('P1')
+    expect(ctx.last('PLAYER_RECONNECTED')).toEqual({ slot: 'P1' })
+    const snapshot = ctx.last('ROOM_SNAPSHOT')!
+    expect(snapshot).toMatchObject({
+      phase: 'PLAYING',
+      mySlot: 'P1',
+      round: 1,
+      turn: { player: 'P2' },
+      draft: null,
+      drawOptions: null,
+    })
+    expect(snapshot.board[0].owner).toBe('P1')
+    expect(snapshot.myDeck.map((d) => d.ability)).toEqual(
+      expect.arrayContaining(['BOMBA', 'SILENCIO']),
+    )
+    expect(snapshot.players.find((p) => p.slot === 'P1')?.connected).toBe(true)
+  })
+
+  it('o snapshot leva a Preparação e as cartas do sorteio de quem volta', () => {
+    const ctx = setup()
+    vi.advanceTimersByTime(MOCK_TIMINGS.botJoin + MOCK_TIMINGS.matched)
+    ctx.server.disconnect('P1')
+    ctx.server.reconnect('P1')
+    expect(ctx.last('ROOM_SNAPSHOT')?.draft).toMatchObject({ ready: { P1: false, P2: false } })
+
+    ctx.send({ type: 'DRAFT_CHARACTER', payload: { character: 'X' } })
+    ctx.send({ type: 'DRAFT_ABILITIES', payload: { abilities: ['BOMBA', 'SILENCIO'] } })
+    vi.advanceTimersByTime(MOCK_TIMINGS.botDraft + MOCK_TIMINGS.versus)
+    ctx.server.disconnect('P1')
+    ctx.server.reconnect('P1')
+    expect(ctx.last('ROOM_SNAPSHOT')?.drawOptions).toEqual(ctx.last('DRAW_OPTIONS'))
+  })
+})
+
 describe('revanche e saída', () => {
   /** Cenário "vitoria" até o Resultado, com o comportamento do bot no fim */
   function toResult(botRematch?: BotRematch) {
-    const ctx = setup(SCENARIOS.vitoria, 7, botRematch)
+    const ctx = setup(SCENARIOS.vitoria, 7, { botRematch })
     vi.advanceTimersByTime(MOCK_TIMINGS.botJoin + MOCK_TIMINGS.matched)
     vi.advanceTimersByTime(PREPARATION_SECONDS * 1000 + MOCK_TIMINGS.versus)
     vi.advanceTimersByTime(2 * (2 * MOCK_TIMINGS.scriptedStep + MOCK_TIMINGS.roundEnd))
@@ -418,6 +504,15 @@ describe('revanche e saída', () => {
     const count = ctx.events.length
     vi.advanceTimersByTime(60_000)
     expect(ctx.events).toHaveLength(count)
+  })
+
+  it('cair no Resultado conta como sair da sala', () => {
+    const ctx = toResult('ignora')
+    requestRematch(ctx)
+    ctx.server.disconnect('P2')
+    expect(ctx.last('REMATCH_CANCELLED')).toEqual({ reason: 'LEFT' })
+    expect(ctx.last('PLAYER_LEFT')).toEqual({ slot: 'P2' })
+    expect(ctx.last('ROOM_CLOSED')).toBeDefined()
   })
 
   it('?revanche= na URL tem prioridade sobre a variável de ambiente', () => {
