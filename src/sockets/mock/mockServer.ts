@@ -724,6 +724,10 @@ export class MockGameServer {
     this.emit('MATCH_END', { outcome, coins: this.coins })
     this.setPhase('RESULT')
 
+    // Caído no Resultado conta como saída: sala encerrada e sem revanche [A VALIDAR COM O BACK].
+    // Só o bot: a sua queda é simulada pela conexão, que volta com o snapshot.
+    if (!this.player('P2').connected) return this.leave('P2')
+
     if (this.botRematch === 'pede') {
       this.later(MOCK_TIMINGS.botRematch, () => this.requestRematch('P2'))
     } else if (this.botRematch === 'sai') {

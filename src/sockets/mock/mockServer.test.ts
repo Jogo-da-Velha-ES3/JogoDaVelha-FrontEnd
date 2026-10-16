@@ -515,6 +515,24 @@ describe('revanche e saída', () => {
     expect(ctx.last('ROOM_CLOSED')).toBeDefined()
   })
 
+  it('bot que caiu durante a partida e não voltou sai da sala no Resultado (sem revanche)', () => {
+    const ctx = setup(SCENARIOS.vitoria)
+    vi.advanceTimersByTime(MOCK_TIMINGS.botJoin + MOCK_TIMINGS.matched)
+    ctx.server.disconnect('P2') // "Robô cai" na Preparação: os rounds seguem sem ele
+    vi.advanceTimersByTime(PREPARATION_SECONDS * 1000 + MOCK_TIMINGS.versus)
+    vi.advanceTimersByTime(2 * (2 * MOCK_TIMINGS.scriptedStep + MOCK_TIMINGS.roundEnd))
+
+    expect(ctx.phases().at(-1)).toBe('RESULT')
+    expect(ctx.last('PLAYER_LEFT')).toEqual({ slot: 'P2' })
+    expect(ctx.last('ROOM_CLOSED')).toBeDefined()
+
+    // A revanche não começa uma partida nova com ele caído
+    requestRematch(ctx)
+    vi.advanceTimersByTime(MOCK_TIMINGS.rematchAccept)
+    expect(ctx.last('ERROR')?.code).toBe('ROOM_CLOSED')
+    expect(ctx.phases().filter((p) => p === 'DRAFT')).toHaveLength(1)
+  })
+
   it('?revanche= na URL tem prioridade sobre a variável de ambiente', () => {
     expect(resolveBotRematch('?revanche=sai', 'recusa')).toBe('sai')
     expect(resolveBotRematch('?revanche=xyz', 'recusa')).toBe('recusa')
