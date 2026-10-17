@@ -78,12 +78,13 @@ export function Cell(props: CellProps) {
         />
       )}
 
+      {/* Absoluta: % de altura num item de grade nem sempre resolve no Safari (peça fora do centro) */}
       {piece && (
         <Character
           id={piece}
           variant="piece"
           decorative
-          className={`size-[78%] ${has('CONGELAR') ? 'brightness-90 saturate-[.3]' : ''}`}
+          className={`absolute top-[11%] left-[11%] size-[78%] ${has('CONGELAR') ? 'brightness-90 saturate-[.3]' : ''}`}
         />
       )}
 
