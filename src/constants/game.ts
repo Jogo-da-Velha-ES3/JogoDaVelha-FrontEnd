@@ -11,6 +11,10 @@ export const SUDDEN_DEATH_TURN_DURATION_SECONDS = 5
 export const HOURGLASS_TURN_DURATION_SECONDS = 5 // Ampulheta
 export const MAX_CONSECUTIVE_TIMEOUTS = 3 // W.O. [RN-ARN-01]
 export const PREPARATION_SECONDS = 20 // [RF-DRAFT-01]
+/** Preparação: a partir daqui avisa o que falta e leva às habilidades (decisão de 17/10) */
+export const PREPARATION_WARN_SECONDS = 8
+/** Preparação: espera depois de o servidor confirmar o personagem antes de ir às habilidades */
+export const PREPARATION_AUTO_ADVANCE_MS = 500
 export const DRAW_PICK_SECONDS = 8 // [RN-DRAFT-05]
 export const MATCH_FOUND_COUNTDOWN_SECONDS = 3 // [RF-SAL-03]
 export const REMATCH_WINDOW_SECONDS = 15 // [RN-POS-01]
