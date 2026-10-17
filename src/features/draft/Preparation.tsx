@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Button, TimerBar } from '../../components/ui'
 import { ABILITY_INFO } from '../../constants/abilities'
 import { CHARACTER_INFO } from '../../constants/characters'
@@ -6,11 +6,12 @@ import {
   ABILITIES,
   CHARACTERS,
   INITIAL_ABILITIES_TO_PICK,
+  PREPARATION_AUTO_ADVANCE_MS,
   PREPARATION_SECONDS,
-  STARTER_ABILITIES,
-  STARTER_CHARACTERS,
+  PREPARATION_WARN_SECONDS,
 } from '../../constants/game'
-import { Character } from '../../features/characters'
+import { useServerTimer } from '../../hooks/useServerTimer'
+import { Character } from '../characters'
 import { otherSlot } from '../../lib/match'
 import { sendCommand } from '../../sockets/gameClient'
 import { useDraftStore } from '../../stores/draftStore'
@@ -19,11 +20,22 @@ import type { AbilityId, CharacterId } from '../../types/game'
 
 type Step = 'CHARACTER' | 'ABILITIES'
 
+export interface PreparationProps {
+  /**
+   * O que o jogador já desbloqueou. Até o inventário real chegar (FE-30, `/me`), tudo vem
+   * desbloqueado para o time conseguir testar; os testes passam só os iniciais.
+   */
+  unlockedCharacters?: readonly CharacterId[]
+  unlockedAbilities?: readonly AbilityId[]
+}
+
 /** Preparação do draft: personagem reservado no servidor e duas habilidades iniciais. */
-export function Preparation() {
-  const [step, setStep] = useState<Step>('CHARACTER')
+export function Preparation({
+  unlockedCharacters = CHARACTERS,
+  unlockedAbilities = ABILITIES,
+}: PreparationProps) {
+  const [chosenStep, setStep] = useState<Step>('CHARACTER')
   const [pickedAbilities, setPickedAbilities] = useState<AbilityId[]>([])
-  const [submitted, setSubmitted] = useState(false)
   const deadline = useDraftStore((s) => s.deadline)
   const characters = useDraftStore((s) => s.characters)
   const ready = useDraftStore((s) => s.ready)
@@ -34,12 +46,45 @@ export function Preparation() {
   const myCharacter = characters[me]
   const opponentCharacter = characters[opponentSlot]
   const characterOptions = CHARACTERS
-  const unlockedAbilities = STARTER_ABILITIES as readonly AbilityId[]
-  const unlockedCharacters = STARTER_CHARACTERS as readonly CharacterId[]
+  const abilityOptions = ABILITIES.filter((ability) => unlockedAbilities.includes(ability))
   const isReady = ready[me]
+  const timerDeadline =
+    deadline === null
+      ? null
+      : { startedAt: deadline - PREPARATION_SECONDS * 1000, durationSeconds: PREPARATION_SECONDS }
+  const timer = useServerTimer(timerDeadline, 250)
+
+  // Reta final: avisa o que falta; com o personagem já escolhido, fica nas habilidades
+  const warning =
+    !isReady &&
+    timer !== null &&
+    timer.remainingMs > 0 &&
+    timer.remainingSeconds <= PREPARATION_WARN_SECONDS
+  const step: Step = warning && myCharacter ? 'ABILITIES' : chosenStep
+
+  // O servidor confirmou o personagem: segue sozinho para as habilidades (dá para voltar)
+  useEffect(() => {
+    let advance: ReturnType<typeof setTimeout> | undefined
+    const unsubscribe = useDraftStore.subscribe((state, previous) => {
+      const confirmed = state.characters[me]
+      if (!confirmed || confirmed === previous.characters[me] || state.ready[me]) return
+      clearTimeout(advance)
+      advance = setTimeout(() => setStep('ABILITIES'), PREPARATION_AUTO_ADVANCE_MS)
+    })
+    return () => {
+      unsubscribe()
+      clearTimeout(advance)
+    }
+  }, [me])
+
+  const myStatus = isReady
+    ? 'Pronto'
+    : !myCharacter
+      ? 'Falta: personagem'
+      : `Falta: habilidades (${pickedAbilities.length}/${INITIAL_ABILITIES_TO_PICK})`
 
   const toggleAbility = (ability: AbilityId) => {
-    if (!unlockedAbilities.includes(ability) || submitted || isReady) return
+    if (!unlockedAbilities.includes(ability) || isReady) return
     setPickedAbilities((current) => {
       if (current.includes(ability)) return current.filter((item) => item !== ability)
       if (current.length >= INITIAL_ABILITIES_TO_PICK) return current
@@ -48,11 +93,11 @@ export function Preparation() {
   }
 
   const confirmAbilities = () => {
-    if (pickedAbilities.length !== INITIAL_ABILITIES_TO_PICK || submitted || isReady) return
+    if (pickedAbilities.length !== INITIAL_ABILITIES_TO_PICK || isReady) return
     const [first, second] = pickedAbilities
     if (!first || !second) return
+    // Só a intenção: a tela trava quando o servidor confirmar (ready[me] no DRAFT_UPDATE)
     sendCommand({ type: 'DRAFT_ABILITIES', payload: { abilities: [first, second] } })
-    setSubmitted(true)
   }
 
   const selectCharacter = (character: CharacterId) => {
@@ -79,17 +124,7 @@ export function Preparation() {
           <p className="mb-1 text-center font-display text-[10px] font-bold tracking-widest text-text-muted uppercase">
             Tempo restante
           </p>
-          <TimerBar
-            deadline={
-              deadline === null
-                ? null
-                : {
-                    startedAt: deadline - PREPARATION_SECONDS * 1000,
-                    durationSeconds: PREPARATION_SECONDS,
-                  }
-            }
-            label="Tempo da Preparação"
-          />
+          <TimerBar deadline={timerDeadline} label="Tempo da Preparação" />
         </div>
         <div className="min-w-0 text-right">
           <p className="font-display text-xs font-bold tracking-[0.2em] text-text-muted uppercase">
@@ -98,7 +133,9 @@ export function Preparation() {
           <p className="truncate font-display text-sm font-bold text-primary sm:text-base">
             {players.find((player) => player.slot === me)?.nickname ?? 'Jogador'}
           </p>
-          <p className="text-xs text-text-muted">{isReady ? 'Pronto' : 'Escolhendo…'}</p>
+          <p className={`text-xs ${isReady ? 'text-text-muted' : 'font-bold text-primary'}`}>
+            {myStatus}
+          </p>
         </div>
       </header>
 
@@ -106,6 +143,7 @@ export function Preparation() {
         <StepButton
           active={step === 'CHARACTER'}
           done={Boolean(myCharacter)}
+          pending={!myCharacter}
           onClick={() => setStep('CHARACTER')}
         >
           1 · Personagem
@@ -113,6 +151,7 @@ export function Preparation() {
         <StepButton
           active={step === 'ABILITIES'}
           done={isReady}
+          pending={Boolean(myCharacter) && !isReady}
           onClick={() => myCharacter && setStep('ABILITIES')}
         >
           2 · Habilidades
@@ -128,23 +167,32 @@ export function Preparation() {
             >
               Escolha seu personagem
             </h2>
-            <p className="text-xs text-text-muted">
-              O personagem altera apenas a aparência do seu lado.
-            </p>
+            {warning ? (
+              <TimeWarning seconds={timer.remainingSeconds} missing="seu personagem" />
+            ) : (
+              <p className="text-xs text-text-muted">
+                O personagem altera apenas a aparência do seu lado.
+              </p>
+            )}
           </div>
-          <div className="grid min-h-0 flex-1 grid-cols-3 gap-2 sm:gap-3">
+          {/* Linhas fixas (metade da altura cada): o tamanho do cartão não depende do personagem.
+              Sem isso o Safari entra em ciclo (o desenho é % do cartão) e a linha fica pulsando */}
+          <div className="grid min-h-0 flex-1 grid-cols-3 grid-rows-2 gap-2 sm:gap-3">
             {characterOptions.map((character) => {
               const info = CHARACTER_INFO[character]
               const locked = !unlockedCharacters.includes(character)
               const reservedByOpponent = character === opponentCharacter
               const selected = character === myCharacter
-              const label = locked
-                ? `Bloqueado · ${info.name}`
-                : reservedByOpponent
-                  ? `Reservado por ${opponent?.nickname ?? 'oponente'}`
+              // Reservado pelo oponente vem antes do preço: mostra o nome de quem reservou [RF-DRAFT-02]
+              const label = reservedByOpponent
+                ? `Reservado por ${opponent?.nickname ?? 'oponente'}`
+                : locked
+                  ? `Bloqueado · ${info.name}`
                   : selected
                     ? `${info.name} · selecionado`
                     : info.name
+              // Em tela baixa (celular deitado) o cartão fica horizontal: o personagem ocupa a
+              // altura toda à esquerda em vez de virar um ícone pequeno
               return (
                 <button
                   key={character}
@@ -153,24 +201,26 @@ export function Preparation() {
                   onClick={() => selectCharacter(character)}
                   aria-label={label}
                   aria-pressed={selected}
-                  className={`relative flex min-h-0 flex-col items-center justify-center overflow-hidden rounded-2xl border-2 bg-bg-panel p-2 transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary short:p-1 ${selected ? 'border-primary shadow-glow shadow-primary/35' : 'border-white/10'} ${locked || reservedByOpponent ? 'cursor-not-allowed' : 'hover:border-primary/60'}`}
+                  className={`relative flex min-h-0 flex-col items-center justify-center overflow-hidden rounded-2xl border-2 bg-bg-panel p-2 transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary short:flex-row short:justify-start short:gap-2 short:px-2 short:py-1 ${selected ? 'border-primary shadow-glow shadow-primary/35' : 'border-line'} ${locked || reservedByOpponent ? 'cursor-not-allowed' : 'hover:border-primary/60'}`}
                 >
                   <Character
                     id={character}
-                    className={`h-[58%] min-h-12 max-h-36 w-auto max-w-full short:h-7 short:min-h-0 short:max-h-7 ${locked || reservedByOpponent ? 'grayscale opacity-50' : ''}`}
+                    className={`h-[58%] min-h-12 max-h-36 w-auto max-w-full shrink-0 short:h-[88%] short:min-h-0 short:max-w-[45%] ${locked || reservedByOpponent ? 'grayscale opacity-50' : ''}`}
                     decorative
                   />
-                  <span className="mt-1 font-display text-sm font-bold text-primary">
-                    {info.name}
-                  </span>
-                  <span className="text-center text-[10px] leading-tight text-text-muted sm:text-xs">
-                    {locked
-                      ? `🔒 ${info.price} Coins · Loja`
-                      : reservedByOpponent
+                  <span className="flex min-w-0 flex-col items-center short:items-start">
+                    <span className="mt-1 font-display text-sm font-bold text-primary short:mt-0">
+                      {info.name}
+                    </span>
+                    <span className="text-center text-[10px] leading-tight text-text-muted short:text-left sm:text-xs">
+                      {reservedByOpponent
                         ? `🔒 Reservado por ${opponent?.nickname ?? 'oponente'}`
-                        : selected
-                          ? 'Selecionado'
-                          : 'Disponível'}
+                        : locked
+                          ? `🔒 ${info.price} Coins · Loja`
+                          : selected
+                            ? 'Selecionado'
+                            : 'Disponível'}
+                    </span>
                   </span>
                 </button>
               )
@@ -191,24 +241,31 @@ export function Preparation() {
             >
               Habilidades iniciais
             </h2>
-            <p className="text-xs text-text-muted">
-              Selecione exatamente {INITIAL_ABILITIES_TO_PICK}. {pickedAbilities.length}/
-              {INITIAL_ABILITIES_TO_PICK} escolhidas.
-            </p>
+            {warning ? (
+              <TimeWarning seconds={timer.remainingSeconds} missing="suas 2 habilidades" />
+            ) : (
+              <p className="text-xs text-text-muted">
+                Selecione exatamente {INITIAL_ABILITIES_TO_PICK}. {pickedAbilities.length}/
+                {INITIAL_ABILITIES_TO_PICK} escolhidas.
+              </p>
+            )}
           </div>
-          <div className="grid min-h-0 flex-1 grid-cols-3 gap-2 sm:gap-3">
-            {ABILITIES.filter((ability) => unlockedAbilities.includes(ability)).map((ability) => {
+          {/* Até 3: uma linha; mais que isso (compradas na Loja): 2 linhas de 5, sem rolar */}
+          <div
+            className={`grid min-h-0 flex-1 gap-2 sm:gap-3 ${abilityOptions.length > 3 ? 'grid-cols-5 grid-rows-2' : 'grid-cols-3 grid-rows-1'}`}
+          >
+            {abilityOptions.map((ability) => {
               const info = ABILITY_INFO[ability]
               const selected = pickedAbilities.includes(ability)
               return (
                 <button
                   key={ability}
                   type="button"
-                  disabled={submitted || isReady}
+                  disabled={isReady}
                   onClick={() => toggleAbility(ability)}
                   aria-pressed={selected}
                   aria-label={`${info.name}. ${info.description}`}
-                  className={`relative flex min-h-0 flex-col items-center justify-center gap-1 rounded-xl border-2 bg-bg-panel px-2 py-1 text-center transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${selected ? 'border-primary shadow-glow shadow-primary/30' : 'border-white/10'} hover:border-primary/60`}
+                  className={`relative flex min-h-0 flex-col items-center justify-center gap-1 rounded-xl border-2 bg-bg-panel px-2 py-1 text-center transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${selected ? 'border-primary shadow-glow shadow-primary/30' : 'border-line'} hover:border-primary/60`}
                 >
                   <span className="text-xl leading-none sm:text-2xl" aria-hidden="true">
                     {ABILITY_GLYPHS[ability]}
@@ -240,18 +297,16 @@ export function Preparation() {
                 variant="ghost"
                 size="sm"
                 onClick={() => setStep('CHARACTER')}
-                disabled={submitted || isReady}
+                disabled={isReady}
               >
                 Voltar
               </Button>
               <Button
                 size="sm"
                 onClick={confirmAbilities}
-                disabled={
-                  pickedAbilities.length !== INITIAL_ABILITIES_TO_PICK || submitted || isReady
-                }
+                disabled={pickedAbilities.length !== INITIAL_ABILITIES_TO_PICK || isReady}
               >
-                {isReady || submitted ? 'Aguardando oponente…' : 'Confirmar habilidades'}
+                {isReady ? 'Aguardando oponente…' : 'Confirmar habilidades'}
               </Button>
             </div>
           </div>
@@ -264,14 +319,26 @@ export function Preparation() {
   )
 }
 
+/** Reta final da Preparação: vermelho, porque é perigo de perder a escolha */
+function TimeWarning({ seconds, missing }: { seconds: number; missing: string }) {
+  return (
+    <p role="alert" className="text-xs font-bold text-danger">
+      Faltam {seconds}s! Escolha {missing}, senão o jogo escolhe por você.
+    </p>
+  )
+}
+
 function StepButton({
   active,
   done,
+  pending,
   onClick,
   children,
 }: {
   active: boolean
   done: boolean
+  /** Ainda falta fazer: pulsa para chamar a atenção quando não é a etapa aberta */
+  pending: boolean
   onClick: () => void
   children: string
 }) {
@@ -279,7 +346,7 @@ function StepButton({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-full border px-3 py-1 font-display text-[10px] font-bold uppercase transition sm:px-4 sm:text-xs ${active ? 'border-primary bg-primary/15 text-primary' : 'border-white/10 text-text-muted hover:border-primary/50'}`}
+      className={`rounded-full border px-3 py-1 font-display text-[10px] font-bold uppercase transition sm:px-4 sm:text-xs ${active ? 'border-primary bg-primary/15 text-primary' : 'border-line text-text-muted hover:border-primary/50'} ${pending && !active ? 'border-primary text-primary motion-safe:animate-glow-pulse' : ''}`}
     >
       {children}
       {done ? ' ✓' : ''}
