@@ -1,10 +1,8 @@
 // Telas da sala que ainda são de outros cards. Mostram o mínimo para a partida andar de ponta a
 // ponta com o servidor simulado; cada card substitui a sua.
-import { TimerBar } from '../../components/ui'
-import { PREPARATION_SECONDS } from '../../constants/game'
 import { RematchPanel } from '../../features/results'
+import { Preparation } from '../../features/draft/Preparation'
 import { otherSlot } from '../../lib/match'
-import { useDraftStore } from '../../stores/draftStore'
 import { useMatchStore } from '../../stores/matchStore'
 import { useRoomStore } from '../../stores/roomStore'
 import { PagePlaceholder } from '../PagePlaceholder'
@@ -26,26 +24,7 @@ export function WaitingRoomPlaceholder({ code }: { code: string }) {
 }
 
 export function PreparationPlaceholder() {
-  const deadline = useDraftStore((s) => s.deadline)
-
-  return (
-    <PagePlaceholder title="Preparação" card="FE-09" owner="Matheus">
-      <div className="w-64">
-        <TimerBar
-          deadline={
-            deadline
-              ? {
-                  startedAt: deadline - PREPARATION_SECONDS * 1000,
-                  durationSeconds: PREPARATION_SECONDS,
-                }
-              : null
-          }
-          label="Tempo da Preparação"
-        />
-      </div>
-      <p className="text-sm text-text-muted">Sem escolha, o servidor escolhe por você.</p>
-    </PagePlaceholder>
-  )
+  return <Preparation />
 }
 
 export function ResultPlaceholder() {
