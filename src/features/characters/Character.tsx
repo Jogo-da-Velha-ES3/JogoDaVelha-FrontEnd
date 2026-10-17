@@ -50,7 +50,9 @@ export function Character({
       className={[
         'overflow-visible',
         animated ? 'chr-animated' : '',
-        variant === 'avatar' ? 'size-[78%]' : className,
+        // Avatar: posição absoluta dentro do círculo. Com % de altura num item de grade, o Safari
+        // às vezes não resolve o tamanho e o desenho sai do centro (encosta na borda em alguns zooms)
+        variant === 'avatar' ? 'absolute top-[11%] left-[11%] size-[78%]' : className,
       ].join(' ')}
       {...(variant === 'avatar' ? { 'aria-hidden': true } : a11y)}
     >
@@ -82,7 +84,7 @@ export function Character({
   return (
     <span
       {...a11y}
-      className={`inline-grid aspect-square place-items-center rounded-full border-2 bg-bg-panel ${className}`}
+      className={`relative inline-block aspect-square shrink-0 rounded-full border-2 bg-bg-panel ${className}`}
       style={{ borderColor: color }}
     >
       {svg}

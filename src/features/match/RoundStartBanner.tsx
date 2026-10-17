@@ -20,17 +20,25 @@ function Avatar({
 }) {
   return (
     <span
-      className="grid size-7 shrink-0 place-items-center overflow-hidden rounded-full border-2 bg-bg-raised"
+      className="relative size-14 shrink-0 overflow-hidden rounded-full border-[3px] bg-bg-raised short:size-7 short:border-2"
       style={{ borderColor: color, boxShadow: `0 0 8px ${color}` }}
     >
       {character ? (
-        <Character id={character} variant="piece" decorative className="size-[78%]" />
+        <Character
+          id={character}
+          variant="piece"
+          decorative
+          className="absolute top-[11%] left-[11%] size-[78%]"
+        />
       ) : null}
     </span>
   )
 }
 
 /**
+ * Tamanhos: o esboço de telas é um celular em miniatura; os px dele valem só no celular deitado
+ * (`short:`). Em telas maiores, tudo cresce para continuar legível.
+ *
  * Banner de início de round — visual do esboço, estado "Início do round" (`.ov-banner`,
  * `.flip`, `.coin-big`). Aparece nos primeiros segundos de cada round (a partir da chegada do
  * ROUND_START), para não cobrir o sorteio da 3ª habilidade. Quem reconecta não vê o banner.
@@ -90,7 +98,7 @@ export function RoundStartBanner() {
             initial={{ scale: 2.6, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: 'spring', stiffness: 380, damping: 22, delay: 0.05 }}
-            className="font-display text-[42px] leading-none font-bold tracking-[0.05em] text-primary uppercase"
+            className="font-display text-7xl leading-none font-bold tracking-[0.05em] text-primary uppercase short:text-[42px]"
             style={{
               textShadow:
                 '3px 0 var(--color-danger), -3px 0 var(--color-danger), 0 0 30px var(--color-danger)',
@@ -100,7 +108,7 @@ export function RoundStartBanner() {
           </motion.p>
 
           {/* Subtexto na cor do perigo, letras bem espaçadas */}
-          <p className="font-mono text-[11px] font-semibold tracking-[0.2em] text-danger uppercase">
+          <p className="font-mono text-base font-semibold tracking-[0.2em] text-danger uppercase short:text-[11px]">
             5 Segundos por jogada
           </p>
         </motion.div>
@@ -115,31 +123,34 @@ export function RoundStartBanner() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className="pointer-events-none absolute inset-0 z-[5] flex flex-col items-center justify-center gap-[7px] bg-bg-deep/75 px-3.5 py-3.5 text-center"
+          className="pointer-events-none absolute inset-0 z-[5] flex flex-col items-center justify-center gap-3 bg-bg-deep/75 px-3.5 py-3.5 text-center short:gap-[7px]"
         >
-          <p className="font-mono text-[9.5px] tracking-[0.06em] text-text-muted uppercase">
+          <p className="font-mono text-sm tracking-[0.06em] text-text-muted uppercase short:text-[9.5px]">
             Melhor de 3
           </p>
 
           {matchPoint ? (
             <p
-              className="font-display text-[30px] leading-none font-bold tracking-[0.08em] uppercase"
+              className="font-display text-6xl leading-none font-bold tracking-[0.08em] uppercase short:text-[30px]"
               style={{ color: leadColor, textShadow: `0 0 18px ${leadColor}` }}
             >
               Match Point · {leadName}
             </p>
           ) : (
-            <p className="font-display text-[30px] leading-none font-bold tracking-[0.08em] text-text uppercase">
+            <p className="font-display text-6xl leading-none font-bold tracking-[0.08em] text-text uppercase short:text-[30px]">
               Round {round}
             </p>
           )}
 
-          <div className="mt-1.5 flex items-center gap-2.5" style={{ perspective: 240 }}>
+          <div
+            className="mt-3 flex items-center gap-5 short:mt-1.5 short:gap-2.5"
+            style={{ perspective: 480 }}
+          >
             <Avatar character={me?.character} color={myColor} />
             {round === 1 ? (
               <motion.span
                 aria-hidden="true"
-                className="grid size-10 place-items-center rounded-full border-2 border-coin font-display text-[17px] font-bold text-coin"
+                className="grid size-[72px] place-items-center rounded-full border-[3px] border-coin font-display text-3xl font-bold text-coin short:size-10 short:border-2 short:text-[17px]"
                 style={{ boxShadow: '0 0 16px var(--color-coin)' }}
                 animate={reduceMotion || !flipping ? { rotateY: 0 } : { rotateY: 360 }}
                 transition={
@@ -160,19 +171,19 @@ export function RoundStartBanner() {
 
           {/* Round 1: primeiro a moeda gira, depois revela quem começa */}
           {round === 1 && flipping ? (
-            <p className="font-mono text-[9.5px] tracking-[0.06em] text-text-muted">
+            <p className="font-mono text-sm tracking-[0.06em] text-text-muted short:text-[9.5px]">
               sorteando quem começa…
             </p>
           ) : (
             <>
               {round > 1 && (
-                <p className="font-mono text-[9.5px] tracking-[0.06em] text-text-muted">
+                <p className="font-mono text-sm tracking-[0.06em] text-text-muted short:text-[9.5px]">
                   alterna a cada round
                 </p>
               )}
               {starter && (
                 <p
-                  className="font-display text-sm font-bold tracking-[0.06em] uppercase"
+                  className="font-display text-2xl font-bold tracking-[0.06em] uppercase short:text-sm"
                   style={{ color: starterColor }}
                 >
                   {starterIsMe ? 'Você começa' : `${starterName} começa`}
