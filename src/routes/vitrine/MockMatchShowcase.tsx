@@ -63,6 +63,18 @@ const SCENARIO_CARDS: { id: ScenarioId; title: string; description: string }[] =
     title: 'Vitória por W.O.',
     description: 'O robô não joga e perde por estourar o tempo 3 vezes. Jogue nos seus turnos.',
   },
+  {
+    id: 'derrota',
+    title: 'Derrota',
+    description:
+      'O robô vence os dois primeiros rounds sozinho (0×2). Bom para ver o Resultado de quem perde.',
+  },
+  {
+    id: 'derrota-wo',
+    title: 'Derrota por W.O.',
+    description:
+      'Não jogue: seus turnos duram 2 segundos e estouram 3 vezes seguidas, e o robô vence por W.O.',
+  },
 ]
 
 const BOT_REMATCH_LABEL: Record<BotRematch, string> = {

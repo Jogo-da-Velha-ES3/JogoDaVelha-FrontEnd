@@ -236,6 +236,8 @@ front (`src/sockets/mock/`). Ele fica **ligado por padrão até a FE-18** e desl
   habilidades com as regras de `src/lib`. Você é sempre o P1; o P2 é um oponente automático.
 - Cenários prontos, por `?cenario=` na URL ou `VITE_MOCK_SCENARIO`: `normal`, `vitoria`,
   `empate-absoluto`, `morte-subita`, `virada` e `wo`.
+- Cenários de derrota (FE-15): `derrota` (o bot vence por 0×2; Coins 10 e 50) e `derrota-wo` (você
+  não joga: seus turnos duram 2s e os 3 estouros seguidos dão W.O. ao bot; Coins 0 e 30).
 - O que o bot faz no Resultado, por `?revanche=` ou `VITE_MOCK_REMATCH`: `aceita` (padrão),
   `recusa`, `ignora`, `pede` e `sai` (FE-29).
 - As telas usam só `src/sockets/gameClient.ts` (`joinRoom`, `sendCommand`, `leaveRoom`) e as

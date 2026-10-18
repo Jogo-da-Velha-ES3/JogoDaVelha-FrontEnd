@@ -60,6 +60,8 @@ export const MOCK_TIMINGS = {
   rematchAccept: 2000,
   /** Quanto o bot espera no Resultado antes de pedir revanche ou sair (`pede`, `sai`) */
   botRematch: 3000,
+  /** Cenário `derrota-wo`: duração do seu turno, para os 3 estouros seguidos virem logo */
+  youIdleTurn: 2000,
   /** `?queda=volta`: o bot volta logo depois de perder o turno em que caiu */
   botReconnect: TURN_DURATION_SECONDS * 1000 + 1500,
 }
@@ -535,6 +537,8 @@ export class MockGameServer {
     if (this.suddenDeath) durationSeconds = SUDDEN_DEATH_TURN_DURATION_SECONDS
     else if (this.hourglassFor === slot) durationSeconds = HOURGLASS_TURN_DURATION_SECONDS
     if (this.hourglassFor === slot) this.hourglassFor = null
+    // Só no cenário `derrota-wo` (FE-15); nos demais a duração não muda
+    if (slot === 'P1' && this.scenario.youIdle) durationSeconds = MOCK_TIMINGS.youIdleTurn / 1000
 
     this.turn = { player: slot, startedAt: Date.now(), durationSeconds }
     this.emit('TURN_START', {

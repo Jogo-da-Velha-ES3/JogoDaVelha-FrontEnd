@@ -560,3 +560,64 @@ describe('revanche e saída', () => {
     expect(ctx.events).toHaveLength(count)
   })
 })
+
+describe('cenários de derrota (FE-15)', () => {
+  it('derrota: o robô vence os 2 rounds sozinho (0×2) e os Coins vêm do servidor (10/50)', () => {
+    const ctx = setup(SCENARIOS.derrota)
+    vi.advanceTimersByTime(MOCK_TIMINGS.botJoin + MOCK_TIMINGS.matched)
+    vi.advanceTimersByTime(PREPARATION_SECONDS * 1000 + MOCK_TIMINGS.versus)
+    vi.advanceTimersByTime(2 * (2 * MOCK_TIMINGS.scriptedStep + MOCK_TIMINGS.roundEnd))
+
+    expect(ctx.all('ROUND_END').map((r) => [r.winner, r.score])).toEqual([
+      ['P2', { P1: 0, P2: 1 }],
+      ['P2', { P1: 0, P2: 2 }],
+    ])
+    expect(ctx.all('ROUND_START')).toHaveLength(2) // acaba em 0×2, sem round 3
+    expect(ctx.last('MATCH_END')).toEqual({
+      outcome: { kind: 'WIN', winner: 'P2', score: [0, 2] },
+      coins: { P1: 10, P2: 50 },
+    })
+    expect(ctx.phases().at(-1)).toBe('RESULT')
+  })
+
+  it('derrota-wo: você fica ocioso, estoura 3 vezes seguidas e o robô vence por W.O. (0/30)', () => {
+    const ctx = setup(SCENARIOS['derrota-wo'])
+    vi.advanceTimersByTime(MOCK_TIMINGS.botJoin + MOCK_TIMINGS.matched)
+    vi.advanceTimersByTime(PREPARATION_SECONDS * 1000 + MOCK_TIMINGS.versus)
+    vi.advanceTimersByTime(ctx.last('DRAW_OPTIONS')!.deadline - Date.now()) // sorteio automático
+    for (let i = 0; i < 80 && !ctx.last('MATCH_END'); i++) vi.advanceTimersByTime(500)
+
+    expect(ctx.all('TURN_TIMEOUT')).toEqual([
+      { player: 'P1', consecutiveTimeouts: 1 },
+      { player: 'P1', consecutiveTimeouts: 2 },
+      { player: 'P1', consecutiveTimeouts: 3 },
+    ])
+    expect(ctx.all('BOARD_UPDATE').some((b) => b.board.some((c) => c.owner === 'P1'))).toBe(false)
+    expect(ctx.last('MATCH_END')).toEqual({
+      outcome: { kind: 'WO', winner: 'P2' },
+      coins: { P1: 0, P2: 30 },
+    })
+    expect(ctx.phases().at(-1)).toBe('RESULT')
+  })
+
+  it('derrota-wo: só os seus turnos são curtos; os do robô mantêm a duração normal', () => {
+    const ctx = setup(SCENARIOS['derrota-wo'])
+    vi.advanceTimersByTime(MOCK_TIMINGS.botJoin + MOCK_TIMINGS.matched)
+    vi.advanceTimersByTime(PREPARATION_SECONDS * 1000 + MOCK_TIMINGS.versus)
+    vi.advanceTimersByTime(ctx.last('DRAW_OPTIONS')!.deadline - Date.now())
+    for (let i = 0; i < 80 && !ctx.last('MATCH_END'); i++) vi.advanceTimersByTime(500)
+
+    const starts = ctx.all('TURN_START')
+    const durationsOf = (slot: PlayerSlot) =>
+      new Set(starts.filter((t) => t.player === slot).map((t) => t.durationSeconds))
+    expect(durationsOf('P1')).toEqual(new Set([MOCK_TIMINGS.youIdleTurn / 1000]))
+    expect(durationsOf('P2')).toEqual(new Set([TURN_DURATION_SECONDS]))
+  })
+
+  it('os cenários antigos não mudam: o seu turno continua com a duração normal', () => {
+    const ctx = setup(SCENARIOS.normal)
+    toFirstTurn(ctx)
+    ensureMyTurn(ctx)
+    expect(ctx.last('TURN_START')?.durationSeconds).toBe(TURN_DURATION_SECONDS)
+  })
+})
