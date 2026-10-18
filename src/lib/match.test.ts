@@ -8,7 +8,7 @@ const win = (winner: 'P1' | 'P2', p1: number, p2: number) => ({
 })
 const next = (nextRound: number, suddenDeath = false) => ({ over: false, nextRound, suddenDeath })
 
-describe('matchStatus — melhor de 3 [RF-ARN-05]', () => {
+describe('matchStatus — melhor de 3 (regra de 18/10)', () => {
   it.each<[string, RoundResult[], object]>([
     ['antes do 1º round', [], next(1)],
     ['vitória no round 1 segue', ['P1'], next(2)],
@@ -16,17 +16,21 @@ describe('matchStatus — melhor de 3 [RF-ARN-05]', () => {
     ['2×0 encerra no round 2', ['P1', 'P1'], win('P1', 2, 0)],
     ['1×1 vai para a Morte Súbita', ['P1', 'P2'], next(3, true)],
     ['0×0 (dois empates) vai para a Morte Súbita', [null, null], next(3, true)],
-    ['empate no round 1 + vitória no round 2 = 1×0', [null, 'P2'], win('P2', 0, 1)],
-    ['vitória no round 1 + empate no round 2 = 1×0', ['P1', null], win('P1', 1, 0)],
-    ['2×1 na Morte Súbita', ['P1', 'P2', 'P2'], win('P2', 1, 2)],
+    ['empate + vitória (1×0) vai para a Morte Súbita', [null, 'P2'], next(3, true)],
+    ['vitória + empate (1×0) vai para a Morte Súbita', ['P1', null], next(3, true)],
+    ['1×1 e vitória na Morte Súbita = 2×1', ['P1', 'P2', 'P2'], win('P2', 1, 2)],
+    ['1×0 e quem está na frente vence de novo = 2×0', ['P1', null, 'P1'], win('P1', 2, 0)],
+    ['1×0 e a Morte Súbita empata: vence quem está na frente', ['P1', null, null], win('P1', 1, 0)],
     ['0×0 e vitória na Morte Súbita = 1×0', [null, null, 'P1'], win('P1', 1, 0)],
   ])('%s', (_, results, expected) => {
     expect(matchStatus(results)).toEqual(expected)
   })
 
   it.each<[string, RoundResult[]]>([
-    ['1×1 + empate', ['P1', 'P2', null]],
-    ['0×0 + empate', [null, null, null]],
+    ['1×1 e a Morte Súbita empata', ['P1', 'P2', null]],
+    ['0×0 e a Morte Súbita empata', [null, null, null]],
+    ['1×0 e quem está atrás vence a Morte Súbita (1×1)', ['P1', null, 'P2']],
+    ['empate + vitória e quem está atrás vence a Morte Súbita (1×1)', [null, 'P2', 'P1']],
   ])('empate absoluto: %s [RN-ARN-06]', (_, results) => {
     expect(matchStatus(results)).toEqual({ over: true, outcome: { kind: 'ABSOLUTE_DRAW' } })
   })

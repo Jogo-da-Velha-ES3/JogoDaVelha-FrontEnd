@@ -49,6 +49,11 @@ const SCENARIO_CARDS: { id: ScenarioId; title: string; description: string }[] =
     description: 'Fica 1×1 sozinho e o round 3 é seu, com só 5 segundos por turno.',
   },
   {
+    id: 'virada',
+    title: 'Virada',
+    description: 'Empata o 1º round e o robô vence o 2º (0×1). No round 3, vença para empatar.',
+  },
+  {
     id: 'empate-absoluto',
     title: 'Empate absoluto',
     description: 'Tudo empata, até a Morte Súbita: +20 Coins para cada um.',

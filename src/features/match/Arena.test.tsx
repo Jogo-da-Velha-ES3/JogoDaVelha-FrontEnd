@@ -160,6 +160,25 @@ describe('Morte Súbita e empate absoluto (FE-13)', () => {
     expect(screen.getByText('Round empatado')).toBeInTheDocument()
   })
 
+  it('regra de 18/10: round 3 empatado com 1×0 não é empate absoluto (quem está na frente vence)', () => {
+    renderArena()
+    startRound(3, 'P1')
+    send('ROUND_END', { round: 3, winner: null, winningLine: null, score: { P1: 1, P2: 0 } })
+    send('PHASE_CHANGE', { phase: 'ROUND_END' })
+    expect(screen.getByText('Round empatado')).toBeInTheDocument()
+    expect(screen.queryByText('Empate absoluto')).not.toBeInTheDocument()
+  })
+
+  it('regra de 18/10: quem está atrás vence o round 3 e empata em 1×1 = empate absoluto', () => {
+    renderArena()
+    startRound(3, 'P1')
+    send('ROUND_END', { round: 3, winner: 'P2', winningLine: null, score: { P1: 1, P2: 1 } })
+    send('PHASE_CHANGE', { phase: 'ROUND_END' })
+    expect(screen.getByText('Empate absoluto')).toBeInTheDocument()
+    expect(screen.getByText('Placar final 1 × 1')).toBeInTheDocument()
+    expect(screen.queryByText('Round do oponente')).not.toBeInTheDocument()
+  })
+
   it('MATCH_END de empate absoluto mostra os Coins que vieram do servidor', () => {
     renderArena()
     startRound(3, 'P1')

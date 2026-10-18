@@ -26,14 +26,14 @@ function win(winner: PlayerSlot, score: Score): MatchStatus {
 }
 
 /**
- * Depois de cada round, a partida acaba ou segue?
- * - quem chega a 2 vitórias vence;
- * - empate num dos 2 primeiros rounds + vitória no outro = partida encerrada em 1×0;
- * - round 3 (Morte Súbita) só com 1×1 ou 0×0;
- * - round 3 empatado = empate absoluto, sem mata-mata [RN-ARN-06].
+ * Depois de cada round, a partida acaba ou segue? Regra decidida em 18/10 (substitui a da ERS
+ * [RF-ARN-05], que encerrava em 1×0 depois de um empate) [A VALIDAR COM O BACK]:
+ * - a partida tem até 3 rounds e só acaba antes do round 3 se alguém fizer 2×0;
+ * - o round 3 é sempre a Morte Súbita;
+ * - no fim do round 3, vence quem tiver mais rounds; placar igual = empate absoluto, sem
+ *   mata-mata [RN-ARN-06].
  */
 export function matchStatus(results: readonly RoundResult[]): MatchStatus {
-  if (results.length === 0) return { over: false, nextRound: 1, suddenDeath: false }
   if (results.length > MAX_ROUNDS) throw new Error(`No máximo ${MAX_ROUNDS} rounds`)
 
   const score = scoreOf(results)
@@ -41,17 +41,14 @@ export function matchStatus(results: readonly RoundResult[]): MatchStatus {
 
   if (score[leader] >= ROUNDS_TO_WIN_MATCH) return win(leader, score)
 
-  if (results.length === 1) return { over: false, nextRound: 2, suddenDeath: false }
-
-  if (results.length === 2) {
-    // Um empate e uma vitória: quem venceu o outro round vence a partida (1×0)
-    if (results.includes(null) && score.P1 !== score.P2) return win(leader, score)
-    return { over: false, nextRound: 3, suddenDeath: true } // 1×1 ou 0×0
+  if (results.length < MAX_ROUNDS) {
+    const nextRound = results.length + 1
+    return { over: false, nextRound, suddenDeath: nextRound === MAX_ROUNDS }
   }
 
-  // Round 3
-  const last = results[results.length - 1]
-  return last === null ? { over: true, outcome: { kind: 'ABSOLUTE_DRAW' } } : win(last, score)
+  // Fim do round 3: mais rounds vence; placar igual (1×1 ou 0×0) é empate absoluto
+  if (score.P1 === score.P2) return { over: true, outcome: { kind: 'ABSOLUTE_DRAW' } }
+  return win(leader, score)
 }
 
 /** Quem começa o round: sorteado no round 1 (pelo servidor), alternando a partir do round 2 */
