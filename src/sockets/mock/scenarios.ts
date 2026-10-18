@@ -1,6 +1,6 @@
 import type { RoundResult } from '../../lib/match'
 
-export type ScenarioId = 'normal' | 'vitoria' | 'empate-absoluto' | 'morte-subita' | 'wo'
+export type ScenarioId = 'normal' | 'vitoria' | 'empate-absoluto' | 'morte-subita' | 'virada' | 'wo'
 
 export interface Scenario {
   id: ScenarioId
@@ -15,6 +15,8 @@ export const SCENARIOS: Record<ScenarioId, Scenario> = {
   vitoria: { id: 'vitoria', scriptedRounds: ['P1', 'P1'], botIdle: false },
   'empate-absoluto': { id: 'empate-absoluto', scriptedRounds: ['P1', 'P2', null], botIdle: false },
   'morte-subita': { id: 'morte-subita', scriptedRounds: ['P2', 'P1'], botIdle: false },
+  // Regra de 18/10: empate + derrota (0×1) ainda vai para o round 3, que é seu
+  virada: { id: 'virada', scriptedRounds: [null, 'P2'], botIdle: false },
   wo: { id: 'wo', scriptedRounds: [], botIdle: true },
 }
 

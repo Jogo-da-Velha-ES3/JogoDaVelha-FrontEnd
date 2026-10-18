@@ -328,6 +328,18 @@ describe('cenários prontos', () => {
     expect(ctx.last('TURN_START')?.durationSeconds).toBe(5)
     expect(ctx.last('MATCH_END')).toBeUndefined()
   })
+
+  it('virada (regra de 18/10): empate + derrota (0×1) ainda vai para o round 3', () => {
+    const ctx = setup(SCENARIOS.virada)
+    finish()
+    pickDraws(ctx)
+    expect(ctx.all('ROUND_END').map((r) => r.score)).toEqual([
+      { P1: 0, P2: 0 },
+      { P1: 0, P2: 1 },
+    ])
+    expect(ctx.last('ROUND_START')).toMatchObject({ round: 3, suddenDeath: true })
+    expect(ctx.last('MATCH_END')).toBeUndefined()
+  })
 })
 
 describe('queda e volta (FE-20)', () => {

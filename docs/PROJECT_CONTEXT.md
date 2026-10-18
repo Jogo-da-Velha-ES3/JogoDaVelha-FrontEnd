@@ -177,15 +177,27 @@ estratégico e competitivo, **sem pay-to-win**.
 - Estados visuais da casa `[RF-ARN-01]`: vazia, peça do P1, peça do P2, bloqueada por Escudo,
   peça congelada, peça com Reforço, alvo de habilidade, linha vencedora.
 
-### Melhor de 3 (MD3) `[RF-ARN-05]`
+### Melhor de 3 (MD3) — regra decidida em 18/10 **[A VALIDAR COM O BACK]**
 
-- Vence a partida quem vencer 2 rounds.
-- **Se um dos dois primeiros rounds empatar, quem vencer o outro vence a partida** (ex: empate no
-  round 1 e vitória no round 2 → partida encerrada em 1×0, sem round 3).
-- **Round 3 (Morte Súbita)** só acontece se o placar estiver empatado depois do round 2 (1×1 ou
-  dois empates). Timer de **5s por turno** e interface de alerta vermelho.
-- **Empate absoluto** `[RN-ARN-06]`: se o round 3 terminar com o tabuleiro cheio sem vencedor, a
-  partida termina empatada e os dois recebem +20 Coins. **Não existe mata-mata.**
+> Substitui a regra da ERS `[RF-ARN-05]`, que encerrava a partida em 1×0 quando um dos 2
+> primeiros rounds empatava (o outro jogador não tinha chance de reagir). Proposta enviada ao GP
+> e ao back em 18/10: o servidor decide o placar, então o back precisa seguir a mesma regra.
+
+- A partida tem **até 3 rounds** e só acaba antes do round 3 se alguém fizer **2×0**.
+- **Round 3 = Morte Súbita, sempre** (inclusive em 1×0): timer de **5s por turno** e interface de
+  alerta vermelho.
+- **No fim do round 3, vence quem tiver mais rounds.** Placar igual (1×1 ou 0×0) é **empate
+  absoluto** `[RN-ARN-06]`: os dois recebem +20 Coins. **Não existe mata-mata.**
+
+  | Depois dos rounds 1 e 2 | Round 3                   | Final                     |
+  | ----------------------- | ------------------------- | ------------------------- |
+  | 2×0                     | não tem                   | vitória 2×0               |
+  | 1×1                     | alguém vence / empata     | vitória 2×1 / empate abs. |
+  | 1×0 (um round empatou)  | quem está na frente vence | vitória 2×0               |
+  | 1×0                     | quem está atrás vence     | empate absoluto (1×1)     |
+  | 1×0                     | empata                    | vitória 1×0               |
+  | 0×0 (dois empates)      | alguém vence / empata     | vitória 1×0 / empate abs. |
+
 - **Quem começa:** no round 1, sorteado pelo servidor; a partir do round 2, alterna a cada round.
 - Placares finais possíveis: 2×0 ("VITÓRIA IMPECÁVEL"), 2×1, 1×0, empate absoluto ou W.O.
 
@@ -378,10 +390,11 @@ Abrir o jogo → [sem sessão] Acesso → Hub (Jogar; abas Loja / Perfil)
   atrasa nada no servidor: a partida e os Coins já foram resolvidos no `MATCH_END`, e a janela da
   revanche só conta a partir do pedido. Quem reconecta nesse meio-tempo cai direto no Resultado.
 
-- **Empate absoluto (decidido em 17/10):** o round 3 empatado já anuncia "EMPATE ABSOLUTO ·
-  Ninguém venceu a Morte Súbita" no fim do round (regra de exibição, como o "MATCH POINT"
-  `[RN-ARN-06]`). Quando chega o `MATCH_END`, a Arena segura **2 segundos**, como no W.O., com
-  "EMPATE ABSOLUTO · +20 Coins para cada" (Coins vindos do servidor), e então vai para o Resultado.
+- **Empate absoluto (decidido em 17/10):** se o round 3 termina com o placar igual, o fim do round
+  já anuncia "EMPATE ABSOLUTO" (regra de exibição, como o "MATCH POINT" `[RN-ARN-06]`), com
+  "Ninguém venceu a Morte Súbita" ou o placar final (1×1). É **um banner só**: quando chega o
+  `MATCH_END`, a Arena segura **2 segundos**, como no W.O., e o subtítulo troca para "+20 Coins
+  para cada" (Coins vindos do servidor); então vai para o Resultado.
 
 ### Morte Súbita: pacote de pressão
 
@@ -442,6 +455,8 @@ Abrir o jogo → [sem sessão] Acesso → Hub (Jogar; abas Loja / Perfil)
 - Endpoints de recuperação de senha (formato proposto em 15/10; o front segue com dados
   simulados)
 - `PLAYER_DISCONNECTED` / `PLAYER_RECONNECTED` e se cair no Resultado cancela a revanche
+- Regra nova da MD3 (18/10): até 3 rounds, só acaba antes em 2×0, empate absoluto com placar
+  igual no fim do round 3 (§6)
 
 ## 12. Prioridade de implementação (MVP 1)
 

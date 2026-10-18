@@ -89,6 +89,7 @@ um oponente automático. Ele já vem ligado (`VITE_USE_MOCK_SERVER=false` deslig
   | `vitoria`         | rounds automáticos: você vence por 2×0                           |
   | `empate-absoluto` | rounds automáticos 1×1 e empate na Morte Súbita (+20 para cada)  |
   | `morte-subita`    | 1×1 automático; o round 3 é seu, com 5s por turno                |
+  | `virada`          | empate e derrota automáticos (0×1); o round 3 é seu              |
   | `wo`              | o bot não joga e perde por W.O. (para ver o seu W.O., não jogue) |
 
 - **Revanche:** `?revanche=` na URL (ou `VITE_MOCK_REMATCH`) diz o que o bot faz no Resultado,

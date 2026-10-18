@@ -74,8 +74,9 @@ export function Arena({ onQuit }: ArenaProps) {
   const turnColor = colorOf(turn ? characters[turn.player] : null)
   const empty = cells.filter((c) => c.owner === null).map((c) => c.index)
 
-  // Round 3 empatado é sempre empate absoluto [RN-ARN-06]: só muda o texto do banner
-  const absoluteDraw = suddenDeath && roundEnd !== null && roundEnd.winner === null
+  // Fim do round 3 com o placar igual (1×1 ou 0×0) é empate absoluto [RN-ARN-06] (regra de 18/10).
+  // Só muda o banner: o resultado oficial chega no MATCH_END
+  const absoluteDraw = suddenDeath && roundEnd !== null && score.P1 === score.P2
 
   // Botão de pausa visível durante fases ativas (não no VS nem no fim de round)
   const showPauseButton = phase === 'PLAYING' || phase === 'ROUND_DRAW'
@@ -306,7 +307,13 @@ export function Arena({ onQuit }: ArenaProps) {
             className="absolute inset-x-0 top-1/2 w-full -translate-y-1/2"
             show={absoluteDraw || outcome?.kind === 'ABSOLUTE_DRAW'}
             title="Empate absoluto"
-            subtitle={coins ? `+${coins[me]} Coins para cada` : 'Ninguém venceu a Morte Súbita'}
+            subtitle={
+              coins
+                ? `+${coins[me]} Coins para cada`
+                : roundEnd?.winner
+                  ? `Placar final ${score[me]} × ${score[opp]}`
+                  : 'Ninguém venceu a Morte Súbita'
+            }
             tone="coin"
           />
 
