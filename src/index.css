@@ -63,6 +63,97 @@
       opacity: 0.55;
     }
   }
+
+  /* ── Morte Súbita (FE-13 parte 2): bordas pulsando em batimento cardíaco ── */
+  --animate-sd-heartbeat: sd-heartbeat 1.6s ease-in-out infinite;
+  /* Borda do tabuleiro em brasa + tremor (combina ember + tremor) */
+  --animate-sd-board: sd-board 1.8s ease-in-out infinite;
+  /* Fitas de perigo correndo */
+  --animate-sd-tape: sd-tape 0.5s linear infinite;
+
+  @keyframes sd-heartbeat {
+    0%,
+    100% {
+      opacity: 0.55;
+      transform: scale(1);
+    }
+    14% {
+      opacity: 0.85;
+      transform: scale(1.01);
+    }
+    28% {
+      opacity: 0.55;
+      transform: scale(1);
+    }
+    42% {
+      opacity: 0.95;
+      transform: scale(1.015);
+    }
+    70% {
+      opacity: 0.55;
+      transform: scale(1);
+    }
+  }
+
+  /* Combina brasa pulsante + tremor do tabuleiro */
+  @keyframes sd-board {
+    0%,
+    100% {
+      box-shadow:
+        0 0 16px 3px rgb(255 45 61 / 0.55),
+        0 0 28px 6px rgb(255 45 61 / 0.35),
+        inset 0 0 8px 1px rgb(255 45 61 / 0.25);
+      border-color: rgb(255 45 61 / 0.8);
+      transform: translate(0, 0);
+    }
+    25% {
+      box-shadow:
+        0 0 20px 4px rgb(255 45 61 / 0.65),
+        0 0 32px 7px rgb(255 45 61 / 0.45),
+        inset 0 0 10px 1.5px rgb(255 45 61 / 0.3);
+      transform: translate(0.7px, -0.6px);
+    }
+    50% {
+      box-shadow:
+        0 0 22px 5px rgb(255 45 61 / 0.7),
+        0 0 36px 8px rgb(255 45 61 / 0.5),
+        inset 0 0 12px 2px rgb(255 45 61 / 0.35);
+      border-color: rgb(255 45 61 / 0.95);
+      transform: translate(-0.7px, 0.5px);
+    }
+    75% {
+      box-shadow:
+        0 0 20px 4px rgb(255 45 61 / 0.65),
+        0 0 32px 7px rgb(255 45 61 / 0.45),
+        inset 0 0 10px 1.5px rgb(255 45 61 / 0.3);
+      transform: translate(0.5px, 0.7px);
+    }
+  }
+
+  @keyframes sd-tape {
+    to {
+      background-position: 19.8px 0;
+    }
+  }
+
+  /* Batimento cardíaco do efeito pulsante vermelho (conforme esboço .arena.red::after) */
+  @keyframes beat {
+    0% {
+      opacity: 0.35;
+    }
+    12% {
+      opacity: 1;
+    }
+    24% {
+      opacity: 0.5;
+    }
+    36% {
+      opacity: 0.92;
+    }
+    100% {
+      opacity: 0.35;
+    }
+  }
 }
 
 /* Celular deitado: altura útil de ~330–390px */

@@ -36,13 +36,13 @@ function Avatar({
 }
 
 /**
- * Tamanhos: o esboço de telas é um celular em miniatura; os px dele valem só no celular deitado
- * (`short:`). Em telas maiores, tudo cresce para continuar legível.
- *
  * Banner de início de round — visual do esboço, estado "Início do round" (`.ov-banner`,
  * `.flip`, `.coin-big`). Aparece nos primeiros segundos de cada round (a partir da chegada do
  * ROUND_START), para não cobrir o sorteio da 3ª habilidade. Quem reconecta não vê o banner.
  * No round 1, a moeda gira um pouco antes de revelar quem começa (sorteado pelo servidor).
+ *
+ * A entrada da Morte Súbita (round 3) é tratada pelo SuddenDeathLayer (FE-13);
+ * aqui o banner é suprimido quando `suddenDeath === true`.
  */
 export function RoundStartBanner() {
   const reduceMotion = useReducedMotion()
@@ -59,7 +59,8 @@ export function RoundStartBanner() {
   const flipping = useIsBefore(
     startedAt !== null && round === 1 ? startedAt + ROUND_COIN_FLIP_SECONDS * 1000 : null,
   )
-  const show = visible && (phase === 'ROUND_DRAW' || phase === 'PLAYING')
+  // No round 3 (suddenDeath) o SuddenDeathLayer trata a entrada; este banner não aparece.
+  const show = visible && !suddenDeath && (phase === 'ROUND_DRAW' || phase === 'PLAYING')
   const matchPoint = isMatchPoint(score)
 
   const me = players.find((p) => p.slot === mySlot)
@@ -82,39 +83,7 @@ export function RoundStartBanner() {
 
   return (
     <AnimatePresence>
-      {show && suddenDeath && (
-        <motion.div
-          key="sudden-death"
-          role="status"
-          aria-label={`Morte Súbita${matchPoint ? ` · Match Point de ${leadName}` : ''}`}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
-          className="pointer-events-none absolute inset-0 z-[5] flex flex-col items-center justify-center gap-2 bg-bg-deep/85 text-center"
-        >
-          {/* Texto principal: animação de slam do esboço (.slam) */}
-          <motion.p
-            initial={{ scale: 2.6, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ type: 'spring', stiffness: 380, damping: 22, delay: 0.05 }}
-            className="font-display text-7xl leading-none font-bold tracking-[0.05em] text-primary uppercase short:text-[42px]"
-            style={{
-              textShadow:
-                '3px 0 var(--color-danger), -3px 0 var(--color-danger), 0 0 30px var(--color-danger)',
-            }}
-          >
-            Morte Súbita
-          </motion.p>
-
-          {/* Subtexto na cor do perigo, letras bem espaçadas */}
-          <p className="font-mono text-base font-semibold tracking-[0.2em] text-danger uppercase short:text-[11px]">
-            5 Segundos por jogada
-          </p>
-        </motion.div>
-      )}
-
-      {show && !suddenDeath && (
+      {show && (
         <motion.div
           key="round-start"
           role="status"
