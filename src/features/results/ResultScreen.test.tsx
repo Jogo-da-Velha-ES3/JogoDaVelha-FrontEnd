@@ -168,7 +168,7 @@ const CASES: Case[] = [
       rounds: [1, 1],
     },
     title: 'Empate absoluto',
-    subtitle: 'Placar final 1 × 1',
+    subtitle: null, // o placar já está na coluna da direita
     score: '1 × 1',
     tone: 'draw',
     characters: ['X', 'O'],
@@ -237,7 +237,13 @@ describe('ResultScreen: um resultado, uma apresentação', () => {
     expect(title().style.color).toBe(c.tone === 'win' ? 'rgb(176, 124, 255)' : '')
     expect(title().classList.contains('text-danger')).toBe(c.tone === 'loss')
     expect(title().classList.contains('text-text')).toBe(c.tone === 'draw')
-    expect(title().style.textShadow !== '').toBe(c.tone !== 'draw') // só o empate fica sem brilho
+    // Todos têm brilho: vitória e derrota na cor do título (inline); o empate, neutro e mais
+    // fraco (30%), por classe
+    expect(title().style.textShadow !== '').toBe(c.tone !== 'draw')
+    expect(title().className.includes('var(--color-text)_30%')).toBe(c.tone === 'draw')
+
+    // Nenhum resultado tem a legenda "Placar final": o placar é só o da coluna da direita
+    expect(screen.queryByText(/Placar final/)).not.toBeInTheDocument()
     // Personagem(ns) do painel, quem fica atenuado e a etiqueta de W.O.
     expect(panelCharacters()).toEqual(c.characters)
     expect(side('me').hasAttribute('data-dimmed')).toBe(c.dimmed === 'me')

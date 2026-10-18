@@ -13,18 +13,16 @@ export const RESULT_TITLES: Record<ResultKind, string> = {
 }
 
 /**
- * Linha de apoio abaixo do título. Os dois W.O. repetem o texto do banner da Arena (PROJECT_CONTEXT
- * §9). O empate usa o placar, porque a regra de 18/10 também empata por 1×1 em que o round 3 teve
- * vencedor, então "o round 3 terminou sem vencedor" (esboço) nem sempre é verdade.
+ * Linha de apoio abaixo do título. Só o W.O. tem: repete o texto do banner da Arena
+ * (PROJECT_CONTEXT §9). O empate absoluto fica só com o título, porque o placar já aparece na
+ * coluna da direita.
  */
-export function resultSubtitle({ kind, mine, theirs }: ResultSummary): string | null {
+export function resultSubtitle({ kind }: ResultSummary): string | null {
   switch (kind) {
     case 'WO_WIN':
       return 'O oponente esgotou o tempo 3 vezes'
     case 'WO_LOSS':
       return '3 tempos esgotados seguidos'
-    case 'DRAW':
-      return `Placar final ${mine} × ${theirs}`
     default:
       return null
   }

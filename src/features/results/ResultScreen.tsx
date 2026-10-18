@@ -57,10 +57,10 @@ function Side({ side, character, rounds, dimmed }: SideProps) {
           id={character}
           variant="avatar"
           decorative
-          className="size-[clamp(2.25rem,7vh,4rem)]"
+          className="size-[clamp(2.25rem,calc(var(--u)*0.07),4rem)]"
         />
       ) : (
-        <span className="size-[clamp(2.25rem,7vh,4rem)] shrink-0 rounded-full border-2 border-line" />
+        <span className="size-[clamp(2.25rem,calc(var(--u)*0.07),4rem)] shrink-0 rounded-full border-2 border-line" />
       )}
       <div data-rounds-won={rounds} className="flex gap-1">
         {Array.from({ length: ROUNDS_TO_WIN_MATCH }, (_, i) => (
@@ -119,7 +119,13 @@ export function ResultScreen({ onLeave }: ResultScreenProps) {
   // Vitória na cor do meu personagem; derrota em vermelho; empate neutro
   const accent =
     tone === 'win' ? characterColor(myCharacter) : tone === 'loss' ? 'var(--color-danger)' : null
-  const titleClass = tone === 'loss' ? 'text-danger' : tone === 'draw' ? 'text-text' : ''
+  // O empate fica no neutro, com um brilho mais fraco que o dos outros resultados (30% da cor)
+  const titleClass =
+    tone === 'loss'
+      ? 'text-danger'
+      : tone === 'draw'
+        ? 'text-text [text-shadow:0_0_18px_color-mix(in_srgb,var(--color-text)_30%,transparent)]'
+        : ''
   const titleStyle: CSSProperties | undefined =
     tone === 'win'
       ? { color: accent ?? undefined, textShadow: `0 0 18px ${accent}` }
@@ -138,7 +144,9 @@ export function ResultScreen({ onLeave }: ResultScreenProps) {
     <section
       aria-label="Resultado"
       data-result={kind}
-      className="flex min-h-0 flex-1 gap-3.5 px-3 short:gap-2.5 short:px-2"
+      // Contêiner: os tamanhos acompanham o espaço do Resultado (a sala inteira ou o quadro da
+      // vitrine), não a janela do navegador. --u é o menor entre a altura e a metade da largura.
+      className="flex min-h-0 flex-1 gap-3.5 px-3 [--u:min(100cqh,50cqw)] [container-type:size] short:gap-2.5 short:px-2"
     >
       {/* Painel do resultado (esboço: borda de 1,5px, raio 12; na cor do lado, ou neutra no empate) */}
       <div
@@ -146,16 +154,16 @@ export function ResultScreen({ onLeave }: ResultScreenProps) {
         style={{
           borderColor: accent ? `color-mix(in srgb, ${accent} 45%, transparent)` : undefined,
         }}
-        className="flex min-w-0 flex-1 flex-col items-center justify-center gap-1.5 overflow-y-auto rounded-xl border-[1.5px] border-line p-1.5 text-center short:gap-1"
+        className="flex min-w-0 flex-1 flex-col items-center justify-center gap-1.5 rounded-xl border-[1.5px] border-line p-1.5 text-center short:gap-1"
       >
         <h1
           style={titleStyle}
-          className={`max-w-full font-display text-[clamp(1.875rem,7vh,4rem)] leading-none font-extrabold tracking-wide text-balance uppercase ${titleClass}`}
+          className={`max-w-full font-display text-[clamp(1.875rem,calc(var(--u)*0.07),4rem)] leading-none font-extrabold tracking-wide text-balance uppercase ${titleClass}`}
         >
           {RESULT_TITLES[kind]}
         </h1>
         {subtitle && (
-          <p className="font-mono text-[clamp(0.625rem,2vh,1rem)] tracking-wide text-text-muted">
+          <p className="font-mono text-[clamp(0.625rem,calc(var(--u)*0.02),1rem)] tracking-wide text-text-muted">
             {subtitle}
           </p>
         )}
@@ -168,15 +176,15 @@ export function ResultScreen({ onLeave }: ResultScreenProps) {
               animated={false}
               className={
                 panelCharacters.length > 1
-                  ? 'h-[clamp(6rem,24vh,13rem)] w-auto'
-                  : 'h-[clamp(9rem,36vh,18rem)] w-auto'
+                  ? 'h-[clamp(6rem,calc(var(--u)*0.24),13rem)] w-auto'
+                  : 'h-[clamp(9rem,calc(var(--u)*0.36),18rem)] w-auto'
               }
             />
           ))}
         </div>
       </div>
 
-      <div className="flex min-w-0 flex-1 flex-col items-center justify-center gap-2 overflow-y-auto short:gap-1.5">
+      <div className="flex min-w-0 flex-1 flex-col items-center justify-center gap-2 short:gap-1.5">
         <div
           role="img"
           aria-label={`Placar final: ${mine} × ${theirs}`}
@@ -185,7 +193,7 @@ export function ResultScreen({ onLeave }: ResultScreenProps) {
           <Side side="me" character={myCharacter} rounds={mine} dimmed={loser === 'me'} />
           <p
             aria-hidden="true"
-            className="font-display text-[clamp(1.875rem,7vh,4rem)] leading-none font-bold tabular-nums"
+            className="font-display text-[clamp(1.875rem,calc(var(--u)*0.07),4rem)] leading-none font-bold tabular-nums"
           >
             <span className={loser === 'me' ? 'opacity-60' : ''}>{mine}</span>
             <span className="mx-1.5 text-text-muted">×</span>
