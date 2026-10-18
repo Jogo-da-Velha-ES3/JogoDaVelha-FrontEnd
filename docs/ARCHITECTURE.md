@@ -84,8 +84,9 @@ switch (room.phase) {
 ```
 
 Implementado na FE-28 em `src/routes/RoomPage.tsx`: ao abrir `/sala/:codigo`, a página chama
-`joinRoom` e, ao sair, `leaveRoom`. Sala de Espera, Preparação e Resultado ainda são placeholders
-(`src/routes/room/RoomPlaceholders.tsx`) que a FE-26, a FE-09 e a FE-15 substituem. No W.O., a
+`joinRoom` e, ao sair, `leaveRoom`. Sala de Espera e Preparação ainda são placeholders
+(`src/routes/room/RoomPlaceholders.tsx`) que a FE-26 e a FE-09 substituem; o Resultado (FE-15) já é
+tela de verdade. No W.O., a
 Arena segura o banner por `RESULT_HOLD_SECONDS` antes do Resultado; no empate absoluto também
 (PROJECT_CONTEXT §9). Os efeitos da Morte Súbita ficam em `SuddenDeathLayer` (FE-13).
 A Arena fica em `src/features/match/Arena.tsx`, com as regiões prontas para as faixas e banners
@@ -95,6 +96,12 @@ Revanche e saída (FE-29) ficam em `src/features/results/`: o `RematchPanel` (Re
 Recusar com a barra dos 15s e Voltar ao Lobby) entra na tela de Resultado da FE-15, e o
 `useRoomExit` (usado pelo `RoomPage`) avisa e leva ao Hub quem teve o pedido cancelado ou viu a
 sala ser encerrada fora do Resultado. A revanche aceita chega como `PHASE_CHANGE` para `DRAFT`.
+
+A tela de Resultado (FE-15) é `ResultScreen`, em `src/features/results/`. Ela só lê as stores e não
+altera saldo nem armazenamento. O `useLiveResult` decide uma vez, quando o resultado aparece, se ele
+acabou de chegar (`outcomeReceivedAt`): só então tocam a comemoração e a contagem de Coins. Quem
+reconecta vê o estado final parado, e uma memória por partida (sala, início do último round,
+resultado e Coins) evita repetir a festa se a tela for desmontada e montada de novo.
 
 ## 3. Stores (Zustand)
 
