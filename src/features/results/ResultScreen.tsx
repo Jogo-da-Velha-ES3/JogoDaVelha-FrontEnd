@@ -1,3 +1,4 @@
+import { motion, useReducedMotion } from 'framer-motion'
 import type { CSSProperties } from 'react'
 import { CHARACTER_INFO } from '../../constants/characters'
 import { ROUNDS_TO_WIN_MATCH } from '../../constants/game'
@@ -7,8 +8,11 @@ import { useMatchStore } from '../../stores/matchStore'
 import { useRoomStore } from '../../stores/roomStore'
 import type { CharacterId } from '../../types/game'
 import { Character } from '../characters'
+import { celebrationFlavor } from './celebration'
+import { CelebrationBurst, CelebrationHalo } from './ResultCelebration'
 import { RematchPanel } from './RematchPanel'
 import { RESULT_TITLES, resultSubtitle } from './resultTexts'
+import { useLiveResult } from './useLiveResult'
 
 export interface ResultScreenProps {
   /** "Voltar ao Lobby". Padrão do RematchPanel: sai da sala e vai para o Hub */
@@ -88,6 +92,9 @@ export function ResultScreen({ onLeave }: ResultScreenProps) {
   const score = useMatchStore((s) => s.score)
   const coins = useMatchStore((s) => s.coins)
   const result = classifyResult(outcome, score, me)
+  // Um só ponto decide se o resultado acabou de chegar (ao vivo) ou se é o estado final (reconexão)
+  const live = useLiveResult()
+  const reduceMotion = useReducedMotion()
 
   if (!result) {
     // O servidor ainda não mandou o resultado: nada de "Derrota" por engano
@@ -115,6 +122,9 @@ export function ResultScreen({ onLeave }: ResultScreenProps) {
   const tone = TONE[kind]
   const subtitle = resultSubtitle(result)
   const isWo = kind === 'WO_WIN' || kind === 'WO_LOSS'
+  // Festa só para quem venceu, ao vivo e sem "reduzir movimento"; fora disso, o estado final parado
+  const flavor = celebrationFlavor(kind)
+  const celebrate = live && flavor !== null && !reduceMotion
 
   // Vitória na cor do meu personagem; derrota em vermelho; empate neutro
   const accent =
@@ -132,6 +142,7 @@ export function ResultScreen({ onLeave }: ResultScreenProps) {
       : tone === 'loss'
         ? { textShadow: `0 0 18px ${accent}` }
         : undefined
+  const winnerColor = accent ?? 'var(--color-primary)'
 
   // Quem perdeu fica atenuado; no empate ninguém
   const loser = tone === 'loss' ? 'me' : tone === 'win' ? 'opponent' : null
@@ -154,14 +165,28 @@ export function ResultScreen({ onLeave }: ResultScreenProps) {
         style={{
           borderColor: accent ? `color-mix(in srgb, ${accent} 45%, transparent)` : undefined,
         }}
-        className="flex min-w-0 flex-1 flex-col items-center justify-center gap-1.5 rounded-xl border-[1.5px] border-line p-1.5 text-center short:gap-1"
+        className="relative flex min-w-0 flex-1 flex-col items-center justify-center gap-1.5 rounded-xl border-[1.5px] border-line p-1.5 text-center short:gap-1"
       >
-        <h1
+        <motion.h1
+          // Entra com impacto (spring, como o Banner); parado se não for ao vivo
+          initial={celebrate ? { scale: 1.5, opacity: 0 } : false}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: 'spring', stiffness: 520, damping: 22, delay: 0.08 }}
           style={titleStyle}
           className={`max-w-full font-display text-[clamp(1.875rem,calc(var(--u)*0.07),4rem)] leading-none font-extrabold tracking-wide text-balance uppercase ${titleClass}`}
         >
-          {RESULT_TITLES[kind]}
-        </h1>
+          {kind === 'WIN_FLAWLESS' && celebrate ? (
+            // Cintilação neon da vitória impecável: 2 ciclos depois do impacto e fica aceso
+            <span
+              className="motion-safe:animate-neon-flicker"
+              style={{ animationDelay: '0.7s', animationIterationCount: 2 }}
+            >
+              {RESULT_TITLES[kind]}
+            </span>
+          ) : (
+            RESULT_TITLES[kind]
+          )}
+        </motion.h1>
         {subtitle && (
           <p className="font-mono text-[clamp(0.625rem,calc(var(--u)*0.02),1rem)] tracking-wide text-text-muted">
             {subtitle}
@@ -169,19 +194,27 @@ export function ResultScreen({ onLeave }: ResultScreenProps) {
         )}
         <div className="flex items-end justify-center gap-2">
           {panelCharacters.map((id) => (
-            <Character
+            <div
               key={id}
-              id={id}
-              variant="full"
-              animated={false}
-              className={
-                panelCharacters.length > 1
-                  ? 'h-[clamp(6rem,calc(var(--u)*0.24),13rem)] w-auto'
-                  : 'h-[clamp(9rem,calc(var(--u)*0.36),18rem)] w-auto'
-              }
-            />
+              // Pulinho do vencedor (o `hop` do esboço, finito), depois que o título pousa
+              className={`relative flex ${celebrate ? 'animate-victory-hop' : ''}`}
+              style={celebrate ? { animationDelay: '0.3s' } : undefined}
+            >
+              {flavor && <CelebrationHalo color={winnerColor} pulse={celebrate} />}
+              <Character
+                id={id}
+                variant="full"
+                animated={celebrate}
+                className={
+                  panelCharacters.length > 1
+                    ? 'h-[clamp(6rem,calc(var(--u)*0.24),13rem)] w-auto'
+                    : 'h-[clamp(9rem,calc(var(--u)*0.36),18rem)] w-auto'
+                }
+              />
+            </div>
           ))}
         </div>
+        {celebrate && flavor && <CelebrationBurst flavor={flavor} color={winnerColor} />}{' '}
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col items-center justify-center gap-2 short:gap-1.5">
