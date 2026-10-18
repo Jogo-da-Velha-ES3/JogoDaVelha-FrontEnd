@@ -215,14 +215,14 @@ export function Arena({ onQuit }: ArenaProps) {
                   )}
                 </>
               ) : (
-                /* "Vez de [Nome]" quando é vez do adversário
-                   Na Morte Súbita: "VEZ DE [NOME]" em vermelho */
+                /* "Vez de [Nome]…" quando é vez do adversário
+                   Na Morte Súbita: "VEZ DE [NOME]…" em vermelho */
                 <p
                   className={`truncate font-display text-xl leading-tight font-extrabold uppercase short:text-lg ${suddenDeath ? 'text-danger' : ''}`}
                   style={suddenDeath ? undefined : { color: turnColor }}
                   title={player(opp)?.nickname}
                 >
-                  {`Vez de ${player(opp)?.nickname ?? 'Oponente'}`}
+                  {`Vez de ${player(opp)?.nickname ?? 'Oponente'}…`}
                 </p>
               )}
             </div>
