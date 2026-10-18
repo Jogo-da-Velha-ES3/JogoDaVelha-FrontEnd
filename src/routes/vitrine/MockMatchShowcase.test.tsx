@@ -1,61 +1,62 @@
 import { act, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import { PREPARATION_SECONDS } from '../../constants/game'
-import { MOCK_TIMINGS } from '../../sockets/mock/mockServer'
-import { resetGameStores } from '../../stores/serverEvents'
+import { beforeEach, describe, expect, it } from 'vitest'
+import { applyServerEvent, resetGameStores } from '../../stores/serverEvents'
+import type { MatchOutcome, PlayerSlot, PlayerState } from '../../types/game'
 import { MockMatchShowcase } from './MockMatchShowcase'
 
-const NET = 200 // folga para a "rede" simulada (80ms ida e volta)
-const tick = (ms: number) => act(() => vi.advanceTimersByTimeAsync(ms))
-
-beforeAll(async () => {
-  await Promise.all([
-    import('../../sockets/mock/mockConnection'),
-    import('../../sockets/mock/scenarios'),
-  ])
+const player = (slot: PlayerSlot, roundsWon: number): PlayerState => ({
+  slot,
+  userId: `u-${slot}`,
+  nickname: slot === 'P1' ? 'Você' : 'Oponente Simulado',
+  character: slot === 'P1' ? 'X' : 'O',
+  roundsWon,
+  consecutiveTimeouts: 0,
+  forceFieldTurnsLeft: 0,
+  silenced: false,
+  connected: true,
 })
 
-beforeEach(() => {
-  vi.useFakeTimers()
-  resetGameStores()
-})
-
-afterEach(() => {
-  vi.useRealTimers()
-  window.history.replaceState({}, '', '/')
-})
-
-/** Abre a vitrine já com o cenário e deixa a partida correr até o Resultado */
-async function playUntilResult(scenario: string) {
-  window.history.replaceState({}, '', `/?cenario=${scenario}`)
+/** O servidor manda o Resultado: o quadro da vitrine mostra a fase RESULT, sem rodar a partida */
+function showResult(outcome: MatchOutcome, rounds: [number, number]) {
   render(
     <MemoryRouter>
       <MockMatchShowcase />
     </MemoryRouter>,
   )
-  await tick(NET + MOCK_TIMINGS.botJoin + MOCK_TIMINGS.matched + NET)
-  await tick(PREPARATION_SECONDS * 1000 + MOCK_TIMINGS.versus + NET)
-  for (let i = 0; i < 160 && !screen.queryByRole('group', { name: 'Revanche' }); i++) {
-    await tick(500)
-  }
-  expect(screen.getByRole('group', { name: 'Revanche' })).toBeInTheDocument()
+  act(() =>
+    applyServerEvent({
+      type: 'ROOM_SNAPSHOT',
+      serverTime: Date.now(),
+      payload: {
+        code: '0000',
+        phase: 'RESULT',
+        players: [player('P1', rounds[0]), player('P2', rounds[1])],
+        mySlot: 'P1',
+        round: 2,
+        suddenDeath: false,
+        board: [],
+        turn: null,
+        myDeck: [],
+        outcome,
+        serverTime: Date.now(),
+      },
+    }),
+  )
 }
+
+beforeEach(() => resetGameStores())
 
 // Regressão: a vitrine tinha uma tela de Resultado própria que juntava dois textos no título
 // ("Derrota · Vitória"). Agora ela usa a ResultScreen de verdade, e o título tem um texto só.
 describe('vitrine: título do Resultado', () => {
-  it.each([
-    ['derrota', 'Derrota'],
-    ['derrota-wo', 'Derrota por W.O.'],
-  ])(
-    'cenário %s mostra só "%s"',
-    async (scenario, title) => {
-      await playUntilResult(scenario)
-      const h1 = screen.getByRole('heading', { level: 1 })
-      expect(h1.textContent).toBe(title)
-      expect(h1.textContent).not.toContain('·')
-    },
-    30_000,
-  )
+  it.each<[string, MatchOutcome, [number, number], string]>([
+    ['derrota', { kind: 'WIN', winner: 'P2', score: [0, 2] }, [0, 2], 'Derrota'],
+    ['derrota por W.O.', { kind: 'WO', winner: 'P2' }, [0, 1], 'Derrota por W.O.'],
+  ])('%s mostra só "%s"', (_, outcome, rounds, title) => {
+    showResult(outcome, rounds)
+    const h1 = screen.getByRole('heading', { level: 1 })
+    expect(h1.textContent).toBe(title)
+    expect(h1.textContent).not.toContain('·')
+  })
 })

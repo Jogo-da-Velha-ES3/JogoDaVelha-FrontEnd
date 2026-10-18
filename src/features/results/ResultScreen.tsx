@@ -243,11 +243,7 @@ export function ResultScreen({ onLeave }: ResultScreenProps) {
           </span>
         )}
         {/* No empate a Arena já mostrou "+20 Coins para cada" nos 2s antes: aqui o valor fica parado */}
-        <CoinsReward
-          amount={coins?.[me]}
-          countUp={live && kind !== 'DRAW'}
-          caption={kind === 'DRAW' ? 'para os dois' : undefined}
-        />
+        <CoinsReward amount={coins?.[me]} countUp={live && kind !== 'DRAW'} />
         <RematchPanel onLeave={onLeave} />
       </div>
     </section>

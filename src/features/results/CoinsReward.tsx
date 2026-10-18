@@ -7,8 +7,6 @@ export interface CoinsRewardProps {
   amount: number | undefined
   /** Conta de 0 até o valor (resultado ao vivo). Falso: mostra o valor final, parado */
   countUp: boolean
-  /** Legenda ao lado do valor, ex: "para os dois" no empate */
-  caption?: string
 }
 
 /** Moeda dourada: anel com brilho (o `.coin-big` do esboço) e o miolo cheio (o `.coin::before`) */
@@ -37,7 +35,7 @@ function CoinIcon({ spin }: { spin: boolean }) {
  * - 0 aparece parado e atenuado ("0 Coins"), sem "+". Sem valor, "Coins já creditados".
  * - O número que sobe é só visual (aria-hidden); o leitor de tela lê o valor final uma vez.
  */
-export function CoinsReward({ amount, countUp, caption }: CoinsRewardProps) {
+export function CoinsReward({ amount, countUp }: CoinsRewardProps) {
   const reduceMotion = useReducedMotion()
   const [first] = useState(amount) // o valor com que a tela montou, e que a contagem vai contar
   const [finished, setFinished] = useState(false)
@@ -99,7 +97,6 @@ export function CoinsReward({ amount, countUp, caption }: CoinsRewardProps) {
         </span>
         <span>Coins</span>
       </span>
-      {caption && <span className="font-body text-xs text-text-muted">{caption}</span>}
     </p>
   )
 }

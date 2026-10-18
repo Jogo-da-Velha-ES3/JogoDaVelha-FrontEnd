@@ -207,12 +207,12 @@ describe('Coins do Resultado', () => {
     expect(counting()).toBe(false)
   })
 
-  it('empate: a Arena já mostrou "+20 para cada", então o valor fica parado, com "para os dois"', async () => {
+  it('empate: a Arena já mostrou "+20 para cada", então o valor fica parado e sem legenda', async () => {
     liveSetup(DRAW)
     renderScreen()
     expect(shown()).toBe('20')
     expect(counting()).toBe(false)
     expect(screen.getByText('+20 Coins')).toBeInTheDocument()
-    expect(screen.getByText('para os dois')).toBeInTheDocument()
+    expect(screen.queryByText(/para os dois/)).not.toBeInTheDocument()
   })
 })
