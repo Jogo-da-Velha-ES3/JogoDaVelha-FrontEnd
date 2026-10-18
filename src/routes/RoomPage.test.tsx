@@ -70,8 +70,8 @@ describe('sala: a tela sai da fase', () => {
     expect(screen.getByRole('status', { name: /vs Oponente Simulado/i })).toBeInTheDocument() // banner do Confronto (VsBanner)
 
     await tick(30_000)
-    expect(screen.getByRole('heading', { name: 'Vitória' })).toBeInTheDocument()
-    expect(screen.getByText('2 × 0')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Vitória impecável' })).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Placar final: 2 × 0' })).toBeInTheDocument()
     expect(screen.getByText('+50 Coins')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Voltar ao Lobby' }))
@@ -109,7 +109,7 @@ describe('revanche (FE-29)', () => {
     await tick(NET + MOCK_TIMINGS.botJoin + MOCK_TIMINGS.matched + NET)
     await tick(PREPARATION_SECONDS * 1000 + NET)
     await tick(30_000)
-    expect(screen.getByRole('heading', { name: 'Vitória' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Vitória impecável' })).toBeInTheDocument()
     return router
   }
 
