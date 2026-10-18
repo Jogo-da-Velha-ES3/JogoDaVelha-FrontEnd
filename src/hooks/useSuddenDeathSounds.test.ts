@@ -1,6 +1,6 @@
 import { renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import * as suddenDeathSounds from '../audio/suddenDeathSounds'
+import * as suddenDeathSounds from '../features/match/suddenDeathSounds'
 import { useSuddenDeathSounds } from './useSuddenDeathSounds'
 
 describe('useSuddenDeathSounds', () => {

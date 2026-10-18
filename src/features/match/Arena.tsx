@@ -6,8 +6,6 @@ import { ABILITY_INFO } from '../../constants/abilities'
 import { CHARACTER_INFO } from '../../constants/characters'
 import { DRAW_PICK_SECONDS } from '../../constants/game'
 import { useServerTimer } from '../../hooks/useServerTimer'
-import { useSuddenDeathSounds } from '../../hooks/useSuddenDeathSounds'
-import { useSuddenDeathVibration } from '../../hooks/useVibration'
 import { otherSlot } from '../../lib/match'
 import { PATHS } from '../../routes/paths'
 import { sendCommand } from '../../sockets/gameClient'
@@ -26,6 +24,7 @@ import { PlayerStrip } from './PlayerStrip'
 import { QuitModal } from './QuitModal'
 import { RoundStartBanner } from './RoundStartBanner'
 import { SuddenDeathLayer } from './SuddenDeathLayer'
+import { useSuddenDeathEntrance } from './useSuddenDeathEntrance'
 import { TurnTimeoutToast } from './TurnTimeoutToast'
 import { VsBanner } from './VsBanner'
 
@@ -61,6 +60,8 @@ export function Arena({ onQuit }: ArenaProps) {
   const timeouts = useMatchStore((s) => s.consecutiveTimeouts)
   const roundEnd = useMatchStore((s) => s.roundEnd)
   const outcome = useMatchStore((s) => s.outcome)
+  const coins = useMatchStore((s) => s.coins)
+  const enteringSuddenDeath = useSuddenDeathEntrance()
   const cells = useBoardStore((s) => s.cells)
   const winningLine = useBoardStore((s) => s.winningLine)
   const deck = usePowersStore((s) => s.deck)
@@ -73,14 +74,8 @@ export function Arena({ onQuit }: ArenaProps) {
   const turnColor = colorOf(turn ? characters[turn.player] : null)
   const empty = cells.filter((c) => c.owner === null).map((c) => c.index)
 
-  // Timer do servidor para ler os segundos restantes
-  const timer = useServerTimer(turn)
-
-  // FE-13 Parte 4: vibração nos 3 últimos segundos do próprio turno na Morte Súbita
-  useSuddenDeathVibration(timer?.remainingSeconds ?? null, myTurn, suddenDeath)
-
-  // FE-13 Parte 5: ganchos de som da Morte Súbita (trilha, sirene, batida, tique-taque)
-  useSuddenDeathSounds(suddenDeath, timer?.remainingSeconds ?? null, phase === 'PLAYING')
+  // Round 3 empatado é sempre empate absoluto [RN-ARN-06]: só muda o texto do banner
+  const absoluteDraw = suddenDeath && roundEnd !== null && roundEnd.winner === null
 
   // Botão de pausa visível durante fases ativas (não no VS nem no fim de round)
   const showPauseButton = phase === 'PLAYING' || phase === 'ROUND_DRAW'
@@ -113,13 +108,16 @@ export function Arena({ onQuit }: ArenaProps) {
 
   return (
     <>
-      <div className="relative grid h-full min-h-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-3 pb-4 short:gap-2 short:pb-3">
+      {/* Na entrada da Morte Súbita a Arena inteira treme (sem tremor com "reduzir movimento") */}
+      <div
+        className={`relative grid h-full min-h-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-3 short:gap-2 ${enteringSuddenDeath ? 'motion-safe:animate-sd-shake' : ''}`}
+      >
         {/* ── Coluna esquerda: pausa, rótulo do round, faixas, Vitão ── */}
         <aside
           aria-label="Jogadores"
           className="flex min-h-0 min-w-0 flex-col gap-2 pl-3 short:pl-2"
         >
-          <div className="mt-4 flex items-center gap-2 short:mt-3">
+          <div className="flex items-center gap-2">
             {/* Botão de pausa — só nas fases ativas */}
             {showPauseButton && (
               <button
@@ -161,8 +159,8 @@ export function Arena({ onQuit }: ArenaProps) {
             Na Morte Súbita (round 3), o wrapper ganha borda em brasa e tremor leve. */}
         <div
           className={[
-            'aspect-square h-full max-w-[55vw] min-h-0 rounded-lg border-2 border-transparent',
-            suddenDeath ? 'border-danger motion-safe:animate-[var(--animate-sd-board)]' : '',
+            'aspect-square h-full max-w-[55vw] min-h-0',
+            suddenDeath ? 'rounded-lg border-2 border-danger motion-safe:animate-sd-board' : '',
           ].join(' ')}
         >
           <Board
@@ -185,10 +183,10 @@ export function Arena({ onQuit }: ArenaProps) {
             <p
               role="timer"
               aria-live="polite"
-              className="mt-4 self-start font-display text-[62px] font-bold leading-[0.85] tabular-nums text-danger short:mt-3 short:text-[42px]"
+              className="self-start font-display text-[62px] leading-[0.85] font-bold text-danger tabular-nums short:text-[42px]"
               style={{
-                textShadow:
-                  '0 0 18px rgba(255, 45, 61, 0.85), 3px 0 rgba(46, 230, 214, 0.5), -3px 0 rgba(176, 124, 255, 0.55)',
+                // Brilho vermelho e as cores dos dois personagens deslocadas (efeito do esboço)
+                textShadow: `0 0 18px var(--color-danger), 3px 0 color-mix(in srgb, ${colorOf(characters[opp]) ?? 'var(--color-primary)'} 50%, transparent), -3px 0 color-mix(in srgb, ${colorOf(characters[me]) ?? 'var(--color-primary)'} 55%, transparent)`,
                 transformOrigin: '30% 60%',
               }}
             >
@@ -274,7 +272,7 @@ export function Arena({ onQuit }: ArenaProps) {
           {/* Fim de round — centralizado verticalmente, largura total */}
           <Banner
             className="absolute inset-x-0 top-1/2 w-full -translate-y-1/2"
-            show={phase === 'ROUND_END' && roundEnd !== null}
+            show={phase === 'ROUND_END' && roundEnd !== null && !absoluteDraw}
             title={
               roundEnd?.winner === me
                 ? 'Round seu!'
@@ -302,10 +300,20 @@ export function Arena({ onQuit }: ArenaProps) {
             }
           />
 
+          {/* Empate absoluto: um banner só, do fim do round 3 até o Resultado. Quando o MATCH_END
+              chega (a sala segura a Arena por 2s), só o subtítulo troca para os Coins do servidor */}
+          <Banner
+            className="absolute inset-x-0 top-1/2 w-full -translate-y-1/2"
+            show={absoluteDraw || outcome?.kind === 'ABSOLUTE_DRAW'}
+            title="Empate absoluto"
+            subtitle={coins ? `+${coins[me]} Coins para cada` : 'Ninguém venceu a Morte Súbita'}
+            tone="coin"
+          />
+
           {/* Toast de turno perdido (TURN_TIMEOUT) */}
           <TurnTimeoutToast />
 
-          {/* Entrada da Morte Súbita: flash, tremor, fitas de perigo e banner (FE-13) */}
+          {/* Morte Súbita: entrada (flash, fitas, banner), bordas pulsando, vibração e sons (FE-13) */}
           <SuddenDeathLayer />
         </div>
 

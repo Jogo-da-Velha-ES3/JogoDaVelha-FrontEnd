@@ -36,6 +36,9 @@ function Avatar({
 }
 
 /**
+ * Tamanhos: o esboço de telas é um celular em miniatura; os px dele valem só no celular deitado
+ * (`short:`). Em telas maiores, tudo cresce para continuar legível.
+ *
  * Banner de início de round — visual do esboço, estado "Início do round" (`.ov-banner`,
  * `.flip`, `.coin-big`). Aparece nos primeiros segundos de cada round (a partir da chegada do
  * ROUND_START), para não cobrir o sorteio da 3ª habilidade. Quem reconecta não vê o banner.

@@ -7,7 +7,7 @@ import {
   stopHeartbeat,
   stopSuddenDeathMusic,
   stopTickTock,
-} from '../audio/suddenDeathSounds'
+} from '../features/match/suddenDeathSounds'
 
 /**
  * Hook para gerenciar os sons da Morte Súbita (FE-13 Parte 5).
