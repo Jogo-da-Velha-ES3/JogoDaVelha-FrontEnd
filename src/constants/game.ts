@@ -19,8 +19,11 @@ export const DRAW_PICK_SECONDS = 8 // [RN-DRAFT-05]
 export const MATCH_FOUND_COUNTDOWN_SECONDS = 3 // [RF-SAL-03]
 export const REMATCH_WINDOW_SECONDS = 15 // [RN-POS-01]
 export const EFFECT_DURATION_TURNS = 2 // Escudo, Congelar, Campo de Força, Reforço [RN-ARN-07]
-// No W.O., a Arena segura o banner antes de ir para o Resultado (PROJECT_CONTEXT §9, 16/10)
-export const WO_RESULT_DELAY_SECONDS = 2
+// No W.O. e no empate absoluto, a Arena segura o banner antes de ir para o Resultado
+// (PROJECT_CONTEXT §9: W.O. em 16/10, empate absoluto em 17/10)
+export const RESULT_HOLD_SECONDS = 2
+/** Entrada da Morte Súbita: flash, tremor, fitas de perigo e o banner (FE-13) */
+export const SUDDEN_DEATH_ENTRY_SECONDS = 2.2
 /** Banner de início do round (ROUND N, MATCH POINT, MORTE SÚBITA) e, no round 1, a moeda girando */
 export const ROUND_BANNER_SECONDS = 2.5
 export const ROUND_COIN_FLIP_SECONDS = 1.2

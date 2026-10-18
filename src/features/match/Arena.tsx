@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { motion, useReducedMotion } from 'framer-motion'
 import { Banner, TimerBar } from '../../components/ui'
 import { ABILITY_INFO } from '../../constants/abilities'
 import { CHARACTER_INFO } from '../../constants/characters'
 import { DRAW_PICK_SECONDS } from '../../constants/game'
+import { useServerTimer } from '../../hooks/useServerTimer'
 import { otherSlot } from '../../lib/match'
 import { PATHS } from '../../routes/paths'
 import { sendCommand } from '../../sockets/gameClient'
@@ -21,6 +23,8 @@ import { PauseOverlay } from './PauseOverlay'
 import { PlayerStrip } from './PlayerStrip'
 import { QuitModal } from './QuitModal'
 import { RoundStartBanner } from './RoundStartBanner'
+import { SuddenDeathLayer } from './SuddenDeathLayer'
+import { useSuddenDeathEntrance } from './useSuddenDeathEntrance'
 import { TurnTimeoutToast } from './TurnTimeoutToast'
 import { VsBanner } from './VsBanner'
 
@@ -56,6 +60,8 @@ export function Arena({ onQuit }: ArenaProps) {
   const timeouts = useMatchStore((s) => s.consecutiveTimeouts)
   const roundEnd = useMatchStore((s) => s.roundEnd)
   const outcome = useMatchStore((s) => s.outcome)
+  const coins = useMatchStore((s) => s.coins)
+  const enteringSuddenDeath = useSuddenDeathEntrance()
   const cells = useBoardStore((s) => s.cells)
   const winningLine = useBoardStore((s) => s.winningLine)
   const deck = usePowersStore((s) => s.deck)
@@ -67,6 +73,9 @@ export function Arena({ onQuit }: ArenaProps) {
   const myTurn = phase === 'PLAYING' && turn?.player === me
   const turnColor = colorOf(turn ? characters[turn.player] : null)
   const empty = cells.filter((c) => c.owner === null).map((c) => c.index)
+
+  // Round 3 empatado é sempre empate absoluto [RN-ARN-06]: só muda o texto do banner
+  const absoluteDraw = suddenDeath && roundEnd !== null && roundEnd.winner === null
 
   // Botão de pausa visível durante fases ativas (não no VS nem no fim de round)
   const showPauseButton = phase === 'PLAYING' || phase === 'ROUND_DRAW'
@@ -99,7 +108,10 @@ export function Arena({ onQuit }: ArenaProps) {
 
   return (
     <>
-      <div className="relative grid h-full min-h-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-3 short:gap-2">
+      {/* Na entrada da Morte Súbita a Arena inteira treme (sem tremor com "reduzir movimento") */}
+      <div
+        className={`relative grid h-full min-h-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-3 short:gap-2 ${enteringSuddenDeath ? 'motion-safe:animate-sd-shake' : ''}`}
+      >
         {/* ── Coluna esquerda: pausa, rótulo do round, faixas, Vitão ── */}
         <aside
           aria-label="Jogadores"
@@ -143,8 +155,14 @@ export function Arena({ onQuit }: ArenaProps) {
           />
         </aside>
 
-        {/* ── Centro: tabuleiro ── */}
-        <div className="aspect-square h-full max-w-[55vw] min-h-0">
+        {/* ── Centro: tabuleiro ──
+            Na Morte Súbita (round 3), o wrapper ganha borda em brasa e tremor leve. */}
+        <div
+          className={[
+            'aspect-square h-full max-w-[55vw] min-h-0',
+            suddenDeath ? 'rounded-lg border-2 border-danger motion-safe:animate-sd-board' : '',
+          ].join(' ')}
+        >
           <Board
             cells={cells}
             characters={characters}
@@ -160,27 +178,46 @@ export function Arena({ onQuit }: ArenaProps) {
           aria-label="Turno e habilidades"
           className="flex min-h-0 min-w-0 flex-col gap-2 pr-3 short:pr-2"
         >
+          {/* Timer gigante da Morte Súbita — no topo da coluna, antes do indicador de vez */}
+          {suddenDeath && phase === 'PLAYING' && (
+            <p
+              role="timer"
+              aria-live="polite"
+              className="self-start font-display text-[62px] leading-[0.85] font-bold text-danger tabular-nums short:text-[42px]"
+              style={{
+                // Brilho vermelho e as cores dos dois personagens deslocadas (efeito do esboço)
+                textShadow: `0 0 18px var(--color-danger), 3px 0 color-mix(in srgb, ${colorOf(characters[opp]) ?? 'var(--color-primary)'} 50%, transparent), -3px 0 color-mix(in srgb, ${colorOf(characters[me]) ?? 'var(--color-primary)'} 55%, transparent)`,
+                transformOrigin: '30% 60%',
+              }}
+            >
+              <SuddenDeathTimerValue />
+            </p>
+          )}
+
           {phase === 'PLAYING' && turn && (
             <div role="status">
               {myTurn ? (
                 <>
-                  {/* "SUA VEZ" em display + subtítulo instrucional */}
+                  {/* "SUA VEZ" em display + subtítulo instrucional
+                      Na Morte Súbita: só "SUA VEZ" em vermelho, sem subtítulo */}
                   <p
-                    className="font-display text-xl leading-tight font-extrabold uppercase short:text-lg"
-                    style={{ color: turnColor }}
+                    className={`font-display text-xl leading-tight font-extrabold uppercase short:text-lg ${suddenDeath ? 'text-danger' : ''}`}
+                    style={suddenDeath ? undefined : { color: turnColor }}
                   >
                     Sua vez
                   </p>
-                  <p className="mt-0.5 font-body text-xs text-text-muted">
-                    Toque numa casa ou use uma habilidade
-                  </p>
+                  {!suddenDeath && (
+                    <p className="mt-0.5 font-body text-xs text-text-muted">
+                      Toque numa casa ou use uma habilidade
+                    </p>
+                  )}
                 </>
               ) : (
-                /* "Vez de [Nome]…" quando é vez do adversário. Apelido sem espaço (até 15
-                   letras) não quebra linha: corta com "…" para não vazar da coluna */
+                /* "Vez de [Nome]…" quando é vez do adversário
+                   Na Morte Súbita: "VEZ DE [NOME]…" em vermelho */
                 <p
-                  className="truncate font-display text-base leading-tight font-bold uppercase short:text-sm"
-                  style={{ color: turnColor }}
+                  className={`truncate font-display text-xl leading-tight font-extrabold uppercase short:text-lg ${suddenDeath ? 'text-danger' : ''}`}
+                  style={suddenDeath ? undefined : { color: turnColor }}
                   title={player(opp)?.nickname}
                 >
                   {`Vez de ${player(opp)?.nickname ?? 'Oponente'}…`}
@@ -235,7 +272,7 @@ export function Arena({ onQuit }: ArenaProps) {
           {/* Fim de round — centralizado verticalmente, largura total */}
           <Banner
             className="absolute inset-x-0 top-1/2 w-full -translate-y-1/2"
-            show={phase === 'ROUND_END' && roundEnd !== null}
+            show={phase === 'ROUND_END' && roundEnd !== null && !absoluteDraw}
             title={
               roundEnd?.winner === me
                 ? 'Round seu!'
@@ -263,8 +300,21 @@ export function Arena({ onQuit }: ArenaProps) {
             }
           />
 
+          {/* Empate absoluto: um banner só, do fim do round 3 até o Resultado. Quando o MATCH_END
+              chega (a sala segura a Arena por 2s), só o subtítulo troca para os Coins do servidor */}
+          <Banner
+            className="absolute inset-x-0 top-1/2 w-full -translate-y-1/2"
+            show={absoluteDraw || outcome?.kind === 'ABSOLUTE_DRAW'}
+            title="Empate absoluto"
+            subtitle={coins ? `+${coins[me]} Coins para cada` : 'Ninguém venceu a Morte Súbita'}
+            tone="coin"
+          />
+
           {/* Toast de turno perdido (TURN_TIMEOUT) */}
           <TurnTimeoutToast />
+
+          {/* Morte Súbita: entrada (flash, fitas, banner), bordas pulsando, vibração e sons (FE-13) */}
+          <SuddenDeathLayer />
         </div>
 
         {/* Overlay de pausa (pointer-events-auto: intercepta cliques) */}
@@ -280,5 +330,27 @@ export function Arena({ onQuit }: ArenaProps) {
       <HowToPlayModal open={activeModal === 'howToPlay'} onClose={closeModalToPause} />
       <QuitModal open={activeModal === 'quit'} onContinue={closeModalToPause} onQuit={quit} />
     </>
+  )
+}
+
+/**
+ * Timer gigante da Morte Súbita com animação de "tick".
+ * Usa useServerTimer para ler os segundos do servidor.
+ */
+function SuddenDeathTimerValue() {
+  const turn = useTimerStore((s) => s.turn)
+  const timer = useServerTimer(turn)
+  const reduceMotion = useReducedMotion()
+  const seconds = timer?.remainingSeconds ?? 0
+
+  return (
+    <motion.span
+      key={seconds}
+      initial={reduceMotion ? false : { scale: 1.45 }}
+      animate={{ scale: 1 }}
+      transition={{ duration: 0.16, ease: 'easeOut' }}
+    >
+      {seconds}
+    </motion.span>
   )
 }

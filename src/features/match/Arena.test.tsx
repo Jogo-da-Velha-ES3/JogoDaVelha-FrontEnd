@@ -2,7 +2,11 @@ import { act, fireEvent, render, screen } from '@testing-library/react'
 import { MotionGlobalConfig } from 'framer-motion'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import { ROUND_BANNER_SECONDS, ROUND_COIN_FLIP_SECONDS } from '../../constants/game'
+import {
+  ROUND_BANNER_SECONDS,
+  ROUND_COIN_FLIP_SECONDS,
+  SUDDEN_DEATH_ENTRY_SECONDS,
+} from '../../constants/game'
 import { applyServerEvent, resetGameStores } from '../../stores/serverEvents'
 import { useTimerStore } from '../../stores/timerStore'
 import type { ServerEvent } from '../../types/events'
@@ -126,6 +130,46 @@ describe('banner de início do round', () => {
   it('quem reconecta (snapshot) não vê o banner', () => {
     renderArena()
     expect(screen.queryByRole('status', { name: 'Round 1' })).not.toBeInTheDocument()
+  })
+})
+
+describe('Morte Súbita e empate absoluto (FE-13)', () => {
+  it('entrada da Morte Súbita só nos primeiros segundos do round 3', async () => {
+    renderArena()
+    startRound(3, 'P1')
+    expect(screen.getByText('5 segundos por jogada')).toBeInTheDocument()
+
+    await tick(SUDDEN_DEATH_ENTRY_SECONDS * 1000 + 500)
+    expect(screen.queryByText('5 segundos por jogada')).not.toBeInTheDocument()
+  })
+
+  it('round 3 empatado já anuncia o empate absoluto [RN-ARN-06]', () => {
+    renderArena()
+    startRound(3, 'P1')
+    send('ROUND_END', { round: 3, winner: null, winningLine: null, score: { P1: 1, P2: 1 } })
+    send('PHASE_CHANGE', { phase: 'ROUND_END' })
+    expect(screen.getByText('Empate absoluto')).toBeInTheDocument()
+    expect(screen.getByText('Ninguém venceu a Morte Súbita')).toBeInTheDocument()
+    expect(screen.queryByText('Round empatado')).not.toBeInTheDocument()
+  })
+
+  it('round 1 ou 2 empatado continua como "Round empatado"', () => {
+    renderArena()
+    send('ROUND_END', { round: 1, winner: null, winningLine: null, score: { P1: 0, P2: 0 } })
+    send('PHASE_CHANGE', { phase: 'ROUND_END' })
+    expect(screen.getByText('Round empatado')).toBeInTheDocument()
+  })
+
+  it('MATCH_END de empate absoluto mostra os Coins que vieram do servidor', () => {
+    renderArena()
+    startRound(3, 'P1')
+    send('ROUND_END', { round: 3, winner: null, winningLine: null, score: { P1: 1, P2: 1 } })
+    send('MATCH_END', { outcome: { kind: 'ABSOLUTE_DRAW' }, coins: { P1: 20, P2: 20 } })
+    send('PHASE_CHANGE', { phase: 'RESULT' })
+    // Um banner só: o do fim do round 3 continua e só troca o subtítulo para os Coins
+    expect(screen.getAllByText('Empate absoluto')).toHaveLength(1)
+    expect(screen.getByText('+20 Coins para cada')).toBeInTheDocument()
+    expect(screen.queryByText('Ninguém venceu a Morte Súbita')).not.toBeInTheDocument()
   })
 })
 

@@ -195,4 +195,20 @@ describe('Arena', () => {
     expect(screen.getByRole('heading', { name: 'Vitória por W.O.' })).toBeInTheDocument()
     expect(screen.queryByRole('group', { name: 'Tabuleiro' })).not.toBeInTheDocument()
   })
+
+  it('empate absoluto: a Arena segura o banner com os Coins por 2s antes do Resultado', async () => {
+    renderRoom('empate-absoluto') // 3 rounds automáticos: 1×1 e empate na Morte Súbita
+    await tick(NET + MOCK_TIMINGS.botJoin + MOCK_TIMINGS.matched + NET)
+    await tick(PREPARATION_SECONDS * 1000 + MOCK_TIMINGS.versus + NET)
+    const coinsBanner = () => screen.queryByText('+20 Coins para cada')
+    for (let i = 0; i < 40 && !coinsBanner(); i++) await tick(500)
+
+    expect(board()).toBeInTheDocument()
+    expect(coinsBanner()).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Empate absoluto' })).not.toBeInTheDocument()
+
+    await tick(2000 + NET)
+    expect(screen.getByRole('heading', { name: 'Empate absoluto' })).toBeInTheDocument()
+    expect(screen.queryByRole('group', { name: 'Tabuleiro' })).not.toBeInTheDocument()
+  })
 })

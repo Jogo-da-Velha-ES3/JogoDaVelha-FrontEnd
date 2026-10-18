@@ -378,10 +378,16 @@ Abrir o jogo → [sem sessão] Acesso → Hub (Jogar; abas Loja / Perfil)
   atrasa nada no servidor: a partida e os Coins já foram resolvidos no `MATCH_END`, e a janela da
   revanche só conta a partir do pedido. Quem reconecta nesse meio-tempo cai direto no Resultado.
 
+- **Empate absoluto (decidido em 17/10):** o round 3 empatado já anuncia "EMPATE ABSOLUTO ·
+  Ninguém venceu a Morte Súbita" no fim do round (regra de exibição, como o "MATCH POINT"
+  `[RN-ARN-06]`). Quando chega o `MATCH_END`, a Arena segura **2 segundos**, como no W.O., com
+  "EMPATE ABSOLUTO · +20 Coins para cada" (Coins vindos do servidor), e então vai para o Resultado.
+
 ### Morte Súbita: pacote de pressão
 
 - **Entrada:** tela treme e pisca em vermelho, sirene, "MORTE SÚBITA" bate na tela, fitas de
-  perigo entram por cima e por baixo.
+  perigo entram por cima e por baixo. As fitas ficam só na entrada (~2s), para não cobrir a Arena
+  durante o round.
 - **Em jogo:** bordas pulsando como batimento cardíaco, timer gigante que "bate" a cada segundo,
   tabuleiro com borda em brasa e tremendo.
 - **Som:** trilha acelerada, batida de coração que acelera com o timer, tique-taque nos 3 últimos
