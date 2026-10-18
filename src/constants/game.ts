@@ -28,6 +28,8 @@ export const RESULT_HOLD_SECONDS = 2
  */
 export const RESULT_BURST_SECONDS = 3
 export const RESULT_BURST_PARTICLES = { flawless: 32, win: 20, short: 10 } as const
+/** Duração da contagem dos Coins no Resultado (FE-15), de 0 até o valor que o servidor creditou */
+export const COINS_COUNT_SECONDS = 1.2
 /** Entrada da Morte Súbita: flash, tremor, fitas de perigo e o banner (FE-13) */
 export const SUDDEN_DEATH_ENTRY_SECONDS = 2.2
 /** Banner de início do round (ROUND N, MATCH POINT, MORTE SÚBITA) e, no round 1, a moeda girando */

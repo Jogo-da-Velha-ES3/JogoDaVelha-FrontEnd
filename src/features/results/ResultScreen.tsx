@@ -9,6 +9,7 @@ import { useRoomStore } from '../../stores/roomStore'
 import type { CharacterId } from '../../types/game'
 import { Character } from '../characters'
 import { celebrationFlavor } from './celebration'
+import { CoinsReward } from './CoinsReward'
 import { CelebrationBurst, CelebrationHalo } from './ResultCelebration'
 import { RematchPanel } from './RematchPanel'
 import { RESULT_TITLES, resultSubtitle } from './resultTexts'
@@ -32,12 +33,6 @@ const TONE: Record<ResultKind, Tone> = {
 
 const characterColor = (character: CharacterId | null | undefined) =>
   character ? CHARACTER_INFO[character].color : 'var(--color-line)'
-
-/** Coins desta partida como o servidor mandou; sem valor, texto neutro (nunca "+0") */
-function coinsLabel(amount: number | undefined): string {
-  if (amount === undefined) return 'Coins já creditados'
-  return amount > 0 ? `+${amount} Coins` : '0 Coins'
-}
 
 interface SideProps {
   side: 'me' | 'opponent'
@@ -247,7 +242,12 @@ export function ResultScreen({ onLeave }: ResultScreenProps) {
             W.O.
           </span>
         )}
-        <p className="font-mono text-coin">{coinsLabel(coins?.[me])}</p>
+        {/* No empate a Arena já mostrou "+20 Coins para cada" nos 2s antes: aqui o valor fica parado */}
+        <CoinsReward
+          amount={coins?.[me]}
+          countUp={live && kind !== 'DRAW'}
+          caption={kind === 'DRAW' ? 'para os dois' : undefined}
+        />
         <RematchPanel onLeave={onLeave} />
       </div>
     </section>

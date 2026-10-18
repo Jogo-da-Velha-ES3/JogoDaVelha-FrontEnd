@@ -48,10 +48,14 @@ describe('vitrine: título do Resultado', () => {
   it.each([
     ['derrota', 'Derrota'],
     ['derrota-wo', 'Derrota por W.O.'],
-  ])('cenário %s mostra só "%s"', async (scenario, title) => {
-    await playUntilResult(scenario)
-    const h1 = screen.getByRole('heading', { level: 1 })
-    expect(h1.textContent).toBe(title)
-    expect(h1.textContent).not.toContain('·')
-  })
+  ])(
+    'cenário %s mostra só "%s"',
+    async (scenario, title) => {
+      await playUntilResult(scenario)
+      const h1 = screen.getByRole('heading', { level: 1 })
+      expect(h1.textContent).toBe(title)
+      expect(h1.textContent).not.toContain('·')
+    },
+    30_000,
+  )
 })
