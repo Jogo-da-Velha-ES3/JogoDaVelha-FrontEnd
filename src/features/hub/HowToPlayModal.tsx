@@ -1,14 +1,24 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useEffect, useState } from 'react'
 import { Button, Modal } from '../../components/ui'
-import { BOARD_CELLS, BOARD_SIZE, WIN_LENGTH } from '../../constants/game'
-import type { Cell, PlayerSlot } from '../../types/game'
+import {
+  BOARD_CELLS,
+  BOARD_SIZE,
+  MAX_CONSECUTIVE_TIMEOUTS,
+  ROUNDS_TO_WIN_MATCH,
+  WIN_LENGTH,
+} from '../../constants/game'
+import type { Cell, PlayerSlot, PlayerState } from '../../types/game'
 import { Board } from '../board'
+import { PlayerStrip } from '../match/PlayerStrip'
+import { CoinsReward } from '../results/CoinsReward'
 import {
   HOW_TO_PLAY_PAGES,
   HOW_TO_PLAY_TEXTS as TEXTS,
+  type HowToPlayCoinRow,
   type HowToPlayPage,
   type HowToPlaySlide,
+  type HowToPlayVisual,
 } from './howToPlayTexts'
 
 interface HowToPlayModalProps {
@@ -26,6 +36,26 @@ const DEMO_CELLS: readonly Cell[] = Array.from({ length: BOARD_CELLS }, (_, inde
   return { index, owner, effects: [] }
 })
 const DEMO_LINE = Array.from({ length: WIN_LENGTH }, (_, index) => index)
+
+// Faixas de exemplo (PlayerStrip da Arena), só com dados fixos: nada vem do servidor ou das stores
+const demoPlayer = (slot: PlayerSlot, nickname: string, timeouts = 0): PlayerState => ({
+  slot,
+  userId: `demo-${slot}`,
+  nickname,
+  character: slot === 'P1' ? 'X' : 'O',
+  roundsWon: 0,
+  consecutiveTimeouts: timeouts,
+  forceFieldTurnsLeft: 0,
+  silenced: false,
+  connected: true,
+})
+const DEMO_SCORE_PLAYERS = {
+  P1: demoPlayer('P1', TEXTS.demoSelf),
+  P2: demoPlayer('P2', TEXTS.demoOpponent),
+}
+// Um round vencido por cada lado: o placar que leva ao round 3
+const TIED_ROUNDS = ROUNDS_TO_WIN_MATCH - 1
+const DEMO_TIMEOUT_PLAYER = demoPlayer('P1', TEXTS.demoSelf, MAX_CONSECUTIVE_TIMEOUTS - 1)
 
 const LAST_PAGE = HOW_TO_PLAY_PAGES.length - 1
 const SLIDE_OFFSET_PX = 24
@@ -130,29 +160,60 @@ export function HowToPlayModal({ open, onClose, closeLabel = TEXTS.close }: HowT
         </div>
       }
     >
-      {/* Esboço: tabuleiro à esquerda, texto à direita; a altura fixa evita rolagem no celular deitado */}
-      <div className="flex items-center gap-5 short:gap-3">
-        <div aria-hidden="true" className="size-52 shrink-0 short:size-44">
-          <Board cells={DEMO_CELLS} characters={{ P1: 'X', P2: 'O' }} winningLine={DEMO_LINE} />
-        </div>
-
-        <div className="min-w-0 flex-1" aria-live="polite">
-          <AnimatePresence mode="wait" initial={false} custom={direction}>
-            <motion.section
-              key={current.id}
-              custom={direction}
-              variants={variants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ duration: reduceMotion ? 0 : 0.15 }}
-            >
+      {/* Esboço: visual à esquerda, texto à direita; larguras fixas evitam rolagem no celular deitado */}
+      <div aria-live="polite">
+        <AnimatePresence mode="wait" initial={false} custom={direction}>
+          <motion.section
+            key={current.id}
+            custom={direction}
+            variants={variants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{ duration: reduceMotion ? 0 : 0.15 }}
+            // Altura mínima = a do tabuleiro: o modal não muda de tamanho entre as páginas
+            className="flex min-h-52 items-center gap-5 short:min-h-44 short:gap-3"
+          >
+            {current.visual !== 'coins' && <SideVisual kind={current.visual} />}
+            <div className="min-w-0 flex-1">
               <PageContent page={current} index={page} />
-            </motion.section>
-          </AnimatePresence>
-        </div>
+            </div>
+          </motion.section>
+        </AnimatePresence>
       </div>
     </Modal>
+  )
+}
+
+/** Visuais da base usados de forma estática: sem stores, sem lógica de jogo e sem timer */
+function SideVisual({ kind }: { kind: Exclude<HowToPlayVisual, 'coins'> }) {
+  if (kind === 'board') {
+    return (
+      <div aria-hidden="true" className="size-52 shrink-0 short:size-44">
+        <Board cells={DEMO_CELLS} characters={{ P1: 'X', P2: 'O' }} winningLine={DEMO_LINE} />
+      </div>
+    )
+  }
+
+  return (
+    <div aria-hidden="true" className="flex w-52 shrink-0 flex-col gap-2 short:w-44">
+      <PlayerStrip
+        player={kind === 'timeouts' ? DEMO_TIMEOUT_PLAYER : DEMO_SCORE_PLAYERS.P1}
+        isMe={false}
+        active={false}
+        roundsWon={kind === 'score' ? TIED_ROUNDS : 0}
+        timeouts={kind === 'timeouts' ? MAX_CONSECUTIVE_TIMEOUTS - 1 : 0}
+      />
+      {kind === 'score' && (
+        <PlayerStrip
+          player={DEMO_SCORE_PLAYERS.P2}
+          isMe={false}
+          active={false}
+          roundsWon={TIED_ROUNDS}
+          timeouts={0}
+        />
+      )}
+    </div>
   )
 }
 
@@ -165,13 +226,33 @@ function PageContent({ page, index }: { page: HowToPlayPage; index: number }) {
       <h3 className="font-display text-xl leading-tight font-bold tracking-wide text-text uppercase short:text-lg">
         {page.title}
       </h3>
-      <ul className="mt-2 flex flex-col gap-1 text-sm">
-        {page.points.map((point) => (
-          <li key={point}>{point}</li>
-        ))}
-      </ul>
+      {page.points.length > 0 && (
+        <ul className="mt-2 flex flex-col gap-1 text-sm leading-snug">
+          {page.points.map((point) => (
+            <li key={point}>{point}</li>
+          ))}
+        </ul>
+      )}
+      {page.coinRows && <CoinsTable rows={page.coinRows} />}
       {page.slides && <SlideCarousel slides={page.slides} />}
     </>
+  )
+}
+
+/** Tabela de Coins com a moeda do Resultado (CoinsReward), parada e sem contagem */
+function CoinsTable({ rows }: { rows: readonly HowToPlayCoinRow[] }) {
+  // `--u` é o tamanho-base que o CoinsReward espera do Resultado: aqui fixa o texto em 1rem
+  return (
+    <ul className="mt-2 grid grid-flow-col grid-rows-3 gap-x-6 gap-y-1 [--u:20rem]">
+      {rows.map((row) => (
+        <li key={row.label} className="flex items-center gap-3 text-sm">
+          <span className="w-32 shrink-0 [&>p]:justify-start">
+            <CoinsReward amount={row.amount} countUp={false} />
+          </span>
+          <span>{row.label}</span>
+        </li>
+      ))}
+    </ul>
   )
 }
 
