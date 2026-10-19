@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import { useEffect, useId, useRef, type ReactNode } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, type ReactNode, type RefObject } from 'react'
 
 export interface ModalProps {
   open: boolean
@@ -12,6 +12,8 @@ export interface ModalProps {
   /** false = só sai por uma ação do conteúdo (ex: "Gire o celular") */
   dismissible?: boolean
   size?: 'sm' | 'md' | 'lg'
+  /** Classes extras do corpo (ex: subir o corpo para o conteúdo passar sob o cabeçalho sem ser cortado) */
+  bodyClassName?: string
 }
 
 const SIZE_CLASSES = {
@@ -28,6 +30,42 @@ export function Modal({ open, ...props }: ModalProps) {
   return <AnimatePresence>{open && <ModalDialog {...props} />}</AnimatePresence>
 }
 
+/**
+ * Dentro de uma moldura que declara `data-modal-bounds` (a tela simulada do celular, na vitrine),
+ * o modal ocupa só a moldura, como o menu de pausa, em vez da janela inteira. Continua sendo o
+ * <dialog> nativo (foco, Esc e fundo inerte); só muda o retângulo, que acompanha rolagem e
+ * redimensionamento. Sem a moldura, nada muda.
+ */
+function useContainedBounds(ref: RefObject<HTMLDialogElement | null>) {
+  useLayoutEffect(() => {
+    const dialog = ref.current
+    const host = dialog?.closest<HTMLElement>('[data-modal-bounds]')
+    if (!dialog || !host) return
+
+    const place = () => {
+      const rect = host.getBoundingClientRect()
+      Object.assign(dialog.style, {
+        inset: 'auto',
+        top: `${rect.top + host.clientTop}px`,
+        left: `${rect.left + host.clientLeft}px`,
+        width: `${host.clientWidth}px`,
+        height: `${host.clientHeight}px`,
+        padding: '0.5rem',
+        borderRadius: getComputedStyle(host).borderRadius,
+      })
+    }
+    place()
+    window.addEventListener('scroll', place, true)
+    window.addEventListener('resize', place)
+    const observer = new ResizeObserver(place)
+    observer.observe(host)
+    return () => {
+      window.removeEventListener('scroll', place, true)
+      window.removeEventListener('resize', place)
+      observer.disconnect()
+    }
+  }, [ref])
+}
 function ModalDialog({
   onClose,
   title,
@@ -35,10 +73,13 @@ function ModalDialog({
   actions,
   dismissible = true,
   size = 'md',
+  bodyClassName = '',
 }: Omit<ModalProps, 'open'>) {
   const ref = useRef<HTMLDialogElement>(null)
   const titleId = useId()
   const canClose = dismissible && onClose !== undefined
+
+  useContainedBounds(ref)
 
   useEffect(() => {
     const dialog = ref.current
@@ -83,7 +124,7 @@ function ModalDialog({
           SIZE_CLASSES[size],
         ].join(' ')}
       >
-        <header className="flex items-center justify-between gap-4 px-5 pt-4 short:px-4 short:pt-3">
+        <header className="relative z-10 flex items-center justify-between gap-4 px-5 pt-4 short:px-4 short:pt-3">
           <h2
             id={titleId}
             className="font-display text-2xl leading-tight font-bold tracking-wide uppercase short:text-xl"
@@ -110,7 +151,9 @@ function ModalDialog({
           )}
         </header>
         {children && (
-          <div className="min-h-0 overflow-y-auto px-5 py-3 text-text-muted short:px-4 short:py-2">
+          <div
+            className={`min-h-0 overflow-y-auto px-5 py-3 text-text-muted short:px-4 short:py-2 ${bodyClassName}`}
+          >
             {children}
           </div>
         )}

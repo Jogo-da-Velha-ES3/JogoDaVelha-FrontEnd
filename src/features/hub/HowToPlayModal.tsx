@@ -1,26 +1,16 @@
-﻿import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useEffect, useRef, useState } from 'react'
 import { Button, Modal } from '../../components/ui'
-import {
-  BOARD_CELLS,
-  BOARD_SIZE,
-  MAX_CONSECUTIVE_TIMEOUTS,
-  ROUNDS_TO_WIN_MATCH,
-  WIN_LENGTH,
-} from '../../constants/game'
-import type { Cell, PlayerSlot, PlayerState } from '../../types/game'
-import { Board } from '../board'
-import { PlayerStrip } from '../match/PlayerStrip'
 import { CoinsReward } from '../results/CoinsReward'
 import { HowToPlayDeck } from './HowToPlayDeck'
+import { HowToPlayRichText } from './HowToPlayRichText'
+import { SideVisual } from './HowToPlayVisuals'
 import {
   HOW_TO_PLAY_PAGES,
   HOW_TO_PLAY_TEXTS as TEXTS,
   type HowToPlayCoinRow,
   type HowToPlayPage,
-  type HowToPlayVisual,
 } from './howToPlayTexts'
-
 interface HowToPlayModalProps {
   open: boolean
   /** Fecha o modal (na Arena, volta ao menu de pausa) */
@@ -28,34 +18,6 @@ interface HowToPlayModalProps {
   /** Rótulo do botão de saída, na última página */
   closeLabel?: string
 }
-
-// Tabuleiro de exemplo, igual ao do esboço: uma linha de X completa e algumas peças de O
-const O_CELLS = [5, 7, 10]
-const DEMO_CELLS: readonly Cell[] = Array.from({ length: BOARD_CELLS }, (_, index) => {
-  const owner: PlayerSlot | null = index < BOARD_SIZE ? 'P1' : O_CELLS.includes(index) ? 'P2' : null
-  return { index, owner, effects: [] }
-})
-const DEMO_LINE = Array.from({ length: WIN_LENGTH }, (_, index) => index)
-
-// Faixas de exemplo (PlayerStrip da Arena), só com dados fixos: nada vem do servidor ou das stores
-const demoPlayer = (slot: PlayerSlot, nickname: string, timeouts = 0): PlayerState => ({
-  slot,
-  userId: `demo-${slot}`,
-  nickname,
-  character: slot === 'P1' ? 'X' : 'O',
-  roundsWon: 0,
-  consecutiveTimeouts: timeouts,
-  forceFieldTurnsLeft: 0,
-  silenced: false,
-  connected: true,
-})
-const DEMO_SCORE_PLAYERS = {
-  P1: demoPlayer('P1', TEXTS.demoSelf),
-  P2: demoPlayer('P2', TEXTS.demoOpponent),
-}
-// Um round vencido por cada lado: o placar que leva ao round 3
-const TIED_ROUNDS = ROUNDS_TO_WIN_MATCH - 1
-const DEMO_TIMEOUT_PLAYER = demoPlayer('P1', TEXTS.demoSelf, MAX_CONSECUTIVE_TIMEOUTS - 1)
 
 const LAST_PAGE = HOW_TO_PLAY_PAGES.length - 1
 const SLIDE_OFFSET_PX = 24
@@ -127,6 +89,10 @@ export function HowToPlayModal({ open, onClose, closeLabel = TEXTS.close }: HowT
       title={TEXTS.title}
       dismissible
       size="lg"
+      // O título da página sobe até a linha do indicador, acima da área do corpo; o corpo sobe 16px
+      // (e ganha 16px de padding, então nada muda de lugar) para o título e o acento do "Ú" não
+      // serem cortados pela rolagem do corpo
+      bodyClassName="-mt-4 pt-7 short:pt-6"
       actions={
         <div ref={footerRef} className="flex w-full items-center gap-2">
           <Button
@@ -175,7 +141,30 @@ export function HowToPlayModal({ open, onClose, closeLabel = TEXTS.close }: HowT
       }
     >
       {/* Esboço: visual à esquerda, texto à direita; larguras fixas evitam rolagem no celular deitado */}
-      <div aria-live="polite">
+      {/* A página desliza 24px na troca: sem cortar o excesso na horizontal, o corpo do modal
+          (overflow-y-auto) ganha uma barra de rolagem lateral por alguns quadros. A folga de
+          1 (-mx-1/px-1) deixa o contorno do foco dos botões aparecer inteiro. */}
+      <div aria-live="polite" className="-mx-1 overflow-x-clip px-1">
+        {/* Cabeçalho fixo logo abaixo do título do modal: não anima nem muda de lugar entre as
+            páginas. A página de habilidades encaixa os controles do carrossel no espaço à direita. */}
+        <div className="grid h-11 grid-cols-[1fr_auto_1fr] items-center gap-3">
+          {/* Indicador no topo da linha e 8px mais acima, perto do "COMO JOGAR" (só eixo Y) */}
+          <p className="-translate-y-2 self-start font-mono text-xs tracking-widest text-text-muted uppercase">
+            {TEXTS.pageOf(page + 1, HOW_TO_PLAY_PAGES.length)}
+          </p>
+          {/* -translate-y-5.5: sobe o título até a linha do indicador, perto do "COMO JOGAR" (só eixo Y) */}
+          <h3
+            className={[
+              '-translate-y-5.5 text-center font-display text-3xl leading-none font-bold tracking-wide uppercase short:text-2xl',
+              current.titleTone === 'danger'
+                ? 'text-danger [text-shadow:0_0_14px_color-mix(in_srgb,var(--color-danger)_55%,transparent)]'
+                : 'text-text',
+            ].join(' ')}
+          >
+            {current.title}
+          </h3>
+          <div />
+        </div>
         <AnimatePresence mode="wait" initial={false} custom={direction}>
           <motion.section
             key={current.id}
@@ -185,20 +174,17 @@ export function HowToPlayModal({ open, onClose, closeLabel = TEXTS.close }: HowT
             animate="center"
             exit="exit"
             transition={{ duration: reduceMotion ? 0 : 0.15 }}
-            // Altura mínima = a do tabuleiro: o modal não muda de tamanho entre as páginas
-            className="flex min-h-52 items-center gap-5 short:min-h-44 short:gap-3"
+            // -mt-6 sobe o conteúdo para o espaço livre abaixo do título (que já foi para a linha do
+            // indicador). A altura mínima é igual em todas as páginas: o modal não muda de tamanho
+            className="-mt-6 flex min-h-52 items-center justify-center gap-5 short:min-h-41 short:gap-3"
           >
             {current.visual === 'deck' ? (
-              <HowToPlayDeck
-                heading={<PageHeading page={current} index={page} />}
-                points={current.points}
-                onLeave={leaveCarousel}
-              />
+              <HowToPlayDeck points={current.points} onLeave={leaveCarousel} />
             ) : (
               <>
                 {current.visual !== 'coins' && <SideVisual kind={current.visual} />}
-                <div className="min-w-0 flex-1">
-                  <PageContent page={current} index={page} />
+                <div className="min-w-0">
+                  <PageContent page={current} />
                 </div>
               </>
             )}
@@ -209,59 +195,22 @@ export function HowToPlayModal({ open, onClose, closeLabel = TEXTS.close }: HowT
   )
 }
 
-/** Visuais da base usados de forma estática: sem stores, sem lógica de jogo e sem timer */
-function SideVisual({ kind }: { kind: Exclude<HowToPlayVisual, 'coins' | 'deck'> }) {
-  if (kind === 'board') {
-    return (
-      <div aria-hidden="true" className="size-52 shrink-0 short:size-44">
-        <Board cells={DEMO_CELLS} characters={{ P1: 'X', P2: 'O' }} winningLine={DEMO_LINE} />
-      </div>
-    )
-  }
-
-  return (
-    <div aria-hidden="true" className="flex w-52 shrink-0 flex-col gap-2 short:w-44">
-      <PlayerStrip
-        player={kind === 'timeouts' ? DEMO_TIMEOUT_PLAYER : DEMO_SCORE_PLAYERS.P1}
-        isMe={false}
-        active={false}
-        roundsWon={kind === 'score' ? TIED_ROUNDS : 0}
-        timeouts={kind === 'timeouts' ? MAX_CONSECUTIVE_TIMEOUTS - 1 : 0}
-      />
-      {kind === 'score' && (
-        <PlayerStrip
-          player={DEMO_SCORE_PLAYERS.P2}
-          isMe={false}
-          active={false}
-          roundsWon={TIED_ROUNDS}
-          timeouts={0}
-        />
-      )}
-    </div>
-  )
-}
-
-function PageHeading({ page, index }: { page: HowToPlayPage; index: number }) {
+function PageContent({ page }: { page: HowToPlayPage }) {
   return (
     <>
-      <p className="font-mono text-xs tracking-widest text-text-muted uppercase">
-        {TEXTS.pageOf(index + 1, HOW_TO_PLAY_PAGES.length)}
-      </p>
-      <h3 className="font-display text-xl leading-tight font-bold tracking-wide text-text uppercase short:text-lg">
-        {page.title}
-      </h3>
-    </>
-  )
-}
-
-function PageContent({ page, index }: { page: HowToPlayPage; index: number }) {
-  return (
-    <>
-      <PageHeading page={page} index={index} />
       {page.points.length > 0 && (
-        <ul className="mt-2 flex flex-col gap-1 text-sm leading-snug">
+        <ul
+          className={[
+            'flex flex-col font-medium text-text',
+            page.largeText
+              ? 'gap-2 text-base leading-snug short:gap-1.5 short:text-[15px]'
+              : 'gap-1 text-sm leading-snug',
+          ].join(' ')}
+        >
           {page.points.map((point) => (
-            <li key={point}>{point}</li>
+            <li key={point}>
+              <HowToPlayRichText text={point} />
+            </li>
           ))}
         </ul>
       )}
@@ -270,17 +219,41 @@ function PageContent({ page, index }: { page: HowToPlayPage; index: number }) {
   )
 }
 
-/** Tabela de Coins com a moeda do Resultado (CoinsReward), parada e sem contagem */
+// Verde do esboço de telas (`--ok`, #7dffb0); o app ainda não tem token de sucesso.
+// Derrota em vermelho, como no Resultado.
+const COIN_TONE_CLASS: Record<HowToPlayCoinRow['tone'], string> = {
+  win: 'text-[#7dffb0]',
+  loss: 'text-danger',
+  draw: 'text-text',
+}
+
+/**
+ * Tabela de Coins: cada resultado numa linha própria, com o nome à esquerda e a quantidade (a moeda
+ * do Resultado, CoinsReward, parada e sem contagem) à direita, na mesma linha.
+ */
 function CoinsTable({ rows }: { rows: readonly HowToPlayCoinRow[] }) {
-  // `--u` é o tamanho-base que o CoinsReward espera do Resultado: aqui fixa o texto em 1rem
+  // `--u` é o tamanho-base que o CoinsReward espera do Resultado: aqui fixa o texto em 1rem.
+  // Grid de 2 colunas; se a quantidade de linhas for ímpar, a última fica sozinha no centro, com a
+  // largura de uma coluna.
+  const lonely = rows.length % 2 === 1 ? rows.length - 1 : -1
   return (
-    <ul className="mt-2 grid grid-flow-col grid-rows-3 gap-x-6 gap-y-1 [--u:20rem]">
-      {rows.map((row) => (
-        <li key={row.label} className="flex items-center gap-3 text-sm">
-          <span className="w-32 shrink-0 [&>p]:justify-start">
+    <ul className="grid grid-cols-2 gap-x-4 gap-y-2 [--u:20rem]">
+      {rows.map((row, position) => (
+        <li
+          key={row.label}
+          className={[
+            'flex items-center justify-between gap-3 rounded-lg border border-line bg-bg-panel px-3 py-1.5',
+            position === lonely ? 'col-span-2 w-[calc(50%-0.5rem)] justify-self-center' : '',
+          ].join(' ')}
+        >
+          <span
+            className={`text-lg leading-tight font-medium short:text-base ${COIN_TONE_CLASS[row.tone]}`}
+          >
+            {row.label}
+          </span>
+          <span className="w-28 shrink-0 [&>p]:justify-start">
             <CoinsReward amount={row.amount} countUp={false} />
           </span>
-          <span>{row.label}</span>
         </li>
       ))}
     </ul>
