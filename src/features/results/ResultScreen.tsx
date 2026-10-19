@@ -196,10 +196,12 @@ export function ResultScreen({ onLeave }: ResultScreenProps) {
               style={celebrate ? { animationDelay: '0.3s' } : undefined}
             >
               {flavor && <CelebrationHalo color={winnerColor} pulse={celebrate} />}
+              {/* Animação normal do personagem em todo resultado (parado só com "reduzir movimento",
+                  pelo próprio CSS): sem ela, a derrota e o empate pareciam tela travada. A festa
+                  (pulinho, brilho e confete) continua só na vitória ao vivo */}
               <Character
                 id={id}
                 variant="full"
-                animated={celebrate}
                 className={
                   panelCharacters.length > 1
                     ? 'h-[clamp(6rem,calc(var(--u)*0.24),13rem)] w-auto'

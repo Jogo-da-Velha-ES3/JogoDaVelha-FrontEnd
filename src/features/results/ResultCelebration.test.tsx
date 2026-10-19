@@ -300,11 +300,25 @@ describe('comemoração: cintilação, pulo e posição', () => {
     expect(title().querySelector('span')).toBeNull()
   })
 
-  it('o vencedor pula (finito) ao vivo, e o personagem anima só enquanto festeja', () => {
+  it('o vencedor pula (finito) ao vivo, com o personagem animado', () => {
     liveSetup(WIN)
     renderScreen()
     expect(document.querySelector('.animate-victory-hop')).not.toBeNull()
     expect(document.querySelector('[data-region="result-panel"] svg')).toHaveClass('chr-animated')
+  })
+
+  it.each([
+    ['derrota', LOSS],
+    ['empate absoluto', DRAW],
+    ['derrota por W.O.', WO_LOSS],
+  ])('%s: personagens com a animação normal, sem festa', (_, result) => {
+    liveSetup(result)
+    renderScreen()
+    const characters = document.querySelectorAll('[data-region="result-panel"] svg[data-character]')
+    expect(characters.length).toBeGreaterThan(0)
+    characters.forEach((svg) => expect(svg).toHaveClass('chr-animated'))
+    expect(document.querySelector('.animate-victory-hop')).toBeNull()
+    expect(burst()).toBeNull()
   })
 
   it('a rajada fica dentro do painel, sem capturar toques, e a coluna dos botões não recebe partículas', () => {

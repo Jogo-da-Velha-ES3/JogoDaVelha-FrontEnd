@@ -147,6 +147,15 @@ describe('partida completa', () => {
     expect(match().consecutiveTimeouts).toEqual({ P1: 3, P2: 0 })
     expect(match().outcome).toEqual({ kind: 'WO', winner: 'P2' })
   })
+
+  it('MATCH_END repetido mantém a hora do primeiro (a Arena não segura o banner de novo)', () => {
+    send('MATCH_END', { outcome: { kind: 'WO', winner: 'P2' }, coins: { P1: 0, P2: 30 } })
+    const first = match().outcomeReceivedAt
+    expect(first).toBe(clock)
+
+    send('MATCH_END', { outcome: { kind: 'WO', winner: 'P2' }, coins: { P1: 0, P2: 30 } })
+    expect(match().outcomeReceivedAt).toBe(first)
+  })
 })
 
 describe('estouros seguidos', () => {
