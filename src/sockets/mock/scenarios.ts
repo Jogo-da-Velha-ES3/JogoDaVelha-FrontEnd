@@ -1,6 +1,14 @@
 import type { RoundResult } from '../../lib/match'
 
-export type ScenarioId = 'normal' | 'vitoria' | 'empate-absoluto' | 'morte-subita' | 'virada' | 'wo'
+export type ScenarioId =
+  | 'normal'
+  | 'vitoria'
+  | 'empate-absoluto'
+  | 'morte-subita'
+  | 'virada'
+  | 'wo'
+  | 'derrota'
+  | 'derrota-wo'
 
 export interface Scenario {
   id: ScenarioId
@@ -8,6 +16,11 @@ export interface Scenario {
   scriptedRounds: RoundResult[]
   /** O bot não joga: estoura o tempo até perder por W.O. */
   botIdle: boolean
+  /**
+   * Você fica ocioso: os seus turnos são curtos (`MOCK_TIMINGS.youIdleTurn`) e estouram sozinhos,
+   * e os 3 seguidos dão W.O. ao bot [RN-ARN-01]. Só os cenários que usam isto mudam de turno.
+   */
+  youIdle?: boolean
 }
 
 export const SCENARIOS: Record<ScenarioId, Scenario> = {
@@ -18,6 +31,9 @@ export const SCENARIOS: Record<ScenarioId, Scenario> = {
   // Regra de 18/10: empate + derrota (0×1) ainda vai para o round 3, que é seu
   virada: { id: 'virada', scriptedRounds: [null, 'P2'], botIdle: false },
   wo: { id: 'wo', scriptedRounds: [], botIdle: true },
+  // FE-15: o Resultado de quem perde. O bot vence os dois rounds (0×2), ou você perde por W.O.
+  derrota: { id: 'derrota', scriptedRounds: ['P2', 'P2'], botIdle: false },
+  'derrota-wo': { id: 'derrota-wo', scriptedRounds: [], botIdle: false, youIdle: true },
 }
 
 const isScenarioId = (value: string | null | undefined): value is ScenarioId =>

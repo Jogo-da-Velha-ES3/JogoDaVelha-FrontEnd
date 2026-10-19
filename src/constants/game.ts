@@ -22,6 +22,14 @@ export const EFFECT_DURATION_TURNS = 2 // Escudo, Congelar, Campo de Força, Ref
 // No W.O. e no empate absoluto, a Arena segura o banner antes de ir para o Resultado
 // (PROJECT_CONTEXT §9: W.O. em 16/10, empate absoluto em 17/10)
 export const RESULT_HOLD_SECONDS = 2
+/**
+ * Comemoração do Resultado (FE-15): a rajada de partículas dura até este tempo e some. O número
+ * de partículas é por tipo de vitória: impecável (2×0), comum e por W.O. (versão curta).
+ */
+export const RESULT_BURST_SECONDS = 3
+export const RESULT_BURST_PARTICLES = { flawless: 32, win: 20, short: 10 } as const
+/** Duração da contagem dos Coins no Resultado (FE-15), de 0 até o valor que o servidor creditou */
+export const COINS_COUNT_SECONDS = 1.2
 /** Entrada da Morte Súbita: flash, tremor, fitas de perigo e o banner (FE-13) */
 export const SUDDEN_DEATH_ENTRY_SECONDS = 2.2
 /** Banner de início do round (ROUND N, MATCH POINT, MORTE SÚBITA) e, no round 1, a moeda girando */

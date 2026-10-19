@@ -183,11 +183,14 @@ export function applyServerEvent(envelope: ServerEnvelope, receivedAt = Date.now
     }
 
     case 'MATCH_END':
-      useMatchStore.setState({
+      useMatchStore.setState((m) => ({
         outcome: event.payload.outcome,
-        outcomeReceivedAt: receivedAt,
+        // Repetido (ex: reenviado numa reconexão) mantém a hora do primeiro: a Arena não volta a
+        // segurar o banner e o Resultado não toca a comemoração de novo. Se a partida veio de um
+        // snapshot (já tinha resultado, sem hora), continua sem hora
+        outcomeReceivedAt: m.outcome === null ? receivedAt : m.outcomeReceivedAt,
         coins: event.payload.coins,
-      })
+      }))
       useTimerStore.setState({ turn: null })
       usePowersStore.setState({ aim: null })
       return

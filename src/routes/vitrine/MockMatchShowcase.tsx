@@ -5,7 +5,7 @@ import { CHARACTER_INFO } from '../../constants/characters'
 import { ABILITIES, CHARACTERS } from '../../constants/game'
 import { Board } from '../../features/board'
 import { Arena, useOpponentDisconnect } from '../../features/match'
-import { RematchPanel, useRoomExit } from '../../features/results'
+import { ResultScreen, useRoomExit } from '../../features/results'
 import { otherSlot } from '../../lib/match'
 import {
   getMockControls,
@@ -63,6 +63,18 @@ const SCENARIO_CARDS: { id: ScenarioId; title: string; description: string }[] =
     title: 'Vitória por W.O.',
     description: 'O robô não joga e perde por estourar o tempo 3 vezes. Jogue nos seus turnos.',
   },
+  {
+    id: 'derrota',
+    title: 'Derrota',
+    description:
+      'O robô vence os dois primeiros rounds sozinho (0×2). Bom para ver o Resultado de quem perde.',
+  },
+  {
+    id: 'derrota-wo',
+    title: 'Derrota por W.O.',
+    description:
+      'Não jogue: seus turnos duram 2 segundos e estouram 3 vezes seguidas, e o robô vence por W.O.',
+  },
 ]
 
 const BOT_REMATCH_LABEL: Record<BotRematch, string> = {
@@ -74,8 +86,6 @@ const BOT_REMATCH_LABEL: Record<BotRematch, string> = {
 }
 
 const ARENA_PHASES: RoomPhase[] = ['VERSUS', 'ROUND_DRAW', 'PLAYING', 'ROUND_END']
-
-const OUTCOME_TITLE = { WIN: 'Vitória', ABSOLUTE_DRAW: 'Empate absoluto', WO: 'W.O.' } as const
 
 const initialScenario = (): ScenarioId | null => {
   const id = new URLSearchParams(window.location.search).get('cenario')
@@ -277,12 +287,26 @@ function PhoneFrame({ onPlayAgain, onLeave }: { onPlayAgain: () => void; onLeave
   } else if (phase === 'MATCHED') screen = <Centered text="MATCH FEITO! O robô entrou!" />
   else if (phase === 'DRAFT') screen = <DraftScreen />
   else if (phase && ARENA_PHASES.includes(phase)) screen = <Arena onQuit={onLeave} />
-  else if (phase === 'RESULT') screen = <ResultScreen onPlayAgain={onPlayAgain} onLeave={onLeave} />
+  else if (phase === 'RESULT') {
+    // A mesma tela da sala (FE-15), num pai com altura definida
+    screen = (
+      <div className="flex h-full flex-col">
+        <ResultScreen onLeave={onLeave} />
+      </div>
+    )
+  }
 
   return (
-    <div className="h-[390px] w-[844px] max-w-full overflow-hidden rounded-[28px] border-4 border-line bg-bg-deep px-4 py-2">
-      {screen}
-    </div>
+    <>
+      <div className="h-[390px] w-[844px] max-w-full overflow-hidden rounded-[28px] border-4 border-line bg-bg-deep px-4 py-2">
+        {screen}
+      </div>
+      {phase === 'RESULT' && (
+        <Button variant="ghost" size="sm" className="self-start" onClick={onPlayAgain}>
+          Jogar de novo (mesmo cenário)
+        </Button>
+      )}
+    </>
   )
 }
 
@@ -347,33 +371,6 @@ function DraftScreen() {
         }
       >
         {draft.ready[me] ? 'Pronto' : 'Confirmar'}
-      </Button>
-    </div>
-  )
-}
-
-/** Resultado simplificado (a tela de verdade é a FE-15), com a revanche de verdade (FE-29) */
-function ResultScreen({ onPlayAgain, onLeave }: { onPlayAgain: () => void; onLeave: () => void }) {
-  const me = useRoomStore((s) => s.mySlot) ?? 'P1'
-  const outcome = useMatchStore((s) => s.outcome)
-  const score = useMatchStore((s) => s.score)
-  const coins = useMatchStore((s) => s.coins)
-  const won = outcome && outcome.kind !== 'ABSOLUTE_DRAW' && outcome.winner === me
-
-  return (
-    <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
-      <p className="font-display text-4xl font-extrabold uppercase">
-        {outcome?.kind === 'ABSOLUTE_DRAW'
-          ? 'Empate absoluto'
-          : `${won ? '' : 'Derrota · '}${OUTCOME_TITLE[outcome?.kind ?? 'WIN']}`}
-      </p>
-      <p className="font-display text-2xl font-bold">
-        {score[me]} × {score[otherSlot(me)]}
-      </p>
-      <p className="font-mono text-coin">+{coins?.[me] ?? 0} Coins</p>
-      <RematchPanel onLeave={onLeave} />
-      <Button variant="ghost" size="sm" onClick={onPlayAgain}>
-        Jogar de novo (mesmo cenário)
       </Button>
     </div>
   )

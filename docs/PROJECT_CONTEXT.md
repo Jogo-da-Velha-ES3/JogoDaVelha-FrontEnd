@@ -284,6 +284,10 @@ A ERS não define a regra; o back decidiu usar a mesma do W.O. por tempo `[RN-AR
   aceitar a revanche acabou.") e a revanche desabilitada; sai pelo "Voltar ao Lobby". Se os dois
   pedirem ao mesmo tempo, vale como aceite. **[A VALIDAR COM O BACK]** os nomes dos eventos
   (`REMATCH_REQUESTED`, `REMATCH_CANCELLED`, `ROOM_CLOSED`).
+- **Cor da derrota no Resultado (decidido na FE-15):** a derrota e a derrota por W.O. aparecem em
+  vermelho (título, borda do painel e etiqueta W.O.). É uma exceção à regra de "vermelho só para
+  quem está em perigo" usada na Arena (§9), decidido na FE-15. A vitória usa a cor do personagem e
+  o empate absoluto fica neutro.
 
 ## 8. Hub, Loja e economia
 
