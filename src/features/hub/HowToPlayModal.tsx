@@ -1,5 +1,5 @@
 ﻿import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Button, Modal } from '../../components/ui'
 import {
   BOARD_CELLS,
@@ -69,6 +69,7 @@ export function HowToPlayModal({ open, onClose, closeLabel = TEXTS.close }: HowT
   const [page, setPage] = useState(0)
   const [direction, setDirection] = useState<1 | -1>(1)
   const [wasOpen, setWasOpen] = useState(open)
+  const footerRef = useRef<HTMLDivElement>(null)
 
   // Ao abrir de novo, recomeça da primeira página (durante a saída, a página atual continua)
   if (open !== wasOpen) {
@@ -99,6 +100,17 @@ export function HowToPlayModal({ open, onClose, closeLabel = TEXTS.close }: HowT
     setPage(target)
   }
 
+  // O carrossel da página de habilidades pediu para sair pela ponta: muda de página e leva o
+  // foco ao botão correspondente (o foco estava num botão do carrossel, que vai desmontar)
+  const leaveCarousel = (delta: 1 | -1) => {
+    footerRef.current
+      ?.querySelector<HTMLButtonElement>(
+        delta === 1 ? '[data-nav="next"]' : '[data-nav="previous"]',
+      )
+      ?.focus()
+    goTo(page + delta)
+  }
+
   const current = HOW_TO_PLAY_PAGES[page]
   const isLast = page === LAST_PAGE
   const offset = reduceMotion ? 0 : SLIDE_OFFSET_PX
@@ -116,8 +128,9 @@ export function HowToPlayModal({ open, onClose, closeLabel = TEXTS.close }: HowT
       dismissible
       size="lg"
       actions={
-        <div className="flex w-full items-center gap-2">
+        <div ref={footerRef} className="flex w-full items-center gap-2">
           <Button
+            data-nav="previous"
             variant="ghost"
             size="sm"
             disabled={page === 0}
@@ -150,6 +163,7 @@ export function HowToPlayModal({ open, onClose, closeLabel = TEXTS.close }: HowT
           </nav>
 
           <Button
+            data-nav="next"
             variant={isLast ? 'primary' : 'secondary'}
             size="sm"
             onClick={isLast ? onClose : () => goTo(page + 1)}
@@ -178,6 +192,7 @@ export function HowToPlayModal({ open, onClose, closeLabel = TEXTS.close }: HowT
               <HowToPlayDeck
                 heading={<PageHeading page={current} index={page} />}
                 points={current.points}
+                onLeave={leaveCarousel}
               />
             ) : (
               <>

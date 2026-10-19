@@ -82,16 +82,10 @@ export const HOW_TO_PLAY_DECK_SLOTS: readonly ('initial' | 'drawn')[] = [
 ]
 
 // Carrossel das habilidades: agrupadas por tipo (ofensivas, defensivas, movimento), na ordem do
-// catálogo dentro de cada tipo, em subpáginas de ABILITIES_PER_SLIDE. Nome e descrição: ABILITY_INFO.
+// catálogo dentro de cada tipo, uma por vez. Nome e descrição: ABILITY_INFO.
 const KIND_ORDER: readonly AbilityKind[] = ['OFENSIVA', 'DEFENSIVA', 'MOVIMENTO']
-const ABILITIES_PER_SLIDE = 2
-const ABILITIES_BY_KIND = KIND_ORDER.flatMap((kind) =>
+export const HOW_TO_PLAY_ABILITY_ORDER: readonly AbilityId[] = KIND_ORDER.flatMap((kind) =>
   ABILITIES.filter((id) => ABILITY_INFO[id].kind === kind),
-)
-export const HOW_TO_PLAY_ABILITY_SLIDES: readonly (readonly AbilityId[])[] = Array.from(
-  { length: Math.ceil(ABILITIES_BY_KIND.length / ABILITIES_PER_SLIDE) },
-  (_, index) =>
-    ABILITIES_BY_KIND.slice(index * ABILITIES_PER_SLIDE, (index + 1) * ABILITIES_PER_SLIDE),
 )
 
 // Rounds para vencer a partida e o placar de "um round de diferença para vencer"
@@ -131,9 +125,9 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
     title: 'Deck e habilidades',
     visual: 'deck',
     points: [
-      `O deck tem ${DECK_SIZE} habilidades: ${INITIAL_ABILITIES_TO_PICK} iniciais, escolhidas na Preparação, e ${DRAWN_PER_ROUND} sorteada a cada round.`,
-      `O sorteio mostra ${DRAW_OPTIONS} cartas e dá ${DRAW_PICK_SECONDS}s para escolher. Se o tempo acabar, uma é escolhida automaticamente.`,
-      'Cada habilidade vale 1 uso por round, e usá-la gasta o turno.',
+      `Deck de ${DECK_SIZE}: ${INITIAL_ABILITIES_TO_PICK} iniciais e ${DRAWN_PER_ROUND} sorteada por round.`,
+      `Sorteio: ${DRAW_OPTIONS} cartas, ${DRAW_PICK_SECONDS}s; sem escolha, é automático.`,
+      '1 uso por habilidade por round; usar gasta o turno.',
       'O deck do oponente é oculto.',
     ],
   },
