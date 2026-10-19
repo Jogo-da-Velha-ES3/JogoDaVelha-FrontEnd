@@ -1,4 +1,4 @@
-// Textos do modal "Como Jogar" (FE-34). Ficam fora do componente para o grupo de Personalidade
+﻿// Textos do modal "Como Jogar" (FE-34). Ficam fora do componente para o grupo de Personalidade
 // (FE-40) revisar o tom depois. Fonte das regras: docs/PROJECT_CONTEXT.md. Todo número de regra
 // vem de constants/game.ts.
 //
@@ -6,12 +6,18 @@
 // (PROJECT_CONTEXT §6), que AINDA É A VALIDAR COM O BACK. Se o back decidir diferente, só essa
 // página muda.
 //
-// A página "Deck e habilidades" é da Parte 3 da FE-34 e continua provisória.
+// Nome e descrição das habilidades vêm de ABILITY_INFO (constants/abilities.ts), sem cópia aqui.
 
+import { ABILITY_INFO, type AbilityKind } from '../../constants/abilities'
 import {
+  ABILITIES,
   BOARD_SIZE,
   COINS_REWARD,
+  DECK_SIZE,
+  DRAW_OPTIONS,
+  DRAW_PICK_SECONDS,
   HOURGLASS_TURN_DURATION_SECONDS,
+  INITIAL_ABILITIES_TO_PICK,
   MAX_CONSECUTIVE_TIMEOUTS,
   MAX_ROUNDS,
   ROUNDS_TO_WIN_MATCH,
@@ -19,13 +25,7 @@ import {
   TURN_DURATION_SECONDS,
   WIN_LENGTH,
 } from '../../constants/game'
-
-/** Subpágina do carrossel interno de uma página (ex: uma habilidade por vez) */
-export interface HowToPlaySlide {
-  id: string
-  title: string
-  text: string
-}
+import type { AbilityId } from '../../types/game'
 
 /** Visual existente da base usado na página, sempre estático */
 export type HowToPlayVisual =
@@ -33,6 +33,7 @@ export type HowToPlayVisual =
   | 'timeouts' // faixa do jogador com os estouros x/3
   | 'score' // faixas dos dois jogadores com os rounds vencidos
   | 'coins' // moeda dos Coins, uma por linha da tabela
+  | 'deck' // página própria (HowToPlayDeck): deck de exemplo e carrossel das habilidades
 
 export interface HowToPlayCoinRow {
   label: string
@@ -44,8 +45,6 @@ export interface HowToPlayPage {
   title: string
   visual: HowToPlayVisual
   points: readonly string[]
-  /** Carrossel dentro da página; a navegação principal (páginas) não muda por causa dele */
-  slides?: readonly HowToPlaySlide[]
   /** Só na página de Coins */
   coinRows?: readonly HowToPlayCoinRow[]
 }
@@ -58,6 +57,14 @@ export const HOW_TO_PLAY_TEXTS = {
   pagesNav: 'Páginas',
   previousSlide: 'Item anterior',
   nextSlide: 'Próximo item',
+  deckCarousel: 'Deck e habilidades',
+  deckSlotInitial: 'Inicial',
+  deckSlotDrawn: 'Sorteada',
+  abilityKinds: {
+    OFENSIVA: 'Ofensiva',
+    DEFENSIVA: 'Defensiva',
+    MOVIMENTO: 'Movimento',
+  } satisfies Record<AbilityKind, string>,
   /** Nomes das faixas de exemplo (sem relação com jogadores reais) */
   demoSelf: 'Você',
   demoOpponent: 'Oponente',
@@ -65,6 +72,27 @@ export const HOW_TO_PLAY_TEXTS = {
   pageLabel: (page: number, total: number, title: string) => `Página ${page} de ${total}: ${title}`,
   slideOf: (slide: number, total: number) => `${slide}/${total}`,
 } as const
+
+const DRAWN_PER_ROUND = DECK_SIZE - INITIAL_ABILITIES_TO_PICK
+
+/** Cartas do deck de exemplo, na ordem: as iniciais e depois a sorteada */
+export const HOW_TO_PLAY_DECK_SLOTS: readonly ('initial' | 'drawn')[] = [
+  ...Array.from({ length: INITIAL_ABILITIES_TO_PICK }, () => 'initial' as const),
+  ...Array.from({ length: DRAWN_PER_ROUND }, () => 'drawn' as const),
+]
+
+// Carrossel das habilidades: agrupadas por tipo (ofensivas, defensivas, movimento), na ordem do
+// catálogo dentro de cada tipo, em subpáginas de ABILITIES_PER_SLIDE. Nome e descrição: ABILITY_INFO.
+const KIND_ORDER: readonly AbilityKind[] = ['OFENSIVA', 'DEFENSIVA', 'MOVIMENTO']
+const ABILITIES_PER_SLIDE = 2
+const ABILITIES_BY_KIND = KIND_ORDER.flatMap((kind) =>
+  ABILITIES.filter((id) => ABILITY_INFO[id].kind === kind),
+)
+export const HOW_TO_PLAY_ABILITY_SLIDES: readonly (readonly AbilityId[])[] = Array.from(
+  { length: Math.ceil(ABILITIES_BY_KIND.length / ABILITIES_PER_SLIDE) },
+  (_, index) =>
+    ABILITIES_BY_KIND.slice(index * ABILITIES_PER_SLIDE, (index + 1) * ABILITIES_PER_SLIDE),
+)
 
 // Rounds para vencer a partida e o placar de "um round de diferença para vencer"
 const TIED_BEFORE_WIN = ROUNDS_TO_WIN_MATCH - 1
@@ -101,11 +129,12 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
   {
     id: 'deck-e-habilidades',
     title: 'Deck e habilidades',
-    visual: 'board',
-    points: ['Conteúdo em construção.'],
-    slides: [
-      { id: 'provisorio-1', title: 'Item provisório 1', text: 'As habilidades entram aqui.' },
-      { id: 'provisorio-2', title: 'Item provisório 2', text: 'As habilidades entram aqui.' },
+    visual: 'deck',
+    points: [
+      `O deck tem ${DECK_SIZE} habilidades: ${INITIAL_ABILITIES_TO_PICK} iniciais, escolhidas na Preparação, e ${DRAWN_PER_ROUND} sorteada a cada round.`,
+      `O sorteio mostra ${DRAW_OPTIONS} cartas e dá ${DRAW_PICK_SECONDS}s para escolher. Se o tempo acabar, uma é escolhida automaticamente.`,
+      'Cada habilidade vale 1 uso por round, e usá-la gasta o turno.',
+      'O deck do oponente é oculto.',
     ],
   },
   {

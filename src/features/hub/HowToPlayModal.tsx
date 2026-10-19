@@ -1,4 +1,4 @@
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
+﻿import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useEffect, useState } from 'react'
 import { Button, Modal } from '../../components/ui'
 import {
@@ -12,12 +12,12 @@ import type { Cell, PlayerSlot, PlayerState } from '../../types/game'
 import { Board } from '../board'
 import { PlayerStrip } from '../match/PlayerStrip'
 import { CoinsReward } from '../results/CoinsReward'
+import { HowToPlayDeck } from './HowToPlayDeck'
 import {
   HOW_TO_PLAY_PAGES,
   HOW_TO_PLAY_TEXTS as TEXTS,
   type HowToPlayCoinRow,
   type HowToPlayPage,
-  type HowToPlaySlide,
   type HowToPlayVisual,
 } from './howToPlayTexts'
 
@@ -174,10 +174,19 @@ export function HowToPlayModal({ open, onClose, closeLabel = TEXTS.close }: HowT
             // Altura mínima = a do tabuleiro: o modal não muda de tamanho entre as páginas
             className="flex min-h-52 items-center gap-5 short:min-h-44 short:gap-3"
           >
-            {current.visual !== 'coins' && <SideVisual kind={current.visual} />}
-            <div className="min-w-0 flex-1">
-              <PageContent page={current} index={page} />
-            </div>
+            {current.visual === 'deck' ? (
+              <HowToPlayDeck
+                heading={<PageHeading page={current} index={page} />}
+                points={current.points}
+              />
+            ) : (
+              <>
+                {current.visual !== 'coins' && <SideVisual kind={current.visual} />}
+                <div className="min-w-0 flex-1">
+                  <PageContent page={current} index={page} />
+                </div>
+              </>
+            )}
           </motion.section>
         </AnimatePresence>
       </div>
@@ -186,7 +195,7 @@ export function HowToPlayModal({ open, onClose, closeLabel = TEXTS.close }: HowT
 }
 
 /** Visuais da base usados de forma estática: sem stores, sem lógica de jogo e sem timer */
-function SideVisual({ kind }: { kind: Exclude<HowToPlayVisual, 'coins'> }) {
+function SideVisual({ kind }: { kind: Exclude<HowToPlayVisual, 'coins' | 'deck'> }) {
   if (kind === 'board') {
     return (
       <div aria-hidden="true" className="size-52 shrink-0 short:size-44">
@@ -217,7 +226,7 @@ function SideVisual({ kind }: { kind: Exclude<HowToPlayVisual, 'coins'> }) {
   )
 }
 
-function PageContent({ page, index }: { page: HowToPlayPage; index: number }) {
+function PageHeading({ page, index }: { page: HowToPlayPage; index: number }) {
   return (
     <>
       <p className="font-mono text-xs tracking-widest text-text-muted uppercase">
@@ -226,6 +235,14 @@ function PageContent({ page, index }: { page: HowToPlayPage; index: number }) {
       <h3 className="font-display text-xl leading-tight font-bold tracking-wide text-text uppercase short:text-lg">
         {page.title}
       </h3>
+    </>
+  )
+}
+
+function PageContent({ page, index }: { page: HowToPlayPage; index: number }) {
+  return (
+    <>
+      <PageHeading page={page} index={index} />
       {page.points.length > 0 && (
         <ul className="mt-2 flex flex-col gap-1 text-sm leading-snug">
           {page.points.map((point) => (
@@ -234,7 +251,6 @@ function PageContent({ page, index }: { page: HowToPlayPage; index: number }) {
         </ul>
       )}
       {page.coinRows && <CoinsTable rows={page.coinRows} />}
-      {page.slides && <SlideCarousel slides={page.slides} />}
     </>
   )
 }
@@ -253,45 +269,5 @@ function CoinsTable({ rows }: { rows: readonly HowToPlayCoinRow[] }) {
         </li>
       ))}
     </ul>
-  )
-}
-
-/** Carrossel interno da página: tem botões próprios e não mexe na navegação principal */
-function SlideCarousel({ slides }: { slides: readonly HowToPlaySlide[] }) {
-  const [index, setIndex] = useState(0)
-  const slide = slides[index]
-
-  return (
-    <div className="mt-2 rounded-xl border border-line p-2.5">
-      <div className="flex items-center justify-between gap-2">
-        <p className="font-display text-sm font-bold tracking-wide text-text uppercase">
-          {slide.title}
-        </p>
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            aria-label={TEXTS.previousSlide}
-            disabled={index === 0}
-            onClick={() => setIndex(index - 1)}
-            className="grid size-8 place-items-center rounded-lg text-text-muted hover:bg-bg-raised hover:text-primary focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-40"
-          >
-            ‹
-          </button>
-          <span className="font-mono text-xs text-text-muted">
-            {TEXTS.slideOf(index + 1, slides.length)}
-          </span>
-          <button
-            type="button"
-            aria-label={TEXTS.nextSlide}
-            disabled={index === slides.length - 1}
-            onClick={() => setIndex(index + 1)}
-            className="grid size-8 place-items-center rounded-lg text-text-muted hover:bg-bg-raised hover:text-primary focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-40"
-          >
-            ›
-          </button>
-        </div>
-      </div>
-      <p className="mt-1 text-sm">{slide.text}</p>
-    </div>
   )
 }
