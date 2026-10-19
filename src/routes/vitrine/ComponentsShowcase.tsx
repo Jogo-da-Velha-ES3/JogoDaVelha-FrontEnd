@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Banner, Button, Modal } from '../../components/ui'
 import { CHARACTER_INFO } from '../../constants/characters'
 import { CHARACTERS } from '../../constants/game'
+import { HowToPlayModal } from '../../features/hub/HowToPlayModal'
 import { showToast } from '../../stores/toastStore'
 import { ShowcaseBlock } from './ShowcaseLayout'
 import { TimerShowcase } from './TimerShowcase'
@@ -18,6 +19,7 @@ const SYSTEM_COLORS = [
 // Cores, botões, modal, avisos, banners e timer (FE-23 e FE-08)
 export function ComponentsShowcase() {
   const [modalOpen, setModalOpen] = useState(false)
+  const [howToPlayOpen, setHowToPlayOpen] = useState(false) // provisório (FE-34)
   const [banner, setBanner] = useState<'turn' | 'death' | null>(null)
 
   const flashBanner = (kind: 'turn' | 'death') => {
@@ -81,6 +83,10 @@ export function ComponentsShowcase() {
           <Button variant="secondary" size="sm" onClick={() => setModalOpen(true)}>
             Abrir modal
           </Button>
+          {/* Provisório (FE-34): abre o modal Como Jogar até o botão do Hub (FE-06) existir */}
+          <Button variant="secondary" size="sm" onClick={() => setHowToPlayOpen(true)}>
+            Abrir "Como Jogar"
+          </Button>
           <Button
             variant="secondary"
             size="sm"
@@ -128,6 +134,8 @@ export function ComponentsShowcase() {
         tone="danger"
         flicker
       />
+
+      <HowToPlayModal open={howToPlayOpen} onClose={() => setHowToPlayOpen(false)} />
 
       <Modal
         open={modalOpen}

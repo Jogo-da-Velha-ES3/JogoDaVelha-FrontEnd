@@ -334,7 +334,11 @@ export function Arena({ onQuit }: ArenaProps) {
       </div>
 
       {/* Modais (fora do grid, montados no portal do dialog nativo) */}
-      <HowToPlayModal open={activeModal === 'howToPlay'} onClose={closeModalToPause} />
+      <HowToPlayModal
+        open={activeModal === 'howToPlay'}
+        onClose={closeModalToPause}
+        closeLabel="Voltar ao menu"
+      />
       <QuitModal open={activeModal === 'quit'} onContinue={closeModalToPause} onQuit={quit} />
     </>
   )

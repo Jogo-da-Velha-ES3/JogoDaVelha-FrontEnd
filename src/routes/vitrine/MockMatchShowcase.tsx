@@ -298,7 +298,11 @@ function PhoneFrame({ onPlayAgain, onLeave }: { onPlayAgain: () => void; onLeave
 
   return (
     <>
-      <div className="h-[390px] w-[844px] max-w-full overflow-hidden rounded-[28px] border-4 border-line bg-bg-deep px-4 py-2">
+      {/* data-modal-bounds: os modais abrem só dentro da tela simulada, como o menu de pausa */}
+      <div
+        data-modal-bounds
+        className="h-[390px] w-[844px] max-w-full overflow-hidden rounded-[28px] border-4 border-line bg-bg-deep px-4 py-2"
+      >
         {screen}
       </div>
       {phase === 'RESULT' && (
