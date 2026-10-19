@@ -6,6 +6,10 @@
 // (PROJECT_CONTEXT §6), que AINDA É A VALIDAR COM O BACK. Se o back decidir diferente, só essa
 // página muda.
 //
+// ATENÇÃO (para quem revisar o tom, FE-40): a página "Deck e habilidades" cabe por pouco em 330px
+// de altura (celular deitado). Confira o tamanho no celular deitado antes de alongar as regras do
+// deck ou as descrições de ABILITY_INFO, senão a página passa a rolar.
+//
 // Nome e descrição das habilidades vêm de ABILITY_INFO (constants/abilities.ts), sem cópia aqui.
 
 import { ABILITY_INFO, type AbilityKind } from '../../constants/abilities'
