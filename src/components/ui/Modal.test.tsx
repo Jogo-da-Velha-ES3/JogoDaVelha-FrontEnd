@@ -67,6 +67,35 @@ describe('Modal', () => {
     expect(dialog).toHaveAttribute('open')
   })
 
+  it('dentro de data-modal-bounds ocupa só a moldura (e funciona sem ResizeObserver)', () => {
+    expect(globalThis.ResizeObserver).toBeUndefined() // jsdom: é o caso que a proteção cobre
+    const rect = vi
+      .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+      .mockReturnValue({ top: 40, left: 20 } as DOMRect)
+    const width = vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(844)
+    const height = vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(390)
+
+    render(
+      <div data-modal-bounds>
+        <Modal open title="Como Jogar" />
+      </div>,
+    )
+    const dialog = screen.getByRole('dialog')
+    expect(dialog.style.top).toBe('40px')
+    expect(dialog.style.left).toBe('20px')
+    expect(dialog.style.width).toBe('844px')
+    expect(dialog.style.height).toBe('390px')
+
+    rect.mockRestore()
+    width.mockRestore()
+    height.mockRestore()
+  })
+
+  it('fora de data-modal-bounds não mexe no posicionamento', () => {
+    render(<Modal open title="Como Jogar" />)
+    expect(screen.getByRole('dialog').style.top).toBe('')
+  })
+
   it('sai do DOM quando `open` vira false', async () => {
     const { rerender } = render(<Modal open title="Como Jogar" />)
     rerender(<Modal open={false} title="Como Jogar" />)

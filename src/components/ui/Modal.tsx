@@ -57,12 +57,13 @@ function useContainedBounds(ref: RefObject<HTMLDialogElement | null>) {
     place()
     window.addEventListener('scroll', place, true)
     window.addEventListener('resize', place)
-    const observer = new ResizeObserver(place)
-    observer.observe(host)
+    // O jsdom dos testes não tem ResizeObserver; sem ele, a moldura só acompanha rolagem e janela
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(place)
+    observer?.observe(host)
     return () => {
       window.removeEventListener('scroll', place, true)
       window.removeEventListener('resize', place)
-      observer.disconnect()
+      observer?.disconnect()
     }
   }, [ref])
 }

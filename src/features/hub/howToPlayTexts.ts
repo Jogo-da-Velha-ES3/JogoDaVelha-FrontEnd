@@ -4,7 +4,7 @@
 //
 // Destaque: o trecho entre `**` aparece em negrito com um brilho leve (ver HowToPlayRichText).
 //
-// ATENÇÃO: a página "Morte súbita" (melhor de 3) segue a regra decidida em 18/10
+// ATENÇÃO: a página "Melhor de 3" (com a Morte Súbita) segue a regra decidida em 18/10
 // (PROJECT_CONTEXT §6), que AINDA É A VALIDAR COM O BACK. Se o back decidir diferente, só essa
 // página muda.
 //
@@ -51,8 +51,6 @@ export interface HowToPlayCoinRow {
 export interface HowToPlayPage {
   id: string
   title: string
-  /** `danger`: título em vermelho com brilho leve (Morte Súbita) */
-  titleTone?: 'danger'
   visual: HowToPlayVisual
   /** Texto maior (página do Objetivo) */
   largeText?: boolean
@@ -141,8 +139,7 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
   },
   {
     id: 'melhor-de-3',
-    title: 'Morte súbita',
-    titleTone: 'danger',
+    title: 'Melhor de 3',
     visual: 'suddenDeath',
     points: [
       `A partida tem até **${MAX_ROUNDS} rounds**. Com **${ROUNDS_TO_WIN_MATCH}×0**, ela termina antes do round ${MAX_ROUNDS}.`,

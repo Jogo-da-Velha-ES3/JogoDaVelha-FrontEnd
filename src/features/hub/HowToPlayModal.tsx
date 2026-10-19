@@ -49,7 +49,15 @@ export function HowToPlayModal({ open, onClose, closeLabel = TEXTS.close }: HowT
       setPage((current) => Math.min(LAST_PAGE, Math.max(0, current + delta)))
     }
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return
+      // Mesmos modificadores ignorados pelo carrossel: Shift+seta não muda de página em nenhum lugar
+      if (
+        event.defaultPrevented ||
+        event.altKey ||
+        event.ctrlKey ||
+        event.metaKey ||
+        event.shiftKey
+      )
+        return
       if (event.key === 'ArrowRight') step(1)
       else if (event.key === 'ArrowLeft') step(-1)
     }
@@ -144,7 +152,7 @@ export function HowToPlayModal({ open, onClose, closeLabel = TEXTS.close }: HowT
       {/* A página desliza 24px na troca: sem cortar o excesso na horizontal, o corpo do modal
           (overflow-y-auto) ganha uma barra de rolagem lateral por alguns quadros. A folga de
           1 (-mx-1/px-1) deixa o contorno do foco dos botões aparecer inteiro. */}
-      <div aria-live="polite" className="-mx-1 overflow-x-clip px-1">
+      <div className="-mx-1 overflow-x-clip px-1">
         {/* Cabeçalho fixo logo abaixo do título do modal: não anima nem muda de lugar entre as
             páginas. A página de habilidades encaixa os controles do carrossel no espaço à direita. */}
         <div className="grid h-11 grid-cols-[1fr_auto_1fr] items-center gap-3">
@@ -153,13 +161,10 @@ export function HowToPlayModal({ open, onClose, closeLabel = TEXTS.close }: HowT
             {TEXTS.pageOf(page + 1, HOW_TO_PLAY_PAGES.length)}
           </p>
           {/* -translate-y-5.5: sobe o título até a linha do indicador, perto do "COMO JOGAR" (só eixo Y) */}
+          {/* Só o título é anunciado na troca de página; o conteúdo se lê navegando */}
           <h3
-            className={[
-              '-translate-y-5.5 text-center font-display text-3xl leading-none font-bold tracking-wide uppercase short:text-2xl',
-              current.titleTone === 'danger'
-                ? 'text-danger [text-shadow:0_0_14px_color-mix(in_srgb,var(--color-danger)_55%,transparent)]'
-                : 'text-text',
-            ].join(' ')}
+            aria-live="polite"
+            className="-translate-y-5.5 text-center font-display text-3xl leading-none font-bold tracking-wide text-text uppercase short:text-2xl"
           >
             {current.title}
           </h3>
@@ -219,10 +224,9 @@ function PageContent({ page }: { page: HowToPlayPage }) {
   )
 }
 
-// Verde do esboço de telas (`--ok`, #7dffb0); o app ainda não tem token de sucesso.
-// Derrota em vermelho, como no Resultado.
+// Vitória na cor dos destaques das outras páginas; derrota em vermelho, como no Resultado.
 const COIN_TONE_CLASS: Record<HowToPlayCoinRow['tone'], string> = {
-  win: 'text-[#7dffb0]',
+  win: 'text-primary',
   loss: 'text-danger',
   draw: 'text-text',
 }
