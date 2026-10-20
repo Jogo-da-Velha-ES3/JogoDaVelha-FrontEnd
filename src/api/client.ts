@@ -8,12 +8,20 @@ export class ApiError extends Error {
   readonly status: number
   /** Código de erro enviado pelo back, quando houver */
   readonly code: string | null
+  /** Erros por campo do VALIDATION_ERROR do back, ex: `{ email: 'E-mail inválido' }` */
+  readonly fields: Record<string, string>
 
-  constructor(status: number, message: string, code: string | null = null) {
+  constructor(
+    status: number,
+    message: string,
+    code: string | null = null,
+    fields: Record<string, string> = {},
+  ) {
     super(message)
     this.name = 'ApiError'
     this.status = status
     this.code = code
+    this.fields = fields
   }
 }
 
@@ -73,6 +81,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
       response.status,
       error.message ?? `Erro ${response.status} ao falar com o servidor.`,
       error.code,
+      error.fields,
     )
   }
 
@@ -92,10 +101,28 @@ function parseJson(text: string): unknown {
  * Lê `code` e `message` de um erro do back. [A VALIDAR COM O BACK] O combinado é
  * `{ code, message }`; hoje o auth manda `{ error }` e as salas, `{ "erro: " }`.
  */
-function readBackError(data: unknown): { code: string | null; message: string | null } {
+function readBackError(data: unknown): {
+  code: string | null
+  message: string | null
+  fields: Record<string, string>
+} {
   // Corpo que não é JSON (ex: página HTML de um 502) nunca vira mensagem na tela
-  if (!data || typeof data !== 'object') return { code: null, message: null }
+  if (!data || typeof data !== 'object') return { code: null, message: null, fields: {} }
   const record = data as Record<string, unknown>
   const text = (key: string) => (typeof record[key] === 'string' ? (record[key] as string) : null)
-  return { code: text('code'), message: text('message') ?? text('error') ?? text('erro: ') }
+  return {
+    code: text('code'),
+    message: text('message') ?? text('error') ?? text('erro: '),
+    fields: readFields(record.fields),
+  }
+}
+
+/** Só aceita `{ campo: 'mensagem' }`; qualquer outro formato vira objeto vazio */
+function readFields(value: unknown): Record<string, string> {
+  if (!value || typeof value !== 'object') return {}
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).filter(
+      (entry): entry is [string, string] => typeof entry[1] === 'string',
+    ),
+  )
 }
