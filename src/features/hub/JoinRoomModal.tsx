@@ -10,6 +10,7 @@ import {
   eraseDigit,
   fillDigits,
   isCodeComplete,
+  typedText,
   type CodeDigits,
 } from '../../lib/roomCodeInput'
 import { roomPath } from '../../routes/paths'
@@ -20,20 +21,33 @@ interface JoinRoomModalProps {
 }
 
 export function JoinRoomModal({ open, onClose }: JoinRoomModalProps) {
+  // Esperando o servidor, o modal não fecha: a resposta levaria para a sala com ele já fechado
+  const [pending, setPending] = useState(false)
   return (
-    <Modal open={open} onClose={onClose} title="Código da sala" size="sm" placement="top">
+    <Modal
+      open={open}
+      onClose={onClose}
+      dismissible={!pending}
+      title="Código da sala"
+      size="sm"
+      placement="top"
+    >
       {/* Montado só enquanto aberto: reabrir começa com os campos vazios */}
-      {open && <JoinRoomForm />}
+      {open && <JoinRoomForm pending={pending} setPending={setPending} />}
     </Modal>
   )
 }
 
-function JoinRoomForm() {
+interface JoinRoomFormProps {
+  pending: boolean
+  setPending: (pending: boolean) => void
+}
+
+function JoinRoomForm({ pending, setPending }: JoinRoomFormProps) {
   const navigate = useNavigate()
   const inputs = useRef<(HTMLInputElement | null)[]>([])
   const [digits, setDigits] = useState<CodeDigits>(emptyDigits)
   const [error, setError] = useState<string | null>(null)
-  const [pending, setPending] = useState(false)
   const complete = isCodeComplete(digits)
 
   useEffect(() => inputs.current[0]?.focus(), [])
@@ -96,13 +110,13 @@ function JoinRoomForm() {
               value={digit}
               inputMode="numeric"
               pattern="[0-9]*"
+              // O celular pode sugerir o código de um SMS; sem maxLength para ele chegar inteiro
               autoComplete="one-time-code"
-              maxLength={1}
               aria-label={`Dígito ${index + 1}`}
               aria-invalid={error ? true : undefined}
               aria-describedby={error ? 'codigo-sala-erro' : undefined}
               disabled={pending}
-              onChange={(e) => update(fillDigits(digits, index, e.target.value.slice(-1)))}
+              onChange={(e) => update(fillDigits(digits, index, typedText(digit, e.target.value)))}
               onKeyDown={(e) => handleKeyDown(index, e)}
               onPaste={(e) => handlePaste(index, e)}
               onFocus={(e) => e.target.select()}

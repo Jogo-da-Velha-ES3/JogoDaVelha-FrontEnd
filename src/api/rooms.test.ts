@@ -47,7 +47,7 @@ describe('back de verdade', () => {
     [404, undefined, 'Sala 4821 não encontrada.'],
     [409, undefined, 'A sala 4821 está cheia ou a partida já começou.'],
     [409, { code: 'ROOM_FULL', message: '…' }, 'A sala 4821 já está cheia.'],
-    [409, { code: 'MATCH_ALREADY_STARTED' }, 'A partida da sala 4821 já começou.'],
+    [409, { code: 'ROOM_ALREADY_STARTED' }, 'A partida da sala 4821 já começou.'],
     // Códigos temporários de hoje no back (até a BE-009.1)
     [
       400,

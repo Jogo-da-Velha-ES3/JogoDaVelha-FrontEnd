@@ -24,6 +24,18 @@ export function fillDigits(
   return { digits: next, focus: Math.min(index + incoming.length, ROOM_CODE_LENGTH - 1) }
 }
 
+/**
+ * O que entrou numa casa pelo `onChange`, tirando o dígito que já estava nela. Digitar numa casa
+ * preenchida chega como "48" (antigo + novo) e vira só "8"; o preenchimento automático do celular
+ * (código do SMS, sugestão do teclado) chega como "4821" inteiro e segue assim para o `fillDigits`.
+ */
+export function typedText(previous: string, value: string): string {
+  if (!previous || value.length !== 2) return value
+  if (value.startsWith(previous)) return value.slice(1)
+  if (value.endsWith(previous)) return value.slice(0, 1)
+  return value
+}
+
 /** Backspace: apaga a casa atual; se já estava vazia, apaga a anterior e volta o foco para ela */
 export function eraseDigit(
   digits: CodeDigits,

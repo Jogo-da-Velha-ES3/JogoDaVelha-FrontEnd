@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { emptyDigits, eraseDigit, fillDigits, isCodeComplete, onlyDigits } from './roomCodeInput'
+import {
+  emptyDigits,
+  eraseDigit,
+  fillDigits,
+  isCodeComplete,
+  onlyDigits,
+  typedText,
+} from './roomCodeInput'
 
 describe('onlyDigits', () => {
   it('descarta tudo que não é número', () => {
@@ -28,6 +35,23 @@ describe('fillDigits', () => {
   it('letra não muda nada', () => {
     const start = ['1', '', '', '']
     expect(fillDigits(start, 1, 'a')).toEqual({ digits: start, focus: 1 })
+  })
+})
+
+describe('typedText', () => {
+  it('casa vazia: o que chegou entra inteiro (digitação ou preenchimento automático)', () => {
+    expect(typedText('', '4')).toBe('4')
+    expect(typedText('', '4821')).toBe('4821')
+  })
+
+  it('casa preenchida: fica só o dígito novo, com o cursor antes ou depois do antigo', () => {
+    expect(typedText('4', '48')).toBe('8')
+    expect(typedText('4', '84')).toBe('8')
+    expect(typedText('4', '44')).toBe('4')
+  })
+
+  it('código inteiro numa casa preenchida continua inteiro', () => {
+    expect(typedText('9', '4821')).toBe('4821')
   })
 })
 
