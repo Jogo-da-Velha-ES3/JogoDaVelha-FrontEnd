@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { login, loginErrorFor, register, registerErrorFor } from './auth'
+import { AccountCreatedError, login, loginErrorFor, register, registerErrorFor } from './auth'
 import { ApiError } from './client'
 
 const fetchMock = vi.fn<typeof fetch>()
@@ -48,6 +48,16 @@ describe('com o back de verdade', () => {
     expect(bodyOf(0)).toEqual({ username: 'vini', email: 'vini@exemplo.com', password: 'segredo1' })
     expect(urlOf(1)).toMatch(/\/auth\/login$/)
     expect(bodyOf(1)).toEqual({ identifier: 'vini', password: 'segredo1' })
+  })
+
+  it('cadastro certo com login que falha avisa que a conta já foi criada', async () => {
+    respond(201, { id: 'u1', username: 'Vini', email: 'vini@exemplo.com' })
+    fetchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'))
+
+    const error = await register('vini', 'vini@exemplo.com', 'segredo1').catch((e: unknown) => e)
+    expect(error).toBeInstanceOf(AccountCreatedError)
+    // O nome que o back gravou, para preencher a aba Entrar
+    expect((error as AccountCreatedError).username).toBe('Vini')
   })
 
   it('cadastro com usuário repetido não tenta o login', async () => {
@@ -108,9 +118,21 @@ describe('mensagens de erro', () => {
       password: 'Senha deve ter entre 6 e 72 caracteres',
       outro: 'ignorado',
     })
-    expect(registerErrorFor(error).fields).toEqual({
-      password: 'Senha deve ter entre 6 e 72 caracteres',
+    expect(registerErrorFor(error)).toEqual({
+      fields: { password: 'Senha deve ter entre 6 e 72 caracteres' },
+      form: null,
     })
+  })
+
+  it('validação do back sem campo conhecido mostra mensagem geral', () => {
+    // Ex: ConstraintViolationException do back, que vem sem `fields`
+    const noFields = new ApiError(400, 'Dados inválidos', 'VALIDATION_ERROR')
+    expect(loginErrorFor(noFields)).toEqual({
+      fields: {},
+      form: 'Confira os dados e tente de novo.',
+    })
+    const unknownField = new ApiError(400, 'Dados inválidos', 'VALIDATION_ERROR', { outro: 'x' })
+    expect(registerErrorFor(unknownField).form).toBe('Confira os dados e tente de novo.')
   })
 
   it('sem rede ou erro 500 mostram mensagem amigável', () => {

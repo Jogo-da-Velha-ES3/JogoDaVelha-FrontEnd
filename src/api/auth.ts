@@ -28,9 +28,21 @@ export async function login(identifier: string, password: string): Promise<AuthS
   })
 }
 
+/** A conta foi criada, mas o login logo depois falhou (ex: a rede caiu): falta só entrar */
+export class AccountCreatedError extends Error {
+  readonly username: string
+
+  constructor(username: string) {
+    super('Conta criada, mas não foi possível entrar nela.')
+    this.name = 'AccountCreatedError'
+    this.username = username
+  }
+}
+
 /**
  * Cria a conta e já entra nela. O cadastro do back responde 201 sem token, então o login vem
- * logo em seguida, com o nome de usuário recém-criado.
+ * logo em seguida, com o nome de usuário recém-criado. Se só o login falhar, lança
+ * `AccountCreatedError`: tentar o cadastro de novo daria "nome de usuário já está em uso".
  */
 export async function register(
   username: string,
@@ -43,7 +55,11 @@ export async function register(
     body: { username: username.trim(), email: email.trim(), password },
     auth: false,
   })
-  return login(created.username, password)
+  try {
+    return await login(created.username, password)
+  } catch {
+    throw new AccountCreatedError(created.username)
+  }
 }
 
 // Simulado (sem back): a Vercel continua navegável, como o createRoom() faz
@@ -63,6 +79,7 @@ export interface AuthFormError<F extends string> {
 }
 
 const GENERIC = 'Não foi possível concluir agora. Tente de novo em instantes.'
+const INVALID_DATA = 'Confira os dados e tente de novo.'
 
 /** Traduz o erro do back para a tela de Entrar */
 export function loginErrorFor(error: unknown): AuthFormError<LoginField> {
@@ -72,7 +89,7 @@ export function loginErrorFor(error: unknown): AuthFormError<LoginField> {
     return { fields: {}, form: 'E-mail, usuário ou senha incorretos.' }
   }
   if (error.code === 'VALIDATION_ERROR') {
-    return { fields: pick(error.fields, ['identifier', 'password']), form: null }
+    return validationError(error, ['identifier', 'password'])
   }
   return { fields: {}, form: messageFor(error) }
 }
@@ -87,9 +104,16 @@ export function registerErrorFor(error: unknown): AuthFormError<RegisterField> {
     return { fields: { email: 'Esse e-mail já tem uma conta. Tente entrar.' }, form: null }
   }
   if (error.code === 'VALIDATION_ERROR') {
-    return { fields: pick(error.fields, ['username', 'email', 'password']), form: null }
+    return validationError(error, ['username', 'email', 'password'])
   }
   return { fields: {}, form: messageFor(error) }
+}
+
+// Sem nenhum campo daquele formulário (ex: o back manda o VALIDATION_ERROR sem `fields`), a
+// mensagem vai para o formulário: o jogador nunca fica sem resposta
+function validationError<F extends string>(error: ApiError, keys: F[]): AuthFormError<F> {
+  const fields = pick(error.fields, keys)
+  return { fields, form: Object.keys(fields).length > 0 ? null : INVALID_DATA }
 }
 
 function messageFor(error: ApiError): string {

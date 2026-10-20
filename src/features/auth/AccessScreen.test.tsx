@@ -14,7 +14,7 @@ vi.mock('../../api/auth', async (importOriginal) => {
   }
 })
 
-import { login, register } from '../../api/auth'
+import { AccountCreatedError, login, register } from '../../api/auth'
 
 const SESSION = { token: 'jwt', id: 'u1', username: 'vini', coinsBalance: 0 }
 
@@ -24,6 +24,22 @@ beforeEach(() => {
 })
 
 afterEach(() => vi.clearAllMocks())
+
+describe('abas', () => {
+  it('cada aba aponta para o painel, e o painel para a aba ativa', async () => {
+    render(<AccessScreen />)
+    const panel = screen.getByRole('tabpanel')
+    const loginTab = screen.getByRole('tab', { name: 'Entrar' })
+    const registerTab = screen.getByRole('tab', { name: 'Criar conta' })
+
+    expect(loginTab).toHaveAttribute('aria-controls', panel.id)
+    expect(registerTab).toHaveAttribute('aria-controls', panel.id)
+    expect(panel).toHaveAccessibleName('Entrar')
+
+    await userEvent.click(registerTab)
+    expect(screen.getByRole('tabpanel')).toHaveAccessibleName('Criar conta')
+  })
+})
 
 describe('Entrar', () => {
   it('mostra os erros na hora, sem chamar o servidor', async () => {
@@ -97,6 +113,25 @@ describe('Criar conta', () => {
 
     const message = await screen.findByText('Esse e-mail já tem uma conta. Tente entrar.')
     expect(screen.getByLabelText('E-mail')).toHaveAttribute('aria-describedby', message.id)
+  })
+
+  it('conta criada sem conseguir entrar leva para Entrar com o usuário preenchido', async () => {
+    vi.mocked(register).mockRejectedValueOnce(new AccountCreatedError('vini'))
+    await openRegister()
+    await userEvent.type(screen.getByLabelText('Nome de usuário'), 'vini')
+    await userEvent.type(screen.getByLabelText('E-mail'), 'vini@exemplo.com')
+    await userEvent.type(screen.getByLabelText('Senha'), 'segredo1')
+    await userEvent.click(screen.getByRole('button', { name: 'Criar conta' }))
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Conta criada!')
+    expect(screen.getByRole('tab', { name: 'Entrar' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByLabelText('E-mail ou usuário')).toHaveValue('vini')
+    expect(useAuthStore.getState().token).toBeNull()
+
+    // Trocar de aba à mão tira o aviso
+    await userEvent.click(screen.getByRole('tab', { name: 'Criar conta' }))
+    await userEvent.click(screen.getByRole('tab', { name: 'Entrar' }))
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
   })
 
   it('cadastro certo já entra na conta', async () => {

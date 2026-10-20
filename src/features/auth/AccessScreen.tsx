@@ -1,7 +1,14 @@
 // Tela de Acesso (FE-25): Entrar (e-mail ou usuário + senha) e Criar conta.
 // Paisagem: o teclado cobre a metade de baixo, então tudo fica no alto e compacto [PROJECT_CONTEXT §9].
 import { useId, useState, type FormEvent, type InputHTMLAttributes } from 'react'
-import { login, loginErrorFor, register, registerErrorFor, type AuthSession } from '../../api/auth'
+import {
+  AccountCreatedError,
+  login,
+  loginErrorFor,
+  register,
+  registerErrorFor,
+  type AuthSession,
+} from '../../api/auth'
 import { Button } from '../../components/ui'
 import {
   EMAIL_MAX,
@@ -25,9 +32,28 @@ type Tab = 'login' | 'register'
 // Ordem do CHARACTER_INFO: X, O, Triângulo, Quadrado, Estrela, Coração
 const CHARACTER_IDS = Object.keys(CHARACTER_INFO) as CharacterId[]
 
+/** Conta criada sem conseguir entrar: a aba Entrar abre com o usuário preenchido e um aviso */
+interface CreatedAccount {
+  username: string
+}
+
 // Layout do esboço (Tela 1 de 8): marca à esquerda, formulário à direita
 export function AccessScreen() {
   const [tab, setTab] = useState<Tab>('login')
+  const [created, setCreated] = useState<CreatedAccount | null>(null)
+  const id = useId()
+  const tabId = (t: Tab) => `${id}-aba-${t}`
+  const panelId = `${id}-painel`
+
+  function selectTab(next: Tab) {
+    setCreated(null)
+    setTab(next)
+  }
+
+  function handleAccountCreated(username: string) {
+    setCreated({ username })
+    setTab('login')
+  }
 
   return (
     <section className="mx-auto flex w-full max-w-4xl flex-1 flex-col items-stretch gap-4 py-4 sm:flex-row sm:items-center sm:gap-8 short:items-start short:gap-4 short:py-1">
@@ -40,16 +66,32 @@ export function AccessScreen() {
           aria-label="Acesso"
           className="grid grid-cols-2 gap-1 rounded-xl bg-bg-panel p-1"
         >
-          <TabButton active={tab === 'login'} onClick={() => setTab('login')}>
+          <TabButton
+            id={tabId('login')}
+            panelId={panelId}
+            active={tab === 'login'}
+            onClick={() => selectTab('login')}
+          >
             Entrar
           </TabButton>
-          <TabButton active={tab === 'register'} onClick={() => setTab('register')}>
+          <TabButton
+            id={tabId('register')}
+            panelId={panelId}
+            active={tab === 'register'}
+            onClick={() => selectTab('register')}
+          >
             Criar conta
           </TabButton>
         </div>
 
-        {/* key: trocar de aba começa o formulário do zero, sem erro antigo */}
-        {tab === 'login' ? <LoginForm key="login" /> : <RegisterForm key="register" />}
+        <div id={panelId} role="tabpanel" aria-labelledby={tabId(tab)}>
+          {/* key: trocar de aba começa o formulário do zero, sem erro antigo */}
+          {tab === 'login' ? (
+            <LoginForm key="login" created={created} />
+          ) : (
+            <RegisterForm key="register" onAccountCreated={handleAccountCreated} />
+          )}
+        </div>
       </div>
     </section>
   )
@@ -87,19 +129,25 @@ function Brand({ hiddenWhenShort }: { hiddenWhenShort: boolean }) {
 }
 
 function TabButton({
+  id,
+  panelId,
   active,
   onClick,
   children,
 }: {
+  id: string
+  panelId: string
   active: boolean
   onClick: () => void
   children: string
 }) {
   return (
     <button
+      id={id}
       type="button"
       role="tab"
       aria-selected={active}
+      aria-controls={panelId}
       onClick={onClick}
       className={[
         'min-h-10 rounded-lg font-display text-sm font-bold tracking-wide uppercase transition short:min-h-9',
@@ -119,9 +167,9 @@ function useStartSession() {
   return (session: AuthSession) => saveToken(session.token)
 }
 
-function LoginForm() {
+function LoginForm({ created }: { created: CreatedAccount | null }) {
   const startSession = useStartSession()
-  const [identifier, setIdentifier] = useState('')
+  const [identifier, setIdentifier] = useState(created?.username ?? '')
   const [password, setPassword] = useState('')
   const [errors, setErrors] = useState<FieldErrors<LoginField>>({})
   const [formError, setFormError] = useState<string | null>(null)
@@ -148,6 +196,11 @@ function LoginForm() {
 
   return (
     <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-3 short:gap-2">
+      {created && !formError && (
+        <p role="status" className="text-center text-sm text-primary">
+          Conta criada! Agora é só entrar com sua senha.
+        </p>
+      )}
       <TextField
         label="E-mail ou usuário"
         autoComplete="username"
@@ -182,7 +235,7 @@ function LoginForm() {
   )
 }
 
-function RegisterForm() {
+function RegisterForm({ onAccountCreated }: { onAccountCreated: (username: string) => void }) {
   const startSession = useStartSession()
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
@@ -203,6 +256,11 @@ function RegisterForm() {
     try {
       startSession(await register(username, email, password))
     } catch (error) {
+      // A conta existe, só faltou entrar: tentar o cadastro de novo daria "já está em uso"
+      if (error instanceof AccountCreatedError) {
+        onAccountCreated(error.username)
+        return
+      }
       const result = registerErrorFor(error)
       setErrors(result.fields)
       setFormError(result.form)
