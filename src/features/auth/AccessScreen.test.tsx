@@ -14,7 +14,7 @@ vi.mock('../../api/auth', async (importOriginal) => {
   }
 })
 
-import { login, register } from '../../api/auth'  
+import { login, register } from '../../api/auth'
 
 const SESSION = { token: 'jwt', id: 'u1', username: 'vini', coinsBalance: 0 }
 
