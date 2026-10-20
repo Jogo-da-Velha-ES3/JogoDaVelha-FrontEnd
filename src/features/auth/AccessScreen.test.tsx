@@ -7,10 +7,14 @@ import { AccessScreen } from './AccessScreen'
 
 vi.mock('../../api/auth', async (importOriginal) => {
   const original = await importOriginal<typeof import('../../api/auth')>()
-  return { ...original, login: vi.fn(), register: vi.fn() }
+  return {
+    ...original,
+    login: vi.fn<typeof original.login>(),
+    register: vi.fn<typeof original.register>(),
+  }
 })
 
-import { login, register } from '../../api/auth'
+import { login, register } from '../../api/auth'  
 
 const SESSION = { token: 'jwt', id: 'u1', username: 'vini', coinsBalance: 0 }
 
