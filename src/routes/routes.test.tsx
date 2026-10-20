@@ -32,7 +32,7 @@ afterEach(() => {
 
 describe('rotas com sessão', () => {
   it.each([
-    ['/', 'Jogar'],
+    ['/', 'Jogo do Velho'],
     ['/loja', 'Loja'],
     ['/perfil', 'Perfil'],
     ['/sala/4821', 'Sala 4821'],
@@ -61,6 +61,10 @@ describe('rotas com sessão', () => {
     loggedIn()
     const router = renderAt('/perfil')
     await userEvent.click(screen.getByRole('button', { name: 'Sair' }))
+    // Confirmação antes de sair: cancelar mantém a sessão
+    expect(screen.getByRole('heading', { name: 'Quer mesmo sair?' })).toBeInTheDocument()
+    expect(useAuthStore.getState().token).not.toBeNull()
+    await userEvent.click(screen.getByRole('button', { name: 'Sair da conta' }))
     expect(pathname(router)).toBe('/entrar')
     expect(useAuthStore.getState().token).toBeNull()
   })

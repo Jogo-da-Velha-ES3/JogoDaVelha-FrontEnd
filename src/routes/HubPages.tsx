@@ -1,7 +1,8 @@
+import { PlayScreen } from '../features/hub/PlayScreen'
 import { PagePlaceholder } from './PagePlaceholder'
 
 export function PlayPage() {
-  return <PagePlaceholder title="Jogar" card="FE-06" owner="Vini" />
+  return <PlayScreen />
 }
 
 export function ShopPage() {

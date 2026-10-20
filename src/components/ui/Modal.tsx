@@ -14,6 +14,8 @@ export interface ModalProps {
   size?: 'sm' | 'md' | 'lg'
   /** Classes extras do corpo (ex: subir o corpo para o conteúdo passar sob o cabeçalho sem ser cortado) */
   bodyClassName?: string
+  /** 'top' = no celular deitado, cola no alto para o teclado não cobrir (ex: Entrar com Código) */
+  placement?: 'center' | 'top'
 }
 
 const SIZE_CLASSES = {
@@ -75,6 +77,7 @@ function ModalDialog({
   dismissible = true,
   size = 'md',
   bodyClassName = '',
+  placement = 'center',
 }: Omit<ModalProps, 'open'>) {
   const ref = useRef<HTMLDialogElement>(null)
   const titleId = useId()
@@ -112,6 +115,7 @@ function ModalDialog({
         'fixed inset-0 m-0 h-dvh max-h-none w-full max-w-none border-0 p-4 px-safe short:py-3',
         'bg-bg-deep/80 text-text backdrop-blur-sm backdrop:bg-transparent',
         'open:flex items-center justify-center',
+        placement === 'top' ? 'short:items-start' : '',
       ].join(' ')}
     >
       <motion.div
