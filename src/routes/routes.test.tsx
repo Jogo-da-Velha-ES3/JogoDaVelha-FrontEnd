@@ -74,7 +74,7 @@ describe('guarda de sessão', () => {
   it.each(['/', '/loja', '/perfil'])('%s sem sessão vai para /entrar', (path) => {
     const router = renderAt(path)
     expect(pathname(router)).toBe('/entrar')
-    expect(screen.getByRole('heading', { name: 'Acesso' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Entrar' })).toBeInTheDocument()
   })
 
   it('link /sala/4821 sem sessão passa pelo Acesso e volta para a sala', async () => {
@@ -83,9 +83,12 @@ describe('guarda de sessão', () => {
     expect(useRoomStore.getState().pendingRoomCode).toBe('4821')
     expect(sessionStorage.getItem('jdv.pendingRoom')).toContain('4821')
 
-    await userEvent.click(screen.getByRole('button', { name: 'Entrar (simulado)' }))
+    // Servidor simulado ligado nos testes: o login devolve um token falso
+    await userEvent.type(screen.getByLabelText('E-mail ou usuário'), 'vini')
+    await userEvent.type(screen.getByLabelText('Senha'), 'segredo1')
+    await userEvent.click(screen.getByRole('button', { name: 'Entrar' }))
 
-    expect(pathname(router)).toBe('/sala/4821')
+    await waitFor(() => expect(pathname(router)).toBe('/sala/4821'))
     expect(screen.getByRole('heading', { name: 'Sala 4821' })).toBeInTheDocument()
     expect(useRoomStore.getState().pendingRoomCode).toBeNull()
   })
