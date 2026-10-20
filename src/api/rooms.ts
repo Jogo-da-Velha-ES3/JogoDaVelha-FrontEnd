@@ -11,7 +11,7 @@ export interface RoomInfo {
 const ROOM_ERRORS: Record<string, (code: string) => string> = {
   ROOM_NOT_FOUND: (code) => `Sala ${code} não encontrada.`,
   ROOM_FULL: (code) => `A sala ${code} já está cheia.`,
-  MATCH_ALREADY_STARTED: (code) => `A partida da sala ${code} já começou.`,
+  ROOM_ALREADY_STARTED: (code) => `A partida da sala ${code} já começou.`,
   // ⚠️ Códigos temporários do back até a BE-009.1 (contrato-integracao.md do back): sala
   // inexistente chega como 400 ROOM_BAD_REQUEST, e cheia/começada como 409 ROOM_CONFLICT
   ROOM_BAD_REQUEST: (code) => `Sala ${code} não encontrada.`,
