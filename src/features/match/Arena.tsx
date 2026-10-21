@@ -1,10 +1,9 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, useReducedMotion } from 'framer-motion'
-import { Banner, TimerBar } from '../../components/ui'
+import { Banner } from '../../components/ui'
 import { ABILITY_INFO } from '../../constants/abilities'
 import { CHARACTER_INFO } from '../../constants/characters'
-import { DRAW_PICK_SECONDS } from '../../constants/game'
 import { useServerTimer } from '../../hooks/useServerTimer'
 import { otherSlot } from '../../lib/match'
 import { PATHS } from '../../routes/paths'
@@ -17,6 +16,7 @@ import { useTimerStore } from '../../stores/timerStore'
 import type { CharacterId, PlayerSlot } from '../../types/game'
 import { Board } from '../board'
 import { HowToPlayModal } from '../hub/HowToPlayModal'
+import { DrawPicker } from '../powers/DrawPicker'
 import { VitaoSlot } from '../vitao/VitaoSlot'
 import { OpponentDisconnectedNotice } from './OpponentDisconnectedNotice'
 import { PauseOverlay } from './PauseOverlay'
@@ -227,23 +227,9 @@ export function Arena({ onQuit }: ArenaProps) {
             </div>
           )}
           {phase === 'ROUND_DRAW' && (
-            <>
-              <p role="status" className="font-display text-lg leading-tight font-bold uppercase">
-                Sorteio da 3ª habilidade
-              </p>
-              {/* No sorteio não há turno: o prazo é o das cartas (8s) */}
-              <TimerBar
-                deadline={
-                  drawOptions
-                    ? {
-                        startedAt: drawOptions.deadline - DRAW_PICK_SECONDS * 1000,
-                        durationSeconds: DRAW_PICK_SECONDS,
-                      }
-                    : null
-                }
-                label="Tempo do sorteio"
-              />
-            </>
+            <p role="status" className="font-display text-lg leading-tight font-bold uppercase">
+              Sorteio da 3ª habilidade
+            </p>
           )}
 
           {/* Deck só para exibição: o deck clicável é a FE-11 e a mira, a FE-27 */}
@@ -323,6 +309,13 @@ export function Arena({ onQuit }: ArenaProps) {
           {/* Morte Súbita: entrada (flash, fitas, banner), bordas pulsando, vibração e sons (FE-13) */}
           <SuddenDeathLayer />
         </div>
+
+        {phase === 'ROUND_DRAW' && (
+          <DrawPicker
+            options={drawOptions?.options ?? null}
+            deadline={drawOptions?.deadline ?? null}
+          />
+        )}
 
         {/* Overlay de pausa (pointer-events-auto: intercepta cliques) */}
         <PauseOverlay
