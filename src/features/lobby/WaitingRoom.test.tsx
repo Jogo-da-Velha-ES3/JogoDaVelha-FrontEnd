@@ -118,7 +118,9 @@ describe('Match feito', () => {
     )
 
     // A contagem acaba, mas quem muda para a Preparação é o servidor
-    act(() => vi.advanceTimersByTime(MATCH_FOUND_COUNTDOWN_SECONDS * 1000))
+       for (let i = 0; i < MATCH_FOUND_COUNTDOWN_SECONDS; i++) {
+         act(() => vi.advanceTimersByTime(1000))
+       }
     expect(screen.getByText('Preparando…')).toBeInTheDocument()
     expect(useRoomStore.getState().phase).toBe('MATCHED')
   })
