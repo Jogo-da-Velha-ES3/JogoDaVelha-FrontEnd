@@ -108,10 +108,14 @@ describe('Match feito', () => {
 
     expect(screen.getByRole('heading', { name: 'Match feito!' })).toBeInTheDocument()
     expect(screen.getByText('Dany entrou!')).toBeInTheDocument()
-    expect(screen.getByText(String(MATCH_FOUND_COUNTDOWN_SECONDS))).toBeInTheDocument()
+    expect(screen.getByText(/Preparação em/)).toHaveTextContent(
+      `Preparação em ${MATCH_FOUND_COUNTDOWN_SECONDS}…`,
+    )
 
     act(() => vi.advanceTimersByTime(1000))
-    expect(screen.getByText(String(MATCH_FOUND_COUNTDOWN_SECONDS - 1))).toBeInTheDocument()
+    expect(screen.getByText(/Preparação em/)).toHaveTextContent(
+      `Preparação em ${MATCH_FOUND_COUNTDOWN_SECONDS - 1}…`,
+    )
 
     // A contagem acaba, mas quem muda para a Preparação é o servidor
     act(() => vi.advanceTimersByTime(MATCH_FOUND_COUNTDOWN_SECONDS * 1000))
