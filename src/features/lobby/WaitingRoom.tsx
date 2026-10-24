@@ -3,13 +3,14 @@
 // Só lê o roomStore: quem leva para a Preparação é o servidor (a fase muda sozinha para DRAFT).
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import { Button } from '../../components/ui'
 import { MATCH_FOUND_COUNTDOWN_SECONDS } from '../../constants/game'
 import { otherSlot } from '../../lib/match'
 import { PATHS } from '../../routes/paths'
 import { useRoomStore } from '../../stores/roomStore'
 import { showToast } from '../../stores/toastStore'
-import type { PlayerSlot, PlayerState } from '../../types/game'
+import type { PlayerState } from '../../types/game'
 import { canShare, copyText, shareRoomLink } from './shareRoom'
 
 export function WaitingRoom({ code }: { code: string }) {
@@ -36,27 +37,24 @@ export function WaitingRoom({ code }: { code: string }) {
           ← Sair da sala
         </Button>
 
+        {/* Depois do match o código não serve mais: o "Match feito" ocupa a coluna toda */}
         <div className="flex flex-1 flex-col items-center justify-center gap-3 short:gap-2">
-          {!matched && (
-            <h1 className="font-display text-lg font-bold tracking-wide text-text-muted uppercase">
-              Sala de {host?.nickname ?? 'Jogador'}
-            </h1>
-          )}
-          <RoomCode code={code} />
           {matched ? (
             <MatchFound opponentName={opponent?.nickname ?? 'Oponente'} />
           ) : (
-            <ShareButtons code={code} />
+            <>
+              <h1 className="font-display text-lg font-bold tracking-wide text-text-muted uppercase">
+                Sala de {host?.nickname ?? 'Jogador'}
+              </h1>
+              <RoomCode code={code} />
+              <ShareButtons code={code} />
+            </>
           )}
         </div>
       </div>
 
       <div className="flex flex-1 flex-col justify-center gap-2">
-        <PlayerSlotCard
-          player={me}
-          slot={mySlot}
-          label={mySlot === 'P1' ? 'você · host' : 'você'}
-        />
+        <PlayerSlotCard player={me} label={mySlot === 'P1' ? 'você · host' : 'você'} />
         <p
           aria-hidden
           className="text-center font-display text-xl font-extrabold text-text-muted short:text-lg"
@@ -66,8 +64,8 @@ export function WaitingRoom({ code }: { code: string }) {
         {opponent ? (
           <PlayerSlotCard
             player={opponent}
-            slot={opponent.slot}
             label={opponent.slot === 'P1' ? 'host' : 'acabou de entrar'}
+            highlight={matched}
           />
         ) : (
           <EmptySlot />
@@ -135,20 +133,43 @@ function ShareButtons({ code }: { code: string }) {
 function MatchFound({ opponentName }: { opponentName: string }) {
   const seconds = useCountdown(MATCH_FOUND_COUNTDOWN_SECONDS)
   return (
-    <div role="status" className="flex flex-col items-center gap-1 text-center">
-      <h1 className="font-display text-4xl font-extrabold tracking-wide text-primary uppercase short:text-3xl">
-        Match feito!
-      </h1>
-      <p className="font-display text-xl font-bold short:text-lg">{opponentName} entrou!</p>
-      <p className="text-sm text-text-muted">
-        {seconds > 0 ? (
-          <>
-            Preparação em <b className="text-primary">{seconds}</b>…
-          </>
-        ) : (
-          'Preparando…'
-        )}
-      </p>
+    <div className="flex flex-col items-center gap-3 text-center short:gap-2">
+      {/* Só o aviso é lido pelo leitor de tela; a contagem muda a cada segundo e não é anunciada */}
+      <div role="status" className="flex flex-col items-center gap-1">
+        {/* Anúncio gritado: bate na tela como o título do Banner (sem animação em "reduzir movimento") */}
+        <motion.h1
+          initial={{ scale: 1.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: 'spring', stiffness: 520, damping: 22 }}
+          className="font-display text-6xl leading-none font-extrabold tracking-wider text-primary uppercase [text-shadow:0_0_18px_var(--color-primary)] short:text-5xl"
+        >
+          Match feito!
+        </motion.h1>
+        <motion.p
+          initial={{ y: 8, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.25, duration: 0.25 }}
+          className="font-display text-2xl font-bold short:text-xl"
+        >
+          {opponentName} entrou!
+        </motion.p>
+      </div>
+      {seconds > 0 ? (
+        <p className="flex flex-col items-center font-display text-sm tracking-wide text-text-muted uppercase">
+          Preparação em
+          <motion.b
+            key={seconds}
+            initial={{ scale: 1.5, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.25, ease: 'easeOut' }}
+            className="text-5xl leading-none font-extrabold text-primary short:text-4xl"
+          >
+            {seconds}
+          </motion.b>
+        </p>
+      ) : (
+        <p className="font-display text-sm tracking-wide text-text-muted uppercase">Preparando…</p>
+      )}
     </div>
   )
 }
@@ -164,27 +185,28 @@ function useCountdown(from: number) {
   return seconds
 }
 
-const SLOT_BORDER: Record<PlayerSlot, string> = {
-  P1: 'border-char-x',
-  P2: 'border-char-o',
-}
-
-// Sem personagem ainda (ele é escolhido na Preparação): o círculo mostra a inicial do apelido
+// Sem personagem ainda (ele é escolhido na Preparação): o círculo mostra a inicial do apelido e
+// a borda fica neutra, porque a cor do lado é a do personagem. No match, o oponente entra em destaque
 function PlayerSlotCard({
   player,
-  slot,
   label,
+  highlight = false,
 }: {
   player: PlayerState | undefined
-  slot: PlayerSlot
   label: string
+  highlight?: boolean
 }) {
   const name = player?.nickname ?? 'Jogador'
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-line bg-bg-panel px-3 py-2 short:py-1.5">
+    <motion.div
+      initial={highlight ? { x: 40, opacity: 0 } : false}
+      animate={{ x: 0, opacity: 1 }}
+      transition={{ type: 'spring', stiffness: 380, damping: 26 }}
+      className={`flex items-center gap-3 rounded-xl border bg-bg-panel px-3 py-2 short:py-1.5 ${highlight ? 'border-primary/70 shadow-glow shadow-primary/25' : 'border-line'}`}
+    >
       <span
         aria-hidden
-        className={`grid size-10 shrink-0 place-items-center rounded-full border-2 bg-bg-base font-display text-lg font-bold uppercase short:size-9 ${SLOT_BORDER[slot]}`}
+        className="grid size-10 shrink-0 place-items-center rounded-full border-2 border-line bg-bg-base font-display text-lg font-bold uppercase short:size-9"
       >
         {name.charAt(0)}
       </span>
@@ -192,7 +214,7 @@ function PlayerSlotCard({
         <b className="truncate font-display text-lg leading-tight">{name}</b>
         <span className="text-xs text-text-muted">{label}</span>
       </div>
-    </div>
+    </motion.div>
   )
 }
 

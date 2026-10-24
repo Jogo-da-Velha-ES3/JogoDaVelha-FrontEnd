@@ -108,14 +108,16 @@ describe('Match feito', () => {
 
     expect(screen.getByRole('heading', { name: 'Match feito!' })).toBeInTheDocument()
     expect(screen.getByText('Dany entrou!')).toBeInTheDocument()
-    // O código 4821 também tem dígitos: procura a frase da contagem, não o número solto
+    // Depois do match o código e os botões de compartilhar saem da tela
+    expect(screen.queryByRole('img', { name: /Código da sala/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Copiar código' })).not.toBeInTheDocument()
     expect(screen.getByText(/Preparação em/)).toHaveTextContent(
-      `Preparação em ${MATCH_FOUND_COUNTDOWN_SECONDS}…`,
+      `Preparação em${MATCH_FOUND_COUNTDOWN_SECONDS}`,
     )
 
     act(() => vi.advanceTimersByTime(1000))
     expect(screen.getByText(/Preparação em/)).toHaveTextContent(
-      `Preparação em ${MATCH_FOUND_COUNTDOWN_SECONDS - 1}…`,
+      `Preparação em${MATCH_FOUND_COUNTDOWN_SECONDS - 1}`,
     )
 
     // A contagem acaba, mas quem muda para a Preparação é o servidor (1 segundo por vez: cada
