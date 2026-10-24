@@ -151,8 +151,9 @@ describe('sorteio da 3ª habilidade (FE-10)', () => {
       ],
     })
     send('PHASE_CHANGE', { phase: 'ROUND_DRAW' })
+    // O sorteio nunca traz as 2 iniciais; Ampulheta é grátis, então não é "experimente"
     send('DRAW_OPTIONS', {
-      options: ['TORNADO', 'ESCUDO', 'SILENCIO'],
+      options: ['TORNADO', 'AMPULHETA', 'SILENCIO'],
       deadline: Date.now() + 8000,
     })
 
@@ -162,7 +163,7 @@ describe('sorteio da 3ª habilidade (FE-10)', () => {
     ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Tornado, experimente/i })).toBeEnabled()
     expect(screen.getByRole('button', { name: /Silêncio, experimente/i })).toBeEnabled()
-    expect(screen.getByRole('button', { name: /Escudo/i })).toBeEnabled()
+    expect(screen.getByRole('button', { name: /^Ampulheta\./ })).toBeEnabled()
     expect(screen.queryByText(/Não é possível descartar/)).not.toBeInTheDocument()
     expect(
       screen.queryByText('A escolha só será confirmada quando o servidor responder.'),
@@ -190,6 +191,89 @@ describe('sorteio da 3ª habilidade (FE-10)', () => {
     ).toBeInTheDocument()
     expect(sendCommand).not.toHaveBeenCalled()
     expect(usePowersStore.getState().deck).toEqual([])
+  })
+
+  it('depois da confirmação, mostra a carta escolhida e espera o oponente', () => {
+    renderArena()
+    send('PHASE_CHANGE', { phase: 'ROUND_DRAW' })
+    send('DRAW_OPTIONS', {
+      options: ['TORNADO', 'AMPULHETA', 'SILENCIO'],
+      deadline: Date.now() + 8000,
+    })
+    fireEvent.click(screen.getByRole('button', { name: /Tornado, experimente/i }))
+
+    // O servidor confirma: a carta entra no deck e as opções saem
+    send('DECK_UPDATE', {
+      deck: [
+        { ability: 'BOMBA', source: 'INITIAL', usedThisRound: false },
+        { ability: 'ESCUDO', source: 'INITIAL', usedThisRound: false },
+        { ability: 'TORNADO', source: 'DRAWN', usedThisRound: false },
+      ],
+    })
+
+    const region = screen.getByRole('region', { name: 'Sorteio da terceira habilidade' })
+    expect(region).toHaveTextContent('Tornado')
+    expect(screen.getByText('Aguardando o oponente…')).toBeInTheDocument()
+    expect(screen.queryByText('Aguardando as cartas do servidor…')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Tornado/i })).not.toBeInTheDocument()
+  })
+
+  it('se a escolha volta com erro, as cartas destravam para tentar de novo', () => {
+    renderArena()
+    send('PHASE_CHANGE', { phase: 'ROUND_DRAW' })
+    send('DRAW_OPTIONS', {
+      options: ['TORNADO', 'AMPULHETA', 'SILENCIO'],
+      deadline: Date.now() + 8000,
+    })
+    fireEvent.click(screen.getByRole('button', { name: /Tornado, experimente/i }))
+    expect(screen.getByRole('button', { name: /Silêncio, experimente/i })).toBeDisabled()
+
+    send('ERROR', { code: 'NOT_CONNECTED', message: 'Sem conexão com o servidor.' })
+
+    expect(screen.getByRole('button', { name: /Silêncio, experimente/i })).toBeEnabled()
+    expect(screen.queryByText('Enviando escolha ao servidor…')).not.toBeInTheDocument()
+  })
+
+  it('as cartas esperam o banner de início do round sair, e a pausa abre por cima delas', async () => {
+    renderArena()
+    startRound(1, 'P1')
+    send('DRAW_OPTIONS', {
+      options: ['TORNADO', 'AMPULHETA', 'SILENCIO'],
+      deadline: Date.now() + 8000,
+    })
+
+    const drawRegion = () =>
+      screen.queryByRole('region', { name: 'Sorteio da terceira habilidade' })
+    expect(screen.getByRole('status', { name: 'Round 1' })).toBeInTheDocument()
+    expect(drawRegion()).not.toBeInTheDocument()
+
+    await tick(ROUND_BANNER_SECONDS * 1000 + 100)
+    expect(screen.queryByRole('status', { name: 'Round 1' })).not.toBeInTheDocument()
+    const region = drawRegion()!
+    expect(region).toBeInTheDocument()
+
+    const z = (el: HTMLElement) => Number(/z-\[(\d+)\]/.exec(el.className)?.[1])
+    const pause = screen.getByRole('button', { name: 'Pausa' })
+    expect(z(pause)).toBeGreaterThan(z(region))
+    fireEvent.click(pause)
+    expect(screen.getByRole('dialog', { name: 'Menu de pausa' })).toBeInTheDocument()
+  })
+
+  it('no round 3, as cartas esperam a entrada da Morte Súbita', async () => {
+    renderArena()
+    startRound(3, 'P1')
+    send('DRAW_OPTIONS', {
+      options: ['TORNADO', 'AMPULHETA', 'SILENCIO'],
+      deadline: Date.now() + 8000,
+    })
+    expect(
+      screen.queryByRole('region', { name: 'Sorteio da terceira habilidade' }),
+    ).not.toBeInTheDocument()
+
+    await tick(SUDDEN_DEATH_ENTRY_SECONDS * 1000 + 100)
+    expect(
+      screen.getByRole('region', { name: 'Sorteio da terceira habilidade' }),
+    ).toBeInTheDocument()
   })
 })
 

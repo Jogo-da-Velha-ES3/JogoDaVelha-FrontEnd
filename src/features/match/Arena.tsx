@@ -24,6 +24,7 @@ import { PlayerStrip } from './PlayerStrip'
 import { QuitModal } from './QuitModal'
 import { RoundStartBanner } from './RoundStartBanner'
 import { SuddenDeathLayer } from './SuddenDeathLayer'
+import { useRoundStartBannerVisible } from './useRoundStartBannerVisible'
 import { useSuddenDeathEntrance } from './useSuddenDeathEntrance'
 import { TurnTimeoutToast } from './TurnTimeoutToast'
 import { VsBanner } from './VsBanner'
@@ -62,6 +63,7 @@ export function Arena({ onQuit }: ArenaProps) {
   const outcome = useMatchStore((s) => s.outcome)
   const coins = useMatchStore((s) => s.coins)
   const enteringSuddenDeath = useSuddenDeathEntrance()
+  const roundBannerVisible = useRoundStartBannerVisible()
   const cells = useBoardStore((s) => s.cells)
   const winningLine = useBoardStore((s) => s.winningLine)
   const deck = usePowersStore((s) => s.deck)
@@ -119,13 +121,13 @@ export function Arena({ onQuit }: ArenaProps) {
           className="flex min-h-0 min-w-0 flex-col gap-2 pl-3 short:pl-2"
         >
           <div className="flex items-center gap-2">
-            {/* Botão de pausa — só nas fases ativas */}
+            {/* Botão de pausa — só nas fases ativas (z-[5]: fica clicável por cima do sorteio) */}
             {showPauseButton && (
               <button
                 type="button"
                 aria-label="Pausa"
                 onClick={() => setPauseOpen(true)}
-                className="grid size-8 shrink-0 place-items-center rounded-lg border border-line font-mono text-sm text-text-muted transition hover:border-line hover:text-primary focus-visible:outline-2 focus-visible:outline-primary"
+                className="relative z-[5] grid size-8 shrink-0 place-items-center rounded-lg border border-line font-mono text-sm text-text-muted transition hover:border-line hover:text-primary focus-visible:outline-2 focus-visible:outline-primary"
               >
                 ⏸
               </button>
@@ -310,10 +312,13 @@ export function Arena({ onQuit }: ArenaProps) {
           <SuddenDeathLayer />
         </div>
 
-        {phase === 'ROUND_DRAW' && (
+        {/* O sorteio espera o banner de início do round e a entrada da Morte Súbita saírem (o timer
+            dos 8s corre desde o início). z-[4]: a pausa abre por cima */}
+        {phase === 'ROUND_DRAW' && !roundBannerVisible && !enteringSuddenDeath && (
           <DrawPicker
             options={drawOptions?.options ?? null}
             deadline={drawOptions?.deadline ?? null}
+            chosen={deck.find((slot) => slot.source === 'DRAWN')?.ability ?? null}
           />
         )}
 
