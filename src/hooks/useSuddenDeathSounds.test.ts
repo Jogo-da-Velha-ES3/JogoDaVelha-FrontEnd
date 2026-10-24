@@ -36,17 +36,30 @@ describe('useSuddenDeathSounds', () => {
   })
 
   it('dispara trilha, sirene e batida de coração na entrada da Morte Súbita', () => {
-    renderHook(() => useSuddenDeathSounds(true, 5, true))
+    renderHook(() => useSuddenDeathSounds(true, 5, true, true))
 
     expect(startMusicSpy).toHaveBeenCalledTimes(1)
     expect(playSirenSpy).toHaveBeenCalledTimes(1)
     expect(startHeartbeatSpy).toHaveBeenCalledTimes(1)
   })
 
+  it('a sirene espera a entrada (depois do sorteio); quem reconecta não ouve', () => {
+    const { rerender } = renderHook(
+      ({ entering }) => useSuddenDeathSounds(true, null, false, entering),
+      { initialProps: { entering: false } },
+    )
+    expect(startMusicSpy).toHaveBeenCalledTimes(1)
+    expect(playSirenSpy).not.toHaveBeenCalled()
+
+    rerender({ entering: true })
+    expect(playSirenSpy).toHaveBeenCalledTimes(1)
+  })
+
   it('não dispara sons de entrada múltiplas vezes por re-render', () => {
-    const { rerender } = renderHook(({ seconds }) => useSuddenDeathSounds(true, seconds, true), {
-      initialProps: { seconds: 5 },
-    })
+    const { rerender } = renderHook(
+      ({ seconds }) => useSuddenDeathSounds(true, seconds, true, true),
+      { initialProps: { seconds: 5 } },
+    )
 
     expect(startMusicSpy).toHaveBeenCalledTimes(1)
     expect(playSirenSpy).toHaveBeenCalledTimes(1)

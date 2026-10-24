@@ -1,10 +1,9 @@
 import { Howl, Howler } from 'howler'
-import { MUSIC_KEYS, SOUND_FILES, type SoundKey } from './soundMap'
+import { MUSIC_KEYS, SOUND_KEYS, type SoundKey, soundUrl } from './soundMap'
 
 const sounds = new Map<SoundKey, Howl>()
 let unlockListening = false
 let musicWanted = false
-let musicSuspended = false
 
 const settings = {
   sfxVolume: 1,
@@ -23,18 +22,22 @@ function applySettings(key: SoundKey, howl: Howl) {
 
 /** Carrega todos os sons. Arquivo que faltar ou falhar: só não toca, o jogo segue */
 export function loadSounds() {
-  for (const key of Object.keys(SOUND_FILES) as SoundKey[]) {
+  for (const key of SOUND_KEYS) {
+    const src = soundUrl(key)
+    if (!src) continue
     try {
       const howl: Howl = new Howl({
-        src: [SOUND_FILES[key]],
+        src: [src],
         loop: isMusic(key),
+        // A trilha é longa: toca por streaming (html5) em vez de baixar tudo ao abrir o app
+        html5: isMusic(key),
         preload: true,
         onloaderror: () => sounds.delete(key),
         // Se o navegador recusar (ex: iPhone antes do toque), a música tenta de novo ao liberar
         onplayerror: () => {
           if (isMusic(key)) {
             howl.once('unlock', () => {
-              if (!musicSuspended) howl.play()
+              if (!howl.playing()) howl.play()
             })
           }
         },
@@ -56,31 +59,14 @@ function resumeContext() {
   }
 }
 
-/** Começa a trilha em loop (se já estiver tocando ou estiver suspensa, não faz nada) */
+/** Começa a trilha em loop (se já estiver tocando, não faz nada) */
 export function startMusic() {
   musicWanted = true
-  if (musicSuspended) return
   try {
     const music = sounds.get('trilha')
     if (music && !music.playing()) music.play()
   } catch {
     // nunca derruba o jogo por causa de som
-  }
-}
-
-/**
- * Suspende a trilha (ex: durante a partida) ou a retoma de onde parou.
- * Chamada pela regra de fases em index.ts
- */
-export function setMusicSuspended(suspended: boolean) {
-  musicSuspended = suspended
-  try {
-    const music = sounds.get('trilha')
-    if (!music) return
-    if (suspended) music.pause()
-    else if (musicWanted && !music.playing()) music.play()
-  } catch {
-    // idem
   }
 }
 
@@ -92,7 +78,7 @@ function handleVisibility() {
       music?.pause()
     } else {
       resumeContext()
-      if (musicWanted && !musicSuspended && music && !music.playing()) music.play()
+      if (musicWanted && music && !music.playing()) music.play()
     }
   } catch {
     // idem

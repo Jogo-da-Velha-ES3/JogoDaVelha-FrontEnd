@@ -1,9 +1,9 @@
 /**
  * Ganchos de som da Morte Súbita (FE-13 Parte 5).
  *
- * Este módulo define os pontos de integração para os sons da Morte Súbita, sem
- * implementar o motor de áudio. As funções ficam vazias até que FE-37 (motor de som)
- * e FE-38 (banco de sons) sejam implementados.
+ * Este módulo define os pontos de integração para os sons da Morte Súbita e chama o motor de
+ * som (FE-37, features/sound). Só a sirene tem arquivo por enquanto; as outras funções ficam
+ * vazias até a FE-38 (banco de sons) trazer a trilha acelerada, o coração e o tique-taque.
  *
  * Responsabilidade do respeito a "som desligado" (FE-39): será do motor de som (FE-37).
  * Este módulo apenas define OS MOMENTOS em que cada som deve disparar.
@@ -15,10 +15,12 @@
  * - Tique-taque: som de relógio nos 3 últimos segundos do turno
  *
  * MOMENTOS DE DISPARO (implementados em useSuddenDeathSounds):
- * - Entrada (suddenDeath vira true):
+ * - Round 3 (suddenDeath vira true):
  *   → startSuddenDeathMusic() - loop
- *   → playSuddenDeathSiren() - som único
  *   → startHeartbeat() - loop
+ *
+ * - Entrada da Morte Súbita (depois do sorteio, antes do primeiro turno):
+ *   → playSuddenDeathSiren() - som único
  *
  * - Durante PLAYING com 1-3 segundos restantes:
  *   → startTickTock() - loop
@@ -29,6 +31,7 @@
  *   → stopHeartbeat()
  *   → stopTickTock()
  */
+import { playSound } from '../sound/soundManager'
 
 /**
  * Inicia a trilha acelerada da Morte Súbita.
@@ -52,12 +55,10 @@ export function stopSuddenDeathMusic(): void {
 
 /**
  * Toca a sirene de alerta da Morte Súbita (som único, não loop).
- * Dispara na entrada do round 3, junto com a trilha acelerada.
- *
- * TODO FE-37/FE-38: implementar com Howler.play('sudden-death-siren')
+ * Dispara na entrada da Morte Súbita, junto com o flash e o banner.
  */
 export function playSuddenDeathSiren(): void {
-  // Vazio até FE-37/38
+  playSound('morte-subita')
 }
 
 /**

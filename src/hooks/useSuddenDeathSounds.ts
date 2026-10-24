@@ -13,7 +13,8 @@ import {
  * Hook para gerenciar os sons da Morte Súbita (FE-13 Parte 5).
  *
  * Chama os ganchos de som nos momentos corretos:
- * - Entrada: trilha acelerada, sirene e batida de coração
+ * - Round 3: trilha acelerada e batida de coração
+ * - Entrada (depois do sorteio): sirene
  * - Durante: tique-taque nos 3 últimos segundos de qualquer turno
  * - Saída: para todos os sons
  *
@@ -22,23 +23,30 @@ import {
  * @param suddenDeath - Se está em Morte Súbita (round 3)
  * @param remainingSeconds - Segundos restantes do turno atual (null se não houver turno)
  * @param isPlaying - Se está na fase PLAYING (não ROUND_END, ROUND_DRAW, etc.)
+ * @param entering - Se a entrada da Morte Súbita está na tela (useSuddenDeathEntrance). Quem
+ *   reconecta no meio do round não vê a entrada e não ouve a sirene
  */
 export function useSuddenDeathSounds(
   suddenDeath: boolean,
   remainingSeconds: number | null,
   isPlaying: boolean,
+  entering = false,
 ) {
   const entryPlayed = useRef(false)
   const tickTockActive = useRef(false)
 
-  // Entrada da Morte Súbita: trilha, sirene e batida de coração
+  // Sirene: junto com o flash e o banner da entrada
+  useEffect(() => {
+    if (entering) playSuddenDeathSiren()
+  }, [entering])
+
+  // Round 3: trilha e batida de coração
   useEffect(() => {
     if (suddenDeath && !entryPlayed.current) {
       entryPlayed.current = true
 
-      // Sons de entrada (tocam uma vez)
+      // Sons de fundo (começam uma vez)
       startSuddenDeathMusic()
-      playSuddenDeathSiren()
       startHeartbeat()
     }
 

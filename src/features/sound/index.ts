@@ -1,6 +1,8 @@
+import { useBoardStore } from '../../stores/boardStore'
 import { useMatchStore } from '../../stores/matchStore'
 import { useRoomStore } from '../../stores/roomStore'
 import type { ServerEvent } from '../../types/events'
+import type { Cell } from '../../types/game'
 import { loadSounds, playSound, setupAudioUnlock, stopSound } from './soundManager'
 import { abilitySoundKey, COINS_DELAY_MS } from './soundMap'
 
@@ -45,7 +47,11 @@ export function initSound() {
 export function playSoundForServerEvent(event: ServerEvent) {
   switch (event.type) {
     case 'BOARD_UPDATE':
-      playSound('jogada')
+      // O servidor também manda o tabuleiro no fim de cada turno, no estouro de tempo, no começo
+      // do round e depois das habilidades: só é jogada quando aparece uma peça nova
+      if (occupied(event.payload.board) > occupied(useBoardStore.getState().cells)) {
+        playSound('jogada')
+      }
       return
 
     case 'ABILITY_RESOLVED':
@@ -54,10 +60,6 @@ export function playSoundForServerEvent(event: ServerEvent) {
 
     case 'TURN_TIMEOUT':
       playSound('estouro-tempo')
-      return
-
-    case 'ROUND_START':
-      if (event.payload.suddenDeath) playSound('morte-subita')
       return
 
     case 'ROUND_END':
@@ -82,6 +84,10 @@ export function playSoundForServerEvent(event: ServerEvent) {
     }
 
     default:
-      return // ROOM_SNAPSHOT (reconexão) e os demais não tocam som
+      // ROOM_SNAPSHOT (reconexão) e os demais não tocam som. A sirene da Morte Súbita toca na
+      // entrada dela, depois do sorteio (features/match/suddenDeathSounds.ts)
+      return
   }
 }
+
+const occupied = (board: Cell[]) => board.filter((cell) => cell.owner !== null).length
