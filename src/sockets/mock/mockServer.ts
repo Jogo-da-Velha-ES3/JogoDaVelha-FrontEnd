@@ -12,6 +12,7 @@ import {
   MAX_ROUNDS,
   PREPARATION_SECONDS,
   REMATCH_WINDOW_SECONDS,
+  ROUND_INTRO_SECONDS,
   STARTER_ABILITIES,
   STARTER_CHARACTERS,
   SUDDEN_DEATH_TURN_DURATION_SECONDS,
@@ -527,7 +528,11 @@ export class MockGameServer {
     }
     this.setPhase('PLAYING')
     this.emit('BOARD_UPDATE', { board: this.cells })
-    this.startTurn(this.roundStarter)
+    // Apresentação do round (quem começa, MATCH POINT ou a entrada da Morte Súbita) antes do
+    // primeiro turno, para ela não comer o tempo dele [A VALIDAR COM O BACK]
+    this.phaseTimer = this.later(ROUND_INTRO_SECONDS * 1000, () => {
+      if (this.phase === 'PLAYING') this.startTurn(this.roundStarter)
+    })
   }
 
   // ---------------------------------------------------------------- turnos

@@ -34,6 +34,12 @@ export interface MatchState {
    * segundos (null se veio de um snapshot de reconexão: sem banner)
    */
   roundStartedAt: number | null
+  /**
+   * Hora do aparelho em que o round entrou em jogo (PHASE_CHANGE para PLAYING, depois do sorteio):
+   * a apresentação do round (banner ou entrada da Morte Súbita) conta a partir daqui. null antes
+   * do fim do sorteio e em snapshot de reconexão (sem apresentação)
+   */
+  introStartedAt: number | null
   /** Hora do aparelho em que o MATCH_END chegou (null se veio de um snapshot de reconexão) */
   outcomeReceivedAt: number | null
   /** Coins creditados pelo back a cada lado */
@@ -54,6 +60,7 @@ export const INITIAL_MATCH_STATE: MatchState = {
   roundEnd: null,
   outcome: null,
   roundStartedAt: null,
+  introStartedAt: null,
   outcomeReceivedAt: null,
   coins: null,
   rematch: null,

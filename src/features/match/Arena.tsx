@@ -24,7 +24,6 @@ import { PlayerStrip } from './PlayerStrip'
 import { QuitModal } from './QuitModal'
 import { RoundStartBanner } from './RoundStartBanner'
 import { SuddenDeathLayer } from './SuddenDeathLayer'
-import { useRoundStartBannerVisible } from './useRoundStartBannerVisible'
 import { useSuddenDeathEntrance } from './useSuddenDeathEntrance'
 import { TurnTimeoutToast } from './TurnTimeoutToast'
 import { VsBanner } from './VsBanner'
@@ -63,7 +62,6 @@ export function Arena({ onQuit }: ArenaProps) {
   const outcome = useMatchStore((s) => s.outcome)
   const coins = useMatchStore((s) => s.coins)
   const enteringSuddenDeath = useSuddenDeathEntrance()
-  const roundBannerVisible = useRoundStartBannerVisible()
   const cells = useBoardStore((s) => s.cells)
   const winningLine = useBoardStore((s) => s.winningLine)
   const deck = usePowersStore((s) => s.deck)
@@ -312,9 +310,9 @@ export function Arena({ onQuit }: ArenaProps) {
           <SuddenDeathLayer />
         </div>
 
-        {/* O sorteio espera o banner de início do round e a entrada da Morte Súbita saírem (o timer
-            dos 8s corre desde o início). z-[4]: a pausa abre por cima */}
-        {phase === 'ROUND_DRAW' && !roundBannerVisible && !enteringSuddenDeath && (
+        {/* O sorteio vem antes da apresentação do round (banner ou entrada da Morte Súbita), que só
+            aparece em PLAYING. z-[4]: a pausa abre por cima */}
+        {phase === 'ROUND_DRAW' && (
           <DrawPicker
             options={drawOptions?.options ?? null}
             deadline={drawOptions?.deadline ?? null}

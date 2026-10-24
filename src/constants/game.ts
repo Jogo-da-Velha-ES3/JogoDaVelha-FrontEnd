@@ -35,6 +35,12 @@ export const SUDDEN_DEATH_ENTRY_SECONDS = 2.2
 /** Banner de início do round (ROUND N, MATCH POINT, MORTE SÚBITA) e, no round 1, a moeda girando */
 export const ROUND_BANNER_SECONDS = 2.5
 export const ROUND_COIN_FLIP_SECONDS = 1.2
+/**
+ * Apresentação do round: depois do sorteio da 3ª habilidade, o servidor espera este tempo antes do
+ * primeiro TURN_START. Cabe o banner de início do round e a entrada da Morte Súbita
+ * [A VALIDAR COM O BACK]
+ */
+export const ROUND_INTRO_SECONDS = 2.5
 
 export const INITIAL_ABILITIES_TO_PICK = 2
 export const DECK_SIZE = 3 // 2 iniciais + 1 sorteada [RN-DRAFT-02]

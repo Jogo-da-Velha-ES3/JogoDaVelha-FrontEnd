@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   PREPARATION_SECONDS,
   REMATCH_WINDOW_SECONDS,
+  ROUND_INTRO_SECONDS,
   TURN_DURATION_SECONDS,
 } from '../../constants/game'
 import type { AbilityId, PlayerSlot } from '../../types/game'
@@ -63,9 +64,10 @@ function toFirstTurn(ctx: Ctx, botAbilities?: [AbilityId, AbilityId]) {
   pickDraws(ctx)
 }
 
+/** Os dois escolhem a carta do sorteio e passa a apresentação do round: começa o primeiro turno */
 function pickDraws(ctx: Ctx) {
   ctx.send({ type: 'DRAW_PICK', payload: { ability: ctx.last('DRAW_OPTIONS')!.options[0] } })
-  vi.advanceTimersByTime(MOCK_TIMINGS.botDraw)
+  vi.advanceTimersByTime(MOCK_TIMINGS.botDraw + ROUND_INTRO_SECONDS * 1000)
 }
 
 /** Se a vez for do P2, ele joga numa casa inofensiva para devolver a vez ao P1 */
@@ -138,6 +140,25 @@ describe('round', () => {
       durationSeconds: TURN_DURATION_SECONDS,
       consecutiveTimeouts: { P1: 0, P2: 0 },
     })
+  })
+
+  it('depois do sorteio, a apresentação do round vem antes do primeiro turno', () => {
+    const ctx = setup()
+    vi.advanceTimersByTime(MOCK_TIMINGS.botJoin + MOCK_TIMINGS.matched)
+    ctx.send({ type: 'DRAFT_CHARACTER', payload: { character: 'X' } })
+    ctx.send({ type: 'DRAFT_ABILITIES', payload: { abilities: ['BOMBA', 'SILENCIO'] } })
+    vi.advanceTimersByTime(MOCK_TIMINGS.botDraft + MOCK_TIMINGS.versus)
+    ctx.send({ type: 'DRAW_PICK', payload: { ability: ctx.last('DRAW_OPTIONS')!.options[0] } })
+    vi.advanceTimersByTime(MOCK_TIMINGS.botDraw)
+
+    // Já está em jogo, mas ninguém tem a vez: jogar agora é recusado
+    expect(ctx.phases().at(-1)).toBe('PLAYING')
+    expect(ctx.last('TURN_START')).toBeUndefined()
+    ctx.move(0)
+    expect(ctx.last('BOARD_UPDATE')?.board.every((c) => c.owner === null)).toBe(true)
+
+    vi.advanceTimersByTime(ROUND_INTRO_SECONDS * 1000)
+    expect(ctx.last('TURN_START')?.startedAt).toBe(Date.now())
   })
 
   it('jogada válida, fora da vez e em casa ocupada', () => {
