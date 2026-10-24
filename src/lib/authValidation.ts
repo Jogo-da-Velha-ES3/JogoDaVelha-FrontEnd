@@ -71,3 +71,20 @@ export function validateRegister(input: RegisterInput): FieldErrors<RegisterFiel
 }
 
 export const hasErrors = (errors: object) => Object.keys(errors).length > 0
+
+// Recuperação de senha (FE-36): tela "Nova senha" / "Confirmar nova senha"
+export type ResetPasswordField = 'password' | 'confirm'
+
+export interface ResetPasswordInput {
+  password: string
+  confirm: string
+}
+
+/** Senha nova com as mesmas regras do cadastro (6 a 72) e confirmação igual à senha */
+export function validateResetPassword(input: ResetPasswordInput): FieldErrors<ResetPasswordField> {
+  const errors: FieldErrors<ResetPasswordField> = {}
+  const password = validateNewPassword(input.password)
+  if (password) errors.password = password
+  if (input.confirm !== input.password) errors.confirm = 'As senhas não coincidem.'
+  return errors
+}
