@@ -60,7 +60,8 @@ describe('sala: a tela sai da fase', () => {
     expect(screen.getByText('Aguardando adversário…')).toBeInTheDocument()
 
     await tick(MOCK_TIMINGS.botJoin + NET)
-    expect(screen.getByText('Match feito! Oponente Simulado entrou!')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Match feito!' })).toBeInTheDocument()
+    expect(screen.getByText('Oponente Simulado entrou!')).toBeInTheDocument()
 
     await tick(MOCK_TIMINGS.matched + NET)
     expect(screen.getByRole('heading', { name: 'Preparação' })).toBeInTheDocument()

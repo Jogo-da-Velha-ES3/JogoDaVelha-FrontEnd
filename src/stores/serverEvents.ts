@@ -101,6 +101,8 @@ export function applyServerEvent(envelope: ServerEnvelope, receivedAt = Date.now
     case 'PHASE_CHANGE':
       // Revanche aceita: tudo recomeça do zero na Preparação [RN-POS-03]
       if (event.payload.phase === 'DRAFT') resetMatchStores()
+      // Fim do sorteio: começa a apresentação do round, antes do primeiro turno
+      if (event.payload.phase === 'PLAYING') useMatchStore.setState({ introStartedAt: receivedAt })
       useRoomStore.setState({ phase: event.payload.phase })
       return
 
@@ -126,6 +128,7 @@ export function applyServerEvent(envelope: ServerEnvelope, receivedAt = Date.now
         suddenDeath,
         roundEnd: null,
         roundStartedAt: receivedAt,
+        introStartedAt: null, // a apresentação vem depois do sorteio
       })
       useBoardStore.setState({ winningLine: null, lastAbility: null })
       usePowersStore.setState({ aim: null })

@@ -202,7 +202,10 @@ implementados no back (revisão de telas, 06/10), então usar as rotas e payload
   - `DECK_UPDATE` (privado) — meu deck, no início do round e depois de cada habilidade (proposto
     na FE-12: fora do `ROUND_START`, que é público)
   - `TURN_START` — jogador, timestamp de início, duração e os estouros seguidos de cada lado
-    (valor oficial; proposto na FE-12 para o front não deduzir quando zeram)
+    (valor oficial; proposto na FE-12 para o front não deduzir quando zeram). **[A VALIDAR COM O
+    BACK]** (24/10) Depois do sorteio (`PHASE_CHANGE` para `PLAYING`), o primeiro `TURN_START` do
+    round sai só depois de `ROUND_INTRO_SECONDS` (2,5s): é a apresentação do round (quem começa,
+    MATCH POINT ou a entrada da Morte Súbita), que assim não come o tempo do primeiro turno
   - `BOARD_UPDATE` — casas e efeitos depois de uma ação
   - `ABILITY_RESOLVED` — quem usou, qual, alvo, se foi anulada pelo Campo de Força, se ficou sem
     efeito

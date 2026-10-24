@@ -374,6 +374,10 @@ Abrir o jogo → [sem sessão] Acesso → Hub (Jogar; abas Loja / Perfil)
   "1/3", "2/3"), mirando habilidade, habilidade do oponente (animação + aviso, inclusive "anulada
   pelo Campo de Força" e "sem efeito"), sob Ampulheta, silenciado, fim do round, entrada da Morte
   Súbita, Morte Súbita, oponente desconectado, pausa.
+- **Ordem do início do round (decidido em 24/10):** sorteio da 3ª habilidade → apresentação do
+  round (2,5s: quem começa e "MATCH POINT", ou a entrada da Morte Súbita no round 3) → primeiro
+  turno. O servidor só manda o primeiro `TURN_START` depois da apresentação, para ela não comer o
+  tempo do turno **[A VALIDAR COM O BACK]**.
 - **Timer do turno (decidido em 16/10):** sempre mostra o turno atual, inclusive o do oponente,
   com o prazo do `TURN_START`. Na sua vez fica na sua cor e vermelho nos últimos 3s; na vez do
   oponente fica na cor dele, com o texto "Vez do oponente" e sem o vermelho (o tempo dele acabando
@@ -461,6 +465,7 @@ Abrir o jogo → [sem sessão] Acesso → Hub (Jogar; abas Loja / Perfil)
 - `PLAYER_DISCONNECTED` / `PLAYER_RECONNECTED` e se cair no Resultado cancela a revanche
 - Regra nova da MD3 (18/10): até 3 rounds, só acaba antes em 2×0, empate absoluto com placar
   igual no fim do round 3 (§6)
+- Apresentação do round (24/10): 2,5s entre o fim do sorteio e o primeiro `TURN_START` (§9)
 
 ## 12. Prioridade de implementação (MVP 1)
 
