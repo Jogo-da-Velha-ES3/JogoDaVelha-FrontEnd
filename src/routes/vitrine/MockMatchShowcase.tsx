@@ -185,7 +185,6 @@ export function MockMatchShowcase() {
       >
         <NextStep />
         <PhoneFrame onPlayAgain={() => scenario && start(scenario)} onLeave={stop} />
-        <DrawPicker />
         {room.code && <DropControls />}
         <p className="font-mono text-[11px] text-text-muted">
           Fase {room.phase ?? '—'} · Round {match.round} · Placar {match.score.P1}×{match.score.P2}{' '}
@@ -406,26 +405,6 @@ function DropControls() {
       >
         {disconnected ? 'Robô volta' : 'Robô cai'}
       </Button>
-    </div>
-  )
-}
-
-/** Cartas do sorteio da 3ª habilidade (a tela de verdade é a FE-10) */
-function DrawPicker() {
-  const drawOptions = usePowersStore((s) => s.drawOptions)
-  if (!drawOptions) return null
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      <span className="font-display font-bold uppercase">Escolha 1 carta:</span>
-      {drawOptions.options.map((a) => (
-        <Button
-          key={a}
-          variant="secondary"
-          onClick={() => sendCommand({ type: 'DRAW_PICK', payload: { ability: a } })}
-        >
-          {ABILITY_INFO[a].name}
-        </Button>
-      ))}
     </div>
   )
 }

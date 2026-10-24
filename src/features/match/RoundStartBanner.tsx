@@ -1,12 +1,13 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { CHARACTER_INFO } from '../../constants/characters'
-import { ROUND_BANNER_SECONDS, ROUND_COIN_FLIP_SECONDS } from '../../constants/game'
+import { ROUND_COIN_FLIP_SECONDS } from '../../constants/game'
 import { useIsBefore } from '../../hooks/useIsBefore'
 import { isMatchPoint, otherSlot } from '../../lib/match'
 import { useMatchStore } from '../../stores/matchStore'
 import { useRoomStore } from '../../stores/roomStore'
 import type { CharacterId, PlayerSlot } from '../../types/game'
 import { Character } from '../characters'
+import { useRoundStartBannerVisible } from './useRoundStartBannerVisible'
 
 const colorOf = (char: CharacterId | null | undefined) =>
   char ? CHARACTER_INFO[char].color : 'var(--color-line)'
@@ -49,21 +50,17 @@ function Avatar({
  */
 export function RoundStartBanner() {
   const reduceMotion = useReducedMotion()
-  const phase = useRoomStore((s) => s.phase)
   const players = useRoomStore((s) => s.players)
   const mySlot = useRoomStore((s) => s.mySlot) ?? 'P1'
   const round = useMatchStore((s) => s.round)
   const score = useMatchStore((s) => s.score)
-  const suddenDeath = useMatchStore((s) => s.suddenDeath)
   const starter = useMatchStore((s) => s.startingPlayer)
   const startedAt = useMatchStore((s) => s.roundStartedAt)
 
-  const visible = useIsBefore(startedAt !== null ? startedAt + ROUND_BANNER_SECONDS * 1000 : null)
+  const show = useRoundStartBannerVisible()
   const flipping = useIsBefore(
     startedAt !== null && round === 1 ? startedAt + ROUND_COIN_FLIP_SECONDS * 1000 : null,
   )
-  // No round 3 (suddenDeath) o SuddenDeathLayer trata a entrada; este banner não aparece.
-  const show = visible && !suddenDeath && (phase === 'ROUND_DRAW' || phase === 'PLAYING')
   const matchPoint = isMatchPoint(score)
 
   const me = players.find((p) => p.slot === mySlot)
