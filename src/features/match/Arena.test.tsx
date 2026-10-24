@@ -67,6 +67,9 @@ const startRound = (round: number, startingPlayer: PlayerSlot) => {
   send('PHASE_CHANGE', { phase: 'ROUND_DRAW' })
 }
 
+/** Fim do sorteio: começa a apresentação do round (banner ou entrada da Morte Súbita) */
+const endDraw = () => send('PHASE_CHANGE', { phase: 'PLAYING' })
+
 // As animações do Framer contam tempo real, que os fake timers não adiantam: sem elas, os avisos
 // entram e saem na hora certa do relógio do teste
 beforeAll(() => {
@@ -113,9 +116,12 @@ describe('aviso de turno perdido (TURN_TIMEOUT)', () => {
 })
 
 describe('banner de início do round', () => {
-  it('round 1: a moeda gira, revela quem começa e o banner sai antes do fim do sorteio', async () => {
+  it('round 1: depois do sorteio, a moeda gira, revela quem começa e o banner sai', async () => {
     renderArena()
     startRound(1, 'P2')
+    expect(screen.queryByRole('status', { name: 'Round 1' })).not.toBeInTheDocument()
+
+    endDraw()
     expect(screen.getByRole('status', { name: 'Round 1' })).toBeInTheDocument()
     expect(screen.getByText('sorteando quem começa…')).toBeInTheDocument()
     expect(screen.queryByText('Vini começa')).not.toBeInTheDocument()
@@ -131,6 +137,7 @@ describe('banner de início do round', () => {
     renderArena()
     send('ROUND_END', { round: 1, winner: 'P2', winningLine: null, score: { P1: 0, P2: 1 } })
     startRound(2, 'P1')
+    endDraw()
     expect(screen.getByRole('status', { name: 'Match Point de Vini' })).toBeInTheDocument()
     expect(screen.getByText('Você começa')).toBeInTheDocument()
   })
@@ -234,7 +241,7 @@ describe('sorteio da 3ª habilidade (FE-10)', () => {
     expect(screen.queryByText('Enviando escolha ao servidor…')).not.toBeInTheDocument()
   })
 
-  it('as cartas esperam o banner de início do round sair, e a pausa abre por cima delas', async () => {
+  it('as cartas vêm antes do banner de início do round, e a pausa abre por cima delas', () => {
     renderArena()
     startRound(1, 'P1')
     send('DRAW_OPTIONS', {
@@ -244,22 +251,22 @@ describe('sorteio da 3ª habilidade (FE-10)', () => {
 
     const drawRegion = () =>
       screen.queryByRole('region', { name: 'Sorteio da terceira habilidade' })
-    expect(screen.getByRole('status', { name: 'Round 1' })).toBeInTheDocument()
-    expect(drawRegion()).not.toBeInTheDocument()
-
-    await tick(ROUND_BANNER_SECONDS * 1000 + 100)
-    expect(screen.queryByRole('status', { name: 'Round 1' })).not.toBeInTheDocument()
     const region = drawRegion()!
     expect(region).toBeInTheDocument()
+    expect(screen.queryByRole('status', { name: 'Round 1' })).not.toBeInTheDocument()
 
     const z = (el: HTMLElement) => Number(/z-\[(\d+)\]/.exec(el.className)?.[1])
     const pause = screen.getByRole('button', { name: 'Pausa' })
     expect(z(pause)).toBeGreaterThan(z(region))
     fireEvent.click(pause)
     expect(screen.getByRole('dialog', { name: 'Menu de pausa' })).toBeInTheDocument()
+
+    endDraw()
+    expect(drawRegion()).not.toBeInTheDocument()
+    expect(screen.getByRole('status', { name: 'Round 1' })).toBeInTheDocument()
   })
 
-  it('no round 3, as cartas esperam a entrada da Morte Súbita', async () => {
+  it('no round 3, a entrada da Morte Súbita só vem depois das cartas', () => {
     renderArena()
     startRound(3, 'P1')
     send('DRAW_OPTIONS', {
@@ -267,13 +274,12 @@ describe('sorteio da 3ª habilidade (FE-10)', () => {
       deadline: Date.now() + 8000,
     })
     expect(
-      screen.queryByRole('region', { name: 'Sorteio da terceira habilidade' }),
-    ).not.toBeInTheDocument()
-
-    await tick(SUDDEN_DEATH_ENTRY_SECONDS * 1000 + 100)
-    expect(
       screen.getByRole('region', { name: 'Sorteio da terceira habilidade' }),
     ).toBeInTheDocument()
+    expect(screen.queryByText('5 segundos por jogada')).not.toBeInTheDocument()
+
+    endDraw()
+    expect(screen.getByText('5 segundos por jogada')).toBeInTheDocument()
   })
 })
 
@@ -281,6 +287,7 @@ describe('Morte Súbita e empate absoluto (FE-13)', () => {
   it('entrada da Morte Súbita só nos primeiros segundos do round 3', async () => {
     renderArena()
     startRound(3, 'P1')
+    endDraw()
     expect(screen.getByText('5 segundos por jogada')).toBeInTheDocument()
 
     await tick(SUDDEN_DEATH_ENTRY_SECONDS * 1000 + 500)

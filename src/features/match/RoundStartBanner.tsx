@@ -41,8 +41,8 @@ function Avatar({
  * (`short:`). Em telas maiores, tudo cresce para continuar legível.
  *
  * Banner de início de round — visual do esboço, estado "Início do round" (`.ov-banner`,
- * `.flip`, `.coin-big`). Aparece nos primeiros segundos de cada round (a partir da chegada do
- * ROUND_START), para não cobrir o sorteio da 3ª habilidade. Quem reconecta não vê o banner.
+ * `.flip`, `.coin-big`). Aparece depois do sorteio da 3ª habilidade, na apresentação do round
+ * (o servidor espera ROUND_INTRO_SECONDS antes do primeiro turno). Quem reconecta não vê o banner.
  * No round 1, a moeda gira um pouco antes de revelar quem começa (sorteado pelo servidor).
  *
  * A entrada da Morte Súbita (round 3) é tratada pelo SuddenDeathLayer (FE-13);
@@ -55,7 +55,7 @@ export function RoundStartBanner() {
   const round = useMatchStore((s) => s.round)
   const score = useMatchStore((s) => s.score)
   const starter = useMatchStore((s) => s.startingPlayer)
-  const startedAt = useMatchStore((s) => s.roundStartedAt)
+  const startedAt = useMatchStore((s) => s.introStartedAt)
 
   const show = useRoundStartBannerVisible()
   const flipping = useIsBefore(
