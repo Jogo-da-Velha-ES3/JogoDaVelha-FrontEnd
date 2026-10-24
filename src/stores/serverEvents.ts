@@ -10,6 +10,7 @@ import { INITIAL_MATCH_STATE, useMatchStore } from './matchStore'
 import { INITIAL_POWERS_DATA, usePowersStore } from './powersStore'
 import { INITIAL_ROOM_STATE, useRoomStore } from './roomStore'
 import { INITIAL_TIMER_STATE, useTimerStore } from './timerStore'
+import { playSoundForServerEvent } from '../features/sound'
 
 const patchPlayer = (players: PlayerState[], slot: PlayerSlot, patch: Partial<PlayerState>) =>
   players.map((p) => (p.slot === slot ? { ...p, ...patch } : p))
@@ -35,6 +36,7 @@ export function applyServerEvent(envelope: ServerEnvelope, receivedAt = Date.now
   if (!envelope.local) useClockStore.getState().syncWithServer(serverTime, receivedAt)
 
   const event = { type: envelope.type, payload: envelope.payload } as ServerEvent
+  playSoundForServerEvent(event)
 
   switch (event.type) {
     case 'ROOM_SNAPSHOT': {

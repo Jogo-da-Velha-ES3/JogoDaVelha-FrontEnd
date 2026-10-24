@@ -36,7 +36,7 @@ export function SuddenDeathLayer() {
   const seconds = timer?.remainingSeconds ?? null
   const playing = phase === 'PLAYING'
   useSuddenDeathVibration(seconds, playing && turn?.player === me, suddenDeath)
-  useSuddenDeathSounds(suddenDeath, seconds, playing)
+  useSuddenDeathSounds(suddenDeath, seconds, playing, entering)
 
   // Bordas pulsando: durante o round 3 em andamento
   const ongoing = suddenDeath && (phase === 'PLAYING' || phase === 'ROUND_DRAW')
