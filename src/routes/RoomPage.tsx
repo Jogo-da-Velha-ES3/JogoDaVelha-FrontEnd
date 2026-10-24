@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { RESULT_HOLD_SECONDS } from '../constants/game'
+import { WaitingRoom } from '../features/lobby/WaitingRoom'
 import { Arena } from '../features/match'
 import { ResultScreen, useRoomExit } from '../features/results'
 import { useIsBefore } from '../hooks/useIsBefore'
@@ -12,7 +13,7 @@ import { showToast } from '../stores/toastStore'
 import { NotFoundPage } from './NotFoundPage'
 import { PagePlaceholder } from './PagePlaceholder'
 import { PATHS } from './paths'
-import { PreparationPlaceholder, WaitingRoomPlaceholder } from './room/RoomPlaceholders'
+import { PreparationPlaceholder } from './room/RoomPlaceholders'
 
 /** A sala inteira (Sala de Espera, Preparação, Arena, Resultado), escolhida pela `phase` */
 export function RoomPage() {
@@ -89,7 +90,7 @@ function RoomScreen({ code }: { code: string }) {
       return <PagePlaceholder title={`Sala ${code}`} card="FE-28" owner="Rafael" />
     case 'WAITING':
     case 'MATCHED':
-      return <WaitingRoomPlaceholder code={code} />
+      return <WaitingRoom code={code} />
     case 'DRAFT':
       return <PreparationPlaceholder />
     case 'RESULT':
