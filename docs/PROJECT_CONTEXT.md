@@ -462,6 +462,9 @@ Abrir o jogo → [sem sessão] Acesso → Hub (Jogar; abas Loja / Perfil)
 - Pacotes simbólicos de Coins
 - Endpoints de recuperação de senha (formato proposto em 15/10; o front segue com dados
   simulados)
+  - (24/10) Ainda não existem no back (card BE-006.1, na reserva). Proposta, a validar: 200 (e
+    não 204) no forgot, `newPassword` + `confirmPassword` no reset, e o código
+    `INVALID_RESET_TOKEN`, que é só nossa proposta (o card diz 400/410). Ver ARCHITECTURE §6.
 - `PLAYER_DISCONNECTED` / `PLAYER_RECONNECTED` e se cair no Resultado cancela a revanche
 - Regra nova da MD3 (18/10): até 3 rounds, só acaba antes em 2×0, empate absoluto com placar
   igual no fim do round 3 (§6)

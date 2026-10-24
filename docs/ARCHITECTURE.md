@@ -235,6 +235,22 @@ do que já existe. Já confirmado:
   token (o front faz o login logo depois). BE-040 (JWT no `CONNECT`) e o `ROOM_SNAPSHOT` mínimo
   antes de 22/10.
 
+**Recuperação de senha (24/10), proposta, a validar com o back:** `forgot-password` e
+`reset-password` ainda não existem no back; hoje são só o card BE-006.1, na reserva (fora do
+prazo de 31/10). O que o front assumiu e o que o card descreve:
+
+- `forgot-password`: o card descreve resposta **200** com mensagem genérica (o combinado verbal
+  era 204). O front trata 200 e 204 como sucesso e mostra sempre o próprio texto.
+- `reset-password`: o card descreve `{ token, newPassword, confirmPassword }`. O front envia esse
+  corpo (em `resetPassword`, em `src/api/auth.ts`); se o back adotar `{ token, password }`,
+  só essa função muda.
+- Erro de token inválido, expirado ou já usado: o card diz apenas "400/410". O código
+  `INVALID_RESET_TOKEN` é só **proposta do front** (constante `INVALID_RESET_TOKEN_CODE`). Sem
+  código, o front trata 400/410 sem `VALIDATION_ERROR` como link inválido.
+- O link do e-mail usa a variável `FRONTEND_RESET_PASSWORD_URL` do back (padrão do card:
+  `/reset-password` na porta 3000); para o front, deve apontar para `<front>/redefinir-senha`.
+- O reset não encerra sessões já abertas (decisão do card).
+
 ### Servidor simulado (FE-35)
 
 Enquanto o back não está pronto, o front roda contra um **servidor simulado** que vive no próprio
