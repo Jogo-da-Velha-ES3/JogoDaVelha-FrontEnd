@@ -1,6 +1,6 @@
 // Tela de Acesso (FE-25): Entrar (e-mail ou usuário + senha) e Criar conta.
 // Paisagem: o teclado cobre a metade de baixo, então tudo fica no alto e compacto [PROJECT_CONTEXT §9].
-import { useId, useState, type FormEvent, type InputHTMLAttributes } from 'react'
+import { useId, useState, type FormEvent } from 'react'
 import {
   AccountCreatedError,
   login,
@@ -26,6 +26,7 @@ import { useAuthStore } from '../../stores/authStore'
 import type { CharacterId } from '../../types/game'
 import { Character } from '../characters'
 import { ForgotPasswordModal } from './ForgotPasswordModal'
+import { FormError, TextField } from './FormFields'
 
 type Tab = 'login' | 'register'
 
@@ -316,47 +317,5 @@ function RegisterForm({ onAccountCreated }: { onAccountCreated: (username: strin
       </div>
       <FormError message={formError} />
     </form>
-  )
-}
-
-interface TextFieldProps extends InputHTMLAttributes<HTMLInputElement> {
-  label: string
-  error?: string
-}
-
-export function TextField({ label, error, ...props }: TextFieldProps) {
-  const id = useId()
-  const errorId = `${id}-erro`
-  return (
-    <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-xs font-bold tracking-wide text-text-muted uppercase">
-        {label}
-      </label>
-      <input
-        id={id}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={error ? errorId : undefined}
-        className={[
-          'min-h-11 rounded-xl border-2 bg-bg-panel px-3 text-base text-text outline-none short:min-h-10',
-          'transition focus:border-primary focus:shadow-glow focus:shadow-primary/20',
-          error ? 'border-danger' : 'border-line',
-        ].join(' ')}
-        {...props}
-      />
-      {error && (
-        <p id={errorId} className="text-sm text-danger">
-          {error}
-        </p>
-      )}
-    </div>
-  )
-}
-
-export function FormError({ message }: { message: string | null }) {
-  if (!message) return null
-  return (
-    <p role="alert" className="text-center text-sm text-danger">
-      {message}
-    </p>
   )
 }

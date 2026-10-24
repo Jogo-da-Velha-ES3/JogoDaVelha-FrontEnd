@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { forgotPassword, forgotPasswordErrorFor } from '../../api/auth'
 import { Button, Modal } from '../../components/ui'
 import { EMAIL_MAX, validateEmail } from '../../lib/authValidation'
-import { FormError, TextField } from './AccessScreen'
+import { FormError, TextField } from './FormFields'
 
 /** Sempre este texto, exista o e-mail ou não: o pedido nunca revela se a conta existe */
 export const FORGOT_PASSWORD_SENT_MESSAGE =
