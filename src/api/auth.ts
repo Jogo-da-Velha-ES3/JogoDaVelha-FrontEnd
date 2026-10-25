@@ -144,7 +144,8 @@ export const MOCK_EXPIRED_RESET_TOKEN = 'expirado'
 /** Espera do simulado, para a tela mostrar o estado "enviando" como com o back de verdade */
 const MOCK_DELAY_MS = 1000
 
-const INVALID_LINK_MESSAGE = 'Esse link expirou ou não é válido. Peça um novo.'
+/** Link sem token, inválido, expirado ou já usado: a tela "Nova senha" mostra este texto */
+export const INVALID_RESET_LINK_MESSAGE = 'Esse link expirou ou não é válido. Peça um novo.'
 const RESET_GENERIC = 'Não foi possível redefinir a senha agora. Tente novamente mais tarde.'
 const FORGOT_GENERIC = 'Não foi possível enviar o pedido agora. Tente novamente mais tarde.'
 
@@ -174,7 +175,7 @@ export async function resetPassword(token: string, password: string): Promise<vo
   if (isMockServerEnabled()) {
     await wait(MOCK_DELAY_MS)
     if (!token.trim() || token === MOCK_EXPIRED_RESET_TOKEN) {
-      throw new ApiError(400, INVALID_LINK_MESSAGE, INVALID_RESET_TOKEN_CODE)
+      throw new ApiError(400, INVALID_RESET_LINK_MESSAGE, INVALID_RESET_TOKEN_CODE)
     }
     return
   }
@@ -219,7 +220,7 @@ export function resetPasswordErrorFor(error: unknown): ResetPasswordFormError {
   const isLinkStatus = error.status === 400 || error.status === 410
   const isGenericCode = error.code !== null && GENERIC_ERROR_CODES.includes(error.code)
   if (error.code === INVALID_RESET_TOKEN_CODE || (isLinkStatus && !isGenericCode)) {
-    return { fields: {}, form: INVALID_LINK_MESSAGE, invalidLink: true }
+    return { fields: {}, form: INVALID_RESET_LINK_MESSAGE, invalidLink: true }
   }
 
   return resetError(error.code === 'NETWORK' ? error.message : RESET_GENERIC)

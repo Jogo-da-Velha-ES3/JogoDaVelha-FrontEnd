@@ -3,7 +3,7 @@
 // no alto, para o teclado não cobrir [PROJECT_CONTEXT §3 e §9].
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { resetPassword, resetPasswordErrorFor } from '../../api/auth'
+import { INVALID_RESET_LINK_MESSAGE, resetPassword, resetPasswordErrorFor } from '../../api/auth'
 import { Button } from '../../components/ui'
 import {
   hasErrors,
@@ -13,10 +13,10 @@ import {
   type ResetPasswordField,
 } from '../../lib/authValidation'
 import { PATHS } from '../../routes/paths'
+import { useAuthStore } from '../../stores/authStore'
 import { showToast } from '../../stores/toastStore'
 import { FormError, TextField } from './FormFields'
 
-const INVALID_LINK_MESSAGE = 'Esse link expirou ou não é válido. Peça um novo.'
 export const PASSWORD_CHANGED_MESSAGE = 'Senha alterada! Entre com a senha nova.'
 
 /** `token` é o que veio no link; vazio = link sem token, que já cai direto no link inválido */
@@ -42,9 +42,10 @@ function InvalidLink() {
   const navigate = useNavigate()
   return (
     <div className="flex flex-col gap-3 short:flex-row short:items-center short:gap-4">
-      <div className="flex-1">
-        <FormError message={INVALID_LINK_MESSAGE} />
-      </div>
+      {/* Alinhada com o título, e não centralizada como o FormError, para não ficar solta no meio */}
+      <p role="alert" className="flex-1 text-sm text-danger">
+        {INVALID_RESET_LINK_MESSAGE}
+      </p>
       <Button block className="short:w-auto" onClick={() => navigate(PATHS.access)}>
         Voltar ao Acesso
       </Button>
@@ -54,6 +55,7 @@ function InvalidLink() {
 
 function ResetPasswordForm({ token, onInvalidLink }: { token: string; onInvalidLink: () => void }) {
   const navigate = useNavigate()
+  const logout = useAuthStore((s) => s.logout)
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [errors, setErrors] = useState<FieldErrors<ResetPasswordField>>({})
@@ -72,7 +74,9 @@ function ResetPasswordForm({ token, onInvalidLink }: { token: string; onInvalidL
     setPending(true)
     try {
       await resetPassword(token, password)
-      // Só depois da resposta de sucesso (nada otimista)
+      // Só depois da resposta de sucesso (nada otimista). Quem abriu o link logado sai da sessão
+      // deste aparelho e entra com a senha nova; sem isso, o RequireGuest levaria ao Hub
+      logout()
       showToast({ message: PASSWORD_CHANGED_MESSAGE })
       navigate(PATHS.access)
     } catch (error) {
