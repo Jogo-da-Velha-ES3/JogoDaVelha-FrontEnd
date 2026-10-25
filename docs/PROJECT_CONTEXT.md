@@ -427,9 +427,19 @@ Abrir o jogo → [sem sessão] Acesso → Hub (Jogar; abas Loja / Perfil)
 - **Caricatura em vez de foto (decidido em 25/10, FE-41):** lê melhor em tamanho pequeno e combina
   com o tom do jogo. Expressões: normal, rindo, debochado, bravo, muito bravo, surpreso, dormindo e
   Diabo, todas no mesmo ângulo e enquadramento, em WebP de 256px (~15 KB cada), em
-  `src/features/vitao/assets/`. Para casar com o neon, o contorno brilhante é feito no código
-  (FE-42), sem mexer na arte. Em ~48px, normal, bravo e muito bravo ficam parecidos: na reação de
-  raiva, usar o "muito bravo".
+  `src/features/vitao/assets/`. Em ~48px, normal, bravo e muito bravo ficam parecidos: na reação
+  de raiva, usar o "muito bravo".
+- **Corpo (FE-41, decidido em 25/10):** `VitaoFigure`, em `src/features/vitao/`. Corpo de cartoon
+  desenhado no código no mesmo estilo da cabeça (contorno preto, cores chapadas com uma sombra, pele
+  no tom das cabeças), com cabeção (~60% da altura) para as expressões lerem no espaço de ~100px.
+  Na mesma vista de três-quartos das cabeças: virado para a direita, com o tronco inclinado para
+  esse lado e os dois tênis apontando para a direita. O desenho da cabeça já vem inclinado, então
+  ela gira ~9° de volta em volta do queixo para ficar reta em cima do corpo.
+  Roupa: camiseta preta lisa, calça jeans e tênis branco. Um contorno neon em volta da silhueta
+  (para casar com o resto do jogo) é branco (`#f4f2ff`, sem usar a cor de um personagem); na
+  versão Diabo a pele e o contorno ficam vermelhos e aparece o rabo. Tronco,
+  braços e pernas são partes separadas, cada uma com o ponto de giro em `VITAO_PARTS`, para a
+  animação da FE-42. Vitrine: `/vitrine?aba=vitao`.
 - **Regras:** falas em arquivo editável, no máximo uma a cada 6s, balão que nunca cobre o
   tabuleiro, linguagem sem filtro por padrão (com opção de filtrar nas Configurações). Tudo é
   feito com `VITAO_ENABLED=false`; a flag é ligada quando o motor de reações (FE-44) for aprovado.

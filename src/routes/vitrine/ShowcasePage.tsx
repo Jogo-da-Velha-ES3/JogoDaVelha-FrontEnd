@@ -6,6 +6,7 @@ import { CharacterShowcase } from './CharacterShowcase'
 import { ComponentsShowcase } from './ComponentsShowcase'
 import { MockMatchShowcase } from './MockMatchShowcase'
 import { ShowcasePanel } from './ShowcaseLayout'
+import { VitaoShowcase } from './VitaoShowcase'
 
 interface Tab {
   id: string
@@ -27,6 +28,13 @@ const TABS: Tab[] = [
     label: 'Personagens',
     description: 'Os 6 personagens no estilo letreiro neon, em todos os tamanhos usados no jogo.',
     content: <CharacterShowcase />,
+  },
+  {
+    id: 'vitao',
+    label: 'Vitão',
+    description:
+      'O bonequinho do Vitão em todas as expressões, no tamanho do espaço dele na Arena.',
+    content: <VitaoShowcase />,
   },
   {
     id: 'tabuleiro',
