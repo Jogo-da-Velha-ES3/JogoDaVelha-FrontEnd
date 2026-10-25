@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '../../api/client'
@@ -144,5 +144,25 @@ describe('Criar conta', () => {
 
     await waitFor(() => expect(useAuthStore.getState().token).toBe('jwt'))
     expect(register).toHaveBeenCalledWith('vini', 'vini@exemplo.com', 'segredo1')
+  })
+})
+
+describe('Esqueci minha senha', () => {
+  it('o link abre o modal e, no simulado, o pedido termina com a mensagem de sempre', async () => {
+    render(<AccessScreen />)
+    await userEvent.click(screen.getByRole('button', { name: 'Esqueci minha senha' }))
+
+    const dialog = await screen.findByRole('dialog', { name: 'Esqueci minha senha' })
+    await userEvent.type(within(dialog).getByLabelText('E-mail'), 'ana@exemplo.com')
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Enviar link' }))
+
+    // O simulado espera ~1s antes de responder: a confirmação só aparece depois disso
+    expect(
+      await within(dialog).findByText(
+        'Se esse e-mail estiver cadastrado, você vai receber um link para criar uma senha nova.',
+        {},
+        { timeout: 3000 },
+      ),
+    ).toBeInTheDocument()
   })
 })

@@ -1,6 +1,6 @@
 // Tela de Acesso (FE-25): Entrar (e-mail ou usuário + senha) e Criar conta.
 // Paisagem: o teclado cobre a metade de baixo, então tudo fica no alto e compacto [PROJECT_CONTEXT §9].
-import { useId, useState, type FormEvent, type InputHTMLAttributes } from 'react'
+import { useId, useState, type FormEvent } from 'react'
 import {
   AccountCreatedError,
   login,
@@ -23,9 +23,10 @@ import {
 } from '../../lib/authValidation'
 import { CHARACTER_INFO } from '../../constants/characters'
 import { useAuthStore } from '../../stores/authStore'
-import { showToast } from '../../stores/toastStore'
 import type { CharacterId } from '../../types/game'
 import { Character } from '../characters'
+import { ForgotPasswordModal } from './ForgotPasswordModal'
+import { FormError, TextField } from './FormFields'
 
 type Tab = 'login' | 'register'
 
@@ -41,6 +42,7 @@ interface CreatedAccount {
 export function AccessScreen() {
   const [tab, setTab] = useState<Tab>('login')
   const [created, setCreated] = useState<CreatedAccount | null>(null)
+  const [forgotOpen, setForgotOpen] = useState(false)
   const id = useId()
   const tabId = (t: Tab) => `${id}-aba-${t}`
   const panelId = `${id}-painel`
@@ -87,12 +89,14 @@ export function AccessScreen() {
         <div id={panelId} role="tabpanel" aria-labelledby={tabId(tab)}>
           {/* key: trocar de aba começa o formulário do zero, sem erro antigo */}
           {tab === 'login' ? (
-            <LoginForm key="login" created={created} />
+            <LoginForm key="login" created={created} onForgotPassword={() => setForgotOpen(true)} />
           ) : (
             <RegisterForm key="register" onAccountCreated={handleAccountCreated} />
           )}
         </div>
       </div>
+      {/* Fora do <form> do LoginForm: um formulário dentro de outro não é HTML válido */}
+      <ForgotPasswordModal open={forgotOpen} onClose={() => setForgotOpen(false)} />
     </section>
   )
 }
@@ -167,7 +171,13 @@ function useStartSession() {
   return (session: AuthSession) => saveToken(session.token)
 }
 
-function LoginForm({ created }: { created: CreatedAccount | null }) {
+function LoginForm({
+  created,
+  onForgotPassword,
+}: {
+  created: CreatedAccount | null
+  onForgotPassword: () => void
+}) {
   const startSession = useStartSession()
   const [identifier, setIdentifier] = useState(created?.username ?? '')
   const [password, setPassword] = useState('')
@@ -226,8 +236,7 @@ function LoginForm({ created }: { created: CreatedAccount | null }) {
       <button
         type="button"
         className="self-end text-sm text-text-muted underline-offset-4 hover:text-primary hover:underline"
-        // FE-36 (Lucas) troca isto pelo formulário de recuperação
-        onClick={() => showToast({ message: 'Recuperação de senha chega em breve.' })}
+        onClick={onForgotPassword}
       >
         Esqueci minha senha
       </button>
@@ -308,47 +317,5 @@ function RegisterForm({ onAccountCreated }: { onAccountCreated: (username: strin
       </div>
       <FormError message={formError} />
     </form>
-  )
-}
-
-interface TextFieldProps extends InputHTMLAttributes<HTMLInputElement> {
-  label: string
-  error?: string
-}
-
-function TextField({ label, error, ...props }: TextFieldProps) {
-  const id = useId()
-  const errorId = `${id}-erro`
-  return (
-    <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-xs font-bold tracking-wide text-text-muted uppercase">
-        {label}
-      </label>
-      <input
-        id={id}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={error ? errorId : undefined}
-        className={[
-          'min-h-11 rounded-xl border-2 bg-bg-panel px-3 text-base text-text outline-none short:min-h-10',
-          'transition focus:border-primary focus:shadow-glow focus:shadow-primary/20',
-          error ? 'border-danger' : 'border-line',
-        ].join(' ')}
-        {...props}
-      />
-      {error && (
-        <p id={errorId} className="text-sm text-danger">
-          {error}
-        </p>
-      )}
-    </div>
-  )
-}
-
-function FormError({ message }: { message: string | null }) {
-  if (!message) return null
-  return (
-    <p role="alert" className="text-center text-sm text-danger">
-      {message}
-    </p>
   )
 }
