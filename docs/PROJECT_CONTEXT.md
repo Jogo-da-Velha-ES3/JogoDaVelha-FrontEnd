@@ -421,14 +421,20 @@ Abrir o jogo → [sem sessão] Acesso → Hub (Jogar; abas Loja / Perfil)
 - **Decisão (15/10, com o GP):** com um terceiro grupo ajudando no front, o Vitão **entra no MVP 1**,
   junto com a sonoplastia e a voz do jogo (cards FE-37 a FE-45, grupo WBS-11 — Personalidade).
   Antes disso (até 14/10), o front só reservava o espaço dele.
-- **Como ele é:** um bonequinho com a **cabeça do Vitão de verdade** (recortes de fotos com
+- **Como ele é:** um bonequinho com a **cabeça do Vitão em caricatura** (desenho colorido com
   expressões), que anda e reage no espaço reservado da Arena, fala besteiras num balão e **com a
   voz gravada dele**. Na Morte Súbita vira a versão "Diabo".
+- **Caricatura em vez de foto (decidido em 25/10, FE-41):** lê melhor em tamanho pequeno e combina
+  com o tom do jogo. Expressões: normal, rindo, debochado, bravo, muito bravo, surpreso, dormindo e
+  Diabo, todas no mesmo ângulo e enquadramento, em WebP de 256px (~15 KB cada), em
+  `src/features/vitao/assets/`. Para casar com o neon, o contorno brilhante é feito no código
+  (FE-42), sem mexer na arte. Em ~48px, normal, bravo e muito bravo ficam parecidos: na reação de
+  raiva, usar o "muito bravo".
 - **Regras:** falas em arquivo editável, no máximo uma a cada 6s, balão que nunca cobre o
   tabuleiro, linguagem sem filtro por padrão (com opção de filtrar nas Configurações). Tudo é
   feito com `VITAO_ENABLED=false`; a flag é ligada quando o motor de reações (FE-44) for aprovado.
 - **Autorização:** o uso da imagem, das falas e da voz do Vitão num link público precisa do ok
-  dele, registrado na FE-41.
+  dele, registrado na FE-41. O Vitão autorizou o uso da imagem (25/10).
 - **Voz do jogo:** além do Vitão, os textos da interface (anúncios gritados, banners, erros,
   avisos, Resultado) seguem um guia de tom com humor de narrador estilo Mortal Kombat/Cuphead,
   centralizados num arquivo (FE-40).
