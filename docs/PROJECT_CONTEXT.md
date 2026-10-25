@@ -434,7 +434,7 @@ Abrir o jogo → [sem sessão] Acesso → Hub (Jogar; abas Loja / Perfil)
   tabuleiro, linguagem sem filtro por padrão (com opção de filtrar nas Configurações). Tudo é
   feito com `VITAO_ENABLED=false`; a flag é ligada quando o motor de reações (FE-44) for aprovado.
 - **Autorização:** o uso da imagem, das falas e da voz do Vitão num link público precisa do ok
-  dele, registrado na FE-41. O Vitão autorizou o uso da imagem (25/10).
+  dele, registrado na FE-41. O Vitão autorizou tudo em 25/10: imagem, desenho, falas e voz.
 - **Voz do jogo:** além do Vitão, os textos da interface (anúncios gritados, banners, erros,
   avisos, Resultado) seguem um guia de tom com humor de narrador estilo Mortal Kombat/Cuphead,
   centralizados num arquivo (FE-40).
