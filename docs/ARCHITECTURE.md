@@ -26,6 +26,7 @@ src/
 │   ├── characters/      # os 6 personagens em SVG (estilo neon) + paleta
 │   └── vitao/           # Vitão: arte, animação, falas e reações, atrás da flag VITAO_ENABLED
 ├── sockets/            # cliente STOMP + servidor simulado (mock/) com a mesma interface
+├── pwa/                # convite de instalação (beforeinstallprompt) e registro do service worker
 ├── lib/                # lógica pura, sem React (testável isolado)
 │   ├── winCheck.ts       # verificação de vitória N×N/K, ignorando peças congeladas
 │   ├── timer.ts          # cálculo do tempo restante a partir do timestamp do servidor
@@ -296,5 +297,21 @@ Howler, React Router, oxlint + Prettier, Husky + lint-staged, Vitest, CI e deplo
 A base da ERS V2 (FE-22) trocou o `socket.io-client` pelo `@stomp/stompjs`, criou as pastas novas,
 as constantes, os tipos, o cliente REST (`src/api/`) e ligou o modo `strict` do TypeScript.
 
-Pendente: configurar o PWA (manifest com `"orientation": "landscape"`, ícones e service worker) —
-card FE-16.
+### PWA (FE-16)
+
+O jogo é instalável sem plugin do Vite: os arquivos ficam em `public/` e vão para o build como estão.
+
+- `public/manifest.webmanifest`: nome, `display: "fullscreen"`, `orientation: "landscape"`, cores
+  no `--color-bg-deep` (`#07060e`) e os ícones de `public/icons/` (192, 512 e um "maskable" para o
+  Android recortar). O iPhone usa o `apple-touch-icon` e as metas `apple-mobile-web-app-*` do
+  `index.html`.
+- `public/sw.js`: service worker básico. Páginas vêm da rede primeiro (sempre a versão nova) e, sem
+  rede, da última guardada; `/assets/` (nomes com hash) vem do cache. API, WebSocket e tudo que não
+  é GET passam direto. Mudou algo que invalida o cache antigo? Troque a versão em `CACHE`.
+- `src/pwa/registerServiceWorker.ts` registra o `sw.js` só no build de produção (no `npm run dev`
+  e nos testes ele atrapalharia). Para testar a instalação, use o preview da Vercel (HTTPS).
+- `src/pwa/installPrompt.ts` guarda o `beforeinstallprompt` desde o `main.tsx`, porque o navegador
+  manda o evento logo no carregamento, antes do Hub existir. O `useInstallPrompt` e o
+  `InstallAppButton` do Hub decidem o botão pela regra pura de `src/lib/installPlatform.ts`: janela
+  de instalação do navegador (Chrome/Edge/Android), passo a passo do Compartilhar (iPhone/iPad) ou
+  botão escondido (já instalado, ou navegador que não instala sites, como o Firefox no computador).

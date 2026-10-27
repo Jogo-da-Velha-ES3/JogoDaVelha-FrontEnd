@@ -235,7 +235,8 @@ function LoginForm({
       </Button>
       <button
         type="button"
-        className="self-end text-sm text-text-muted underline-offset-4 hover:text-primary hover:underline"
+        // py-2 com -my-2: área de toque de 36px sem empurrar o layout nem invadir o botão (FE-16)
+        className="-my-2 self-end py-2 text-sm text-text-muted underline-offset-4 hover:text-primary hover:underline"
         onClick={onForgotPassword}
       >
         Esqueci minha senha

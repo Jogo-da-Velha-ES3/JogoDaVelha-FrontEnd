@@ -9,6 +9,7 @@ import { roomPath } from '../../routes/paths'
 import { showToast } from '../../stores/toastStore'
 import { Character } from '../characters'
 import { HowToPlayModal } from './HowToPlayModal'
+import { InstallAppButton } from './InstallAppButton'
 import { JoinRoomModal } from './JoinRoomModal'
 import { HUB_PLACEHOLDER_PROFILE } from './placeholderProfile'
 
@@ -65,14 +66,17 @@ export function PlayScreen() {
         <Button variant="secondary" block onClick={() => setJoinOpen(true)}>
           Entrar com código
         </Button>
-        <div className="grid grid-cols-2 gap-2">
-          <Button variant="ghost" size="sm" onClick={() => setHowToPlayOpen(true)}>
+        {/* Instalar app some quando já está instalado ou o navegador não instala sites (FE-16) */}
+        <div className="flex gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="flex-1"
+            onClick={() => setHowToPlayOpen(true)}
+          >
             Como jogar
           </Button>
-          {/* Instalar App é a FE-16 (PWA): o gatilho de instalação entra lá */}
-          <Button variant="ghost" size="sm" disabled title="Chega com a FE-16">
-            Instalar app
-          </Button>
+          <InstallAppButton className="flex-1" />
         </div>
       </div>
 

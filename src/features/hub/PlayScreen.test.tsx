@@ -60,8 +60,8 @@ describe('PlayScreen', () => {
     expect(screen.getByRole('dialog')).toBeInTheDocument()
   })
 
-  it('Instalar app fica desabilitado até a FE-16', () => {
+  it('Instalar app não aparece num navegador que não instala sites', () => {
     renderPlay()
-    expect(screen.getByRole('button', { name: 'Instalar app' })).toBeDisabled()
+    expect(screen.queryByRole('button', { name: 'Instalar app' })).not.toBeInTheDocument()
   })
 })
