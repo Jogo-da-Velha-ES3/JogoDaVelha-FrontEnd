@@ -222,7 +222,7 @@ describe('sorteio da 3ª habilidade (FE-10)', () => {
     expect(region).toHaveTextContent('Tornado')
     expect(screen.getByText('Aguardando o oponente…')).toBeInTheDocument()
     expect(screen.queryByText('Aguardando as cartas do servidor…')).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /Tornado/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Tornado, ofensiva, sorteada/i })).toBeInTheDocument()
   })
 
   it('se a escolha volta com erro, as cartas destravam para tentar de novo', () => {
