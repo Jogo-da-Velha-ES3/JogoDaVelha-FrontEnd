@@ -70,10 +70,7 @@ export function Arena({ onQuit }: ArenaProps) {
   const turn = useTimerStore((s) => s.turn)
 
   const player = (slot: PlayerSlot) => players.find((p) => p.slot === slot)
-  const characters = {
-    P1: player('P1')?.character,
-    P2: player('P2')?.character,
-  }
+  const characters = { P1: player('P1')?.character, P2: player('P2')?.character }
   const myTurn = phase === 'PLAYING' && turn?.player === me
   const turnColor = colorOf(turn ? characters[turn.player] : null)
   const empty = cells.filter((c) => c.owner === null).map((c) => c.index)
@@ -172,7 +169,8 @@ export function Arena({ onQuit }: ArenaProps) {
             cells={cells}
             characters={characters}
             winningLine={winningLine}
-            selectable={myTurn ? empty : []}
+            // Com a mira aberta, tocar numa casa não pode virar jogada (o alvo é a FE-27)
+            selectable={myTurn && !aim ? empty : []}
             disabled={reconnecting}
             onCellSelect={(cell) => sendCommand({ type: 'MOVE', payload: { cell } })}
           />
@@ -241,6 +239,8 @@ export function Arena({ onQuit }: ArenaProps) {
             canUse={myTurn && !reconnecting}
             silenced={player(me)?.silenced ?? false}
             aim={aim}
+            turnKey={turn?.startedAt ?? null}
+            color={colorOf(characters[me])}
           />
         </aside>
 

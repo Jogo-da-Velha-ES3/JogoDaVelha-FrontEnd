@@ -358,6 +358,28 @@ describe('oponente desconectado', () => {
   })
 })
 
+describe('deck na Arena (FE-11)', () => {
+  it('com a mira aberta, tocar numa casa vazia não vira jogada', () => {
+    renderArena()
+    send('DECK_UPDATE', {
+      deck: [
+        { ability: 'BOMBA', source: 'INITIAL', usedThisRound: false },
+        { ability: 'ESCUDO', source: 'INITIAL', usedThisRound: false },
+        { ability: 'TORNADO', source: 'DRAWN', usedThisRound: false },
+      ],
+    })
+    expect(screen.getAllByRole('button', { name: /vazia/ }).length).toBeGreaterThan(0)
+
+    fireEvent.click(screen.getByRole('button', { name: /^Bomba/ }))
+    expect(screen.queryAllByRole('button', { name: /vazia/ })).toHaveLength(0)
+    expect(sendCommand).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar mira' }))
+    fireEvent.click(screen.getAllByRole('button', { name: /vazia/ })[0])
+    expect(sendCommand).toHaveBeenCalledWith({ type: 'MOVE', payload: { cell: 0 } })
+  })
+})
+
 describe('menu de pausa', () => {
   it('não para o timer e "Desistir" sai da partida', () => {
     const onQuit = renderArena()

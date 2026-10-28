@@ -1,97 +1,124 @@
-import { useState } from 'react'
+import { useId, useState, type CSSProperties } from 'react'
 import { Button, Modal } from '../../components/ui'
 import { ABILITY_INFO } from '../../constants/abilities'
+import { DECK_SIZE } from '../../constants/game'
 import { sendCommand } from '../../sockets/gameClient'
 import { usePowersStore, type Aim } from '../../stores/powersStore'
 import { useRoomStore } from '../../stores/roomStore'
 import type { AbilityId, DeckSlot } from '../../types/game'
+import { AbilityIcon } from './AbilityIcon'
 
 interface DeckHudProps {
   deck: readonly DeckSlot[]
+  /** Minha vez e conectado: as cartas aceitam toque */
   canUse: boolean
   silenced: boolean
   aim: Aim | null
+  /** Início do turno atual (timestamp do servidor): um envio só fica pendente no turno em que saiu */
+  turnKey: number | null
+  /** Cor do meu personagem (cor do lado) */
+  color?: string
 }
 
-/** Mostra somente o deck privado confirmado pelo servidor e permite iniciar uma intenção. */
-export function DeckHud({ deck, canUse, silenced, aim }: DeckHudProps) {
-  const [confirming, setConfirming] = useState<AbilityId | null>(null)
-  const [pending, setPending] = useState<{
-    ability: AbilityId
-    error: unknown
-  } | null>(null)
-  const roomError = useRoomStore((s) => s.lastError)
+/**
+ * Deck da rodada na coluna direita da Arena (FE-11). Mostra só o deck confirmado pelo servidor e
+ * envia a intenção [RN-ARN-02]: "Enviando…" não marca a carta como usada, quem marca é o
+ * DECK_UPDATE. Habilidade com alvo só inicia a mira (FE-27); sem alvo, pede confirmação e envia.
+ * Sem descrição na partida, para caber no celular deitado: ela aparece na Preparação e no sorteio.
+ */
+export function DeckHud({ deck, canUse, silenced, aim, turnKey, color }: DeckHudProps) {
+  const descriptionId = useId()
+  const lastError = useRoomStore((s) => s.lastError)
   const startAim = usePowersStore((s) => s.startAim)
   const cancelAim = usePowersStore((s) => s.cancelAim)
+  const [confirming, setConfirming] = useState<{ ability: AbilityId; turnKey: number | null }>()
+  // O envio e o último erro conhecido naquele momento: um erro novo, outro turno ou a carta marcada
+  // como usada pelo servidor encerram a espera
+  const [sent, setSent] = useState<{
+    ability: AbilityId
+    turnKey: number | null
+    error: typeof lastError
+  }>()
 
-  const pendingResolved =
-    pending !== null &&
-    (roomError !== pending.error ||
-      deck.some((slot) => slot.ability === pending.ability && slot.usedThisRound) ||
-      !canUse)
-  const activePending = pendingResolved ? null : pending
+  const ready = deck.length === DECK_SIZE
+  const pending =
+    sent &&
+    sent.turnKey === turnKey &&
+    sent.error === lastError &&
+    !deck.some((slot) => slot.ability === sent.ability && slot.usedThisRound)
+      ? sent.ability
+      : null
+  const blocked = !canUse || silenced || !ready || pending !== null
+  const usable = (slot: DeckSlot | undefined): slot is DeckSlot =>
+    slot !== undefined && !blocked && !slot.usedThisRound
+  const confirmingNow = confirming?.turnKey === turnKey ? confirming.ability : null
 
-  const selectAbility = (ability: AbilityId) => {
-    const slot = deck.find((item) => item.ability === ability)
-    if (!canUse || silenced || !slot || slot.usedThisRound || activePending) return
-
-    if (ABILITY_INFO[ability].target === 'NONE') {
+  const select = (slot: DeckSlot) => {
+    if (!usable(slot)) return
+    if (ABILITY_INFO[slot.ability].target === 'NONE') {
       cancelAim()
-      setConfirming(ability)
-      return
+      setConfirming({ ability: slot.ability, turnKey })
+    } else if (aim?.ability === slot.ability) {
+      cancelAim()
+    } else {
+      startAim(slot.ability)
     }
-
-    startAim(ability)
   }
 
   const confirmUse = () => {
-    if (!confirming) return
-    const slot = deck.find((item) => item.ability === confirming)
-    if (!canUse || silenced || activePending || !slot || slot.usedThisRound) {
-      setConfirming(null)
-      return
-    }
-
-    setPending({ ability: confirming, error: roomError })
-    sendCommand({ type: 'USE_ABILITY', payload: { ability: confirming } })
-    setConfirming(null)
+    setConfirming(undefined)
+    const slot = deck.find((item) => item.ability === confirmingNow)
+    if (!usable(slot)) return
+    setSent({ ability: slot.ability, turnKey, error: lastError })
+    sendCommand({ type: 'USE_ABILITY', payload: { ability: slot.ability } })
   }
 
   return (
     <>
-      <section aria-label="Seu deck" className="mt-auto flex min-h-0 flex-1 flex-col gap-2">
-        <ul className="flex min-h-0 flex-1 flex-col gap-2">
+      <section
+        aria-label="Seu deck"
+        style={{ '--side': color ?? 'var(--color-primary)' } as CSSProperties}
+        className="mt-auto flex min-h-0 flex-col gap-1.5"
+      >
+        <ul className="flex min-h-0 flex-col gap-1.5 overflow-y-auto">
           {deck.map((slot) => {
             const info = ABILITY_INFO[slot.ability]
-            const glyph = ABILITY_GLYPHS[slot.ability]
             const selected = aim?.ability === slot.ability
-            const isPending = activePending?.ability === slot.ability
-            const disabled =
-              !canUse ||
-              silenced ||
-              slot.usedThisRound ||
-              Boolean(activePending) ||
-              deck.length !== 3
+            const status =
+              pending === slot.ability
+                ? 'Enviando…'
+                : slot.usedThisRound
+                  ? 'Usada'
+                  : silenced
+                    ? 'Silenciada'
+                    : info.kind
 
             return (
               <li key={slot.ability} className="flex">
                 <button
                   type="button"
                   aria-pressed={selected}
-                  aria-label={`${info.name}, ${info.kind.toLowerCase()}${slot.source === 'DRAWN' ? ', sorteada' : ''}${slot.usedThisRound ? ', usada' : ''}`}
-                  disabled={disabled}
-                  onClick={() => selectAbility(slot.ability)}
-                  className={`flex min-h-24 w-full flex-col justify-center gap-1.5 rounded-xl border-2 px-3 py-2 text-left transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary short:min-h-20 short:px-2 short:py-1 ${slot.usedThisRound ? 'border-line bg-bg-deep/60 opacity-40' : selected ? 'border-primary bg-primary/15 shadow-glow shadow-primary/20' : 'border-line bg-bg-raised hover:border-primary/70'} disabled:pointer-events-none disabled:cursor-not-allowed`}
+                  aria-label={`${info.name}, ${info.kind.toLowerCase()}${slot.source === 'DRAWN' ? ', sorteada' : ''}${slot.usedThisRound ? ', usada' : silenced ? ', silenciada' : ''}`}
+                  aria-describedby={`${descriptionId}-${slot.ability}`}
+                  disabled={!usable(slot)}
+                  onClick={() => select(slot)}
+                  className={[
+                    'flex w-full flex-col gap-0.5 rounded-xl border-2 px-2.5 py-1.5 text-left transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary short:px-2 short:py-1',
+                    slot.usedThisRound
+                      ? 'border-line bg-bg-deep/60 opacity-40'
+                      : silenced
+                        ? 'border-danger/50 bg-bg-raised opacity-60'
+                        : selected
+                          ? 'border-(--side) bg-(--side)/15 shadow-glow shadow-(color:--side)/25'
+                          : usable(slot)
+                            ? 'border-line bg-bg-raised hover:border-(--side)/70'
+                            : 'border-line bg-bg-raised opacity-70',
+                  ].join(' ')}
                 >
                   <span className="flex items-center justify-between gap-2">
                     <span className="flex min-w-0 items-center gap-2">
-                      <span
-                        aria-hidden="true"
-                        className="shrink-0 text-lg leading-none short:text-base"
-                      >
-                        {glyph}
-                      </span>
-                      <span className="font-display text-sm leading-tight font-extrabold text-primary uppercase short:text-xs">
+                      <AbilityIcon ability={slot.ability} className="size-5 short:size-4" />
+                      <span className="truncate font-display text-sm leading-tight font-extrabold text-(--side) uppercase short:text-xs">
                         {info.name}
                       </span>
                     </span>
@@ -101,10 +128,12 @@ export function DeckHud({ deck, canUse, silenced, aim }: DeckHudProps) {
                       </span>
                     )}
                   </span>
-                  <span className="font-display text-[10px] font-semibold tracking-wide text-text-muted uppercase short:text-[9px]">
-                    {isPending ? 'Enviando…' : slot.usedThisRound ? 'Usada' : info.kind}
+                  <span
+                    className={`font-display text-[10px] font-semibold tracking-wide uppercase short:text-[9px] ${silenced && !slot.usedThisRound ? 'text-danger' : 'text-text-muted'}`}
+                  >
+                    {status}
                   </span>
-                  <span className="text-xs leading-snug text-text-muted short:text-[10px]">
+                  <span id={`${descriptionId}-${slot.ability}`} className="sr-only">
                     {info.description}
                   </span>
                 </button>
@@ -113,7 +142,7 @@ export function DeckHud({ deck, canUse, silenced, aim }: DeckHudProps) {
           })}
         </ul>
 
-        {deck.length !== 3 && (
+        {deck.length > 0 && !ready && (
           <p role="status" className="text-center text-xs text-text-muted">
             Aguardando o deck do servidor…
           </p>
@@ -123,7 +152,7 @@ export function DeckHud({ deck, canUse, silenced, aim }: DeckHudProps) {
             Silenciado: sem habilidades neste turno.
           </p>
         )}
-        {activePending && (
+        {pending && (
           <p role="status" className="text-center text-xs text-text-muted">
             Aguardando confirmação do servidor…
           </p>
@@ -136,35 +165,22 @@ export function DeckHud({ deck, canUse, silenced, aim }: DeckHudProps) {
       </section>
 
       <Modal
-        open={confirming !== null}
-        onClose={() => setConfirming(null)}
-        title={`Usar ${confirming ? ABILITY_INFO[confirming].name : 'habilidade'}?`}
+        open={confirmingNow !== null}
+        onClose={() => setConfirming(undefined)}
+        title={`Usar ${confirmingNow ? ABILITY_INFO[confirmingNow].name : 'habilidade'}?`}
         actions={
           <>
-            <Button variant="ghost" onClick={() => setConfirming(null)}>
+            <Button variant="ghost" onClick={() => setConfirming(undefined)}>
               Cancelar
             </Button>
-            <Button onClick={confirmUse} disabled={!canUse || silenced || Boolean(pending)}>
+            <Button onClick={confirmUse} disabled={blocked}>
               Confirmar uso
             </Button>
           </>
         }
       >
-        <p>Esta habilidade não precisa de alvo. Confirmar o uso?</p>
+        <p>{confirmingNow && ABILITY_INFO[confirmingNow].description}</p>
       </Modal>
     </>
   )
-}
-
-const ABILITY_GLYPHS: Record<AbilityId, string> = {
-  BOMBA: '💣',
-  ESCUDO: '🛡️',
-  AMPULHETA: '⏳',
-  TORNADO: '🌪️',
-  BURACO_NEGRO: '🕳️',
-  CONGELAR: '❄️',
-  CAMPO_DE_FORCA: '🔰',
-  SILENCIO: '🤫',
-  TROCA_RAPIDA: '⚡',
-  REFORCO: '💪',
 }
