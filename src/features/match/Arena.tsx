@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, useReducedMotion } from 'framer-motion'
 import { Banner } from '../../components/ui'
-import { ABILITY_INFO } from '../../constants/abilities'
 import { CHARACTER_INFO } from '../../constants/characters'
 import { useServerTimer } from '../../hooks/useServerTimer'
 import { otherSlot } from '../../lib/match'
@@ -17,6 +16,7 @@ import type { CharacterId, PlayerSlot } from '../../types/game'
 import { Board } from '../board'
 import { HowToPlayModal } from '../hub/HowToPlayModal'
 import { DrawPicker } from '../powers/DrawPicker'
+import { DeckHud } from '../powers/DeckHud'
 import { VitaoSlot } from '../vitao/VitaoSlot'
 import { OpponentDisconnectedNotice } from './OpponentDisconnectedNotice'
 import { PauseOverlay } from './PauseOverlay'
@@ -65,6 +65,7 @@ export function Arena({ onQuit }: ArenaProps) {
   const cells = useBoardStore((s) => s.cells)
   const winningLine = useBoardStore((s) => s.winningLine)
   const deck = usePowersStore((s) => s.deck)
+  const aim = usePowersStore((s) => s.aim)
   const drawOptions = usePowersStore((s) => s.drawOptions)
   const turn = useTimerStore((s) => s.turn)
 
@@ -168,7 +169,8 @@ export function Arena({ onQuit }: ArenaProps) {
             cells={cells}
             characters={characters}
             winningLine={winningLine}
-            selectable={myTurn ? empty : []}
+            // Com a mira aberta, tocar numa casa não pode virar jogada (o alvo é a FE-27)
+            selectable={myTurn && !aim ? empty : []}
             disabled={reconnecting}
             onCellSelect={(cell) => sendCommand({ type: 'MOVE', payload: { cell } })}
           />
@@ -232,18 +234,14 @@ export function Arena({ onQuit }: ArenaProps) {
             </p>
           )}
 
-          {/* Deck só para exibição: o deck clicável é a FE-11 e a mira, a FE-27 */}
-          <ul aria-label="Seu deck" className="mt-auto flex flex-col gap-1.5">
-            {deck.map((slot) => (
-              <li
-                key={slot.ability}
-                className={`rounded-lg border border-line px-2 py-1.5 text-sm ${slot.usedThisRound ? 'opacity-40' : ''}`}
-              >
-                {ABILITY_INFO[slot.ability].name}
-                {slot.usedThisRound && <span className="text-xs text-text-muted"> · usada</span>}
-              </li>
-            ))}
-          </ul>
+          <DeckHud
+            deck={deck}
+            canUse={myTurn && !reconnecting}
+            silenced={player(me)?.silenced ?? false}
+            aim={aim}
+            turnKey={turn?.startedAt ?? null}
+            color={colorOf(characters[me])}
+          />
         </aside>
 
         {/* ── Camada de overlays ──

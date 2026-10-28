@@ -222,7 +222,7 @@ describe('sorteio da 3ª habilidade (FE-10)', () => {
     expect(region).toHaveTextContent('Tornado')
     expect(screen.getByText('Aguardando o oponente…')).toBeInTheDocument()
     expect(screen.queryByText('Aguardando as cartas do servidor…')).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /Tornado/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Tornado, ofensiva, sorteada/i })).toBeInTheDocument()
   })
 
   it('se a escolha volta com erro, as cartas destravam para tentar de novo', () => {
@@ -355,6 +355,28 @@ describe('oponente desconectado', () => {
 
     send('PLAYER_RECONNECTED', { slot: 'P2' })
     expect(screen.queryByText('Oponente desconectado')).not.toBeInTheDocument()
+  })
+})
+
+describe('deck na Arena (FE-11)', () => {
+  it('com a mira aberta, tocar numa casa vazia não vira jogada', () => {
+    renderArena()
+    send('DECK_UPDATE', {
+      deck: [
+        { ability: 'BOMBA', source: 'INITIAL', usedThisRound: false },
+        { ability: 'ESCUDO', source: 'INITIAL', usedThisRound: false },
+        { ability: 'TORNADO', source: 'DRAWN', usedThisRound: false },
+      ],
+    })
+    expect(screen.getAllByRole('button', { name: /vazia/ }).length).toBeGreaterThan(0)
+
+    fireEvent.click(screen.getByRole('button', { name: /^Bomba/ }))
+    expect(screen.queryAllByRole('button', { name: /vazia/ })).toHaveLength(0)
+    expect(sendCommand).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar mira' }))
+    fireEvent.click(screen.getAllByRole('button', { name: /vazia/ })[0])
+    expect(sendCommand).toHaveBeenCalledWith({ type: 'MOVE', payload: { cell: 0 } })
   })
 })
 
