@@ -117,7 +117,10 @@ export function DeckHud({ deck, canUse, silenced, aim, turnKey, color }: DeckHud
                 >
                   <span className="flex items-center justify-between gap-2">
                     <span className="flex min-w-0 items-center gap-2">
-                      <AbilityIcon ability={slot.ability} className="size-5 short:size-4" />
+                      <AbilityIcon
+                        ability={slot.ability}
+                        className="size-5 text-(--side) short:size-4"
+                      />
                       <span className="truncate font-display text-sm leading-tight font-extrabold text-(--side) uppercase short:text-xs">
                         {info.name}
                       </span>

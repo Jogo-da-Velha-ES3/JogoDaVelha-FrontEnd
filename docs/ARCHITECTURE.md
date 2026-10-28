@@ -10,7 +10,7 @@ src/
 ├── api/                # cliente REST fino (fetch): auth, perfil, inventário, loja, salas
 ├── assets/             # sons (Howler), imagens, ícones, fontes
 ├── components/         # componentes reutilizáveis e "burros" (sem lógica de negócio)
-│   ├── ui/              # botões, modais, inputs, toast, banner — puramente visuais
+│   ├── ui/              # botões, modais, inputs, toast, banner, ícones (cadeado, pausa) — puramente visuais
 │   └── layout/          # LandscapeShell (safe-area, sem overflow) e o aviso "Gire o celular"
 ├── features/           # lógica de domínio, isolada por área do jogo
 │   ├── auth/            # login, cadastro, sessão
@@ -20,7 +20,7 @@ src/
 │   ├── lobby/           # criar/entrar em sala, código numérico de 4 dígitos, Sala de Espera
 │   ├── draft/           # Preparação: personagem (com bloqueio) e 2 habilidades iniciais
 │   ├── board/           # tabuleiro 4×4, células e seus estados
-│   ├── powers/          # sorteio da 3ª, deck, mira e efeitos visuais das 10 habilidades
+│   ├── powers/          # sorteio da 3ª, deck, mira, efeitos visuais e ícones neon (`AbilityIcon`) das 10 habilidades
 │   ├── match/           # Arena: turnos, timer, placar MD3, Morte Súbita, banners
 │   ├── results/         # Resultado, Coins, revanche
 │   ├── characters/      # os 6 personagens em SVG (estilo neon) + paleta

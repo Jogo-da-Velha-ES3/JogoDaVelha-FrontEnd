@@ -92,6 +92,9 @@ describe('Preparação (FE-09)', () => {
     draftUpdate({ P2: 'ESTRELA' })
     expect(button('Reservado por Vini')).toHaveTextContent('Reservado por Vini')
     expect(screen.queryByRole('button', { name: 'Bloqueado · Estrela' })).not.toBeInTheDocument()
+    // Cadeado em SVG, sem emoji (FE-46)
+    expect(button('Reservado por Vini')).not.toHaveTextContent('🔒')
+    expect(button('Reservado por Vini').querySelector('svg[aria-hidden="true"]')).not.toBeNull()
   })
 
   it('só as habilidades desbloqueadas e exatamente 2 para confirmar', () => {

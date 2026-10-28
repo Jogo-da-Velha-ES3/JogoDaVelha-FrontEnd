@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { AbilityIconShowcase } from './AbilityIconShowcase'
 import { BoardShowcase } from './BoardShowcase'
 import { CellShowcase } from './CellShowcase'
 import { CharacterShowcase } from './CharacterShowcase'
@@ -27,6 +28,13 @@ const TABS: Tab[] = [
     label: 'Personagens',
     description: 'Os 6 personagens no estilo letreiro neon, em todos os tamanhos usados no jogo.',
     content: <CharacterShowcase />,
+  },
+  {
+    id: 'habilidades',
+    label: 'Habilidades',
+    description:
+      'Os ícones das 10 habilidades no estilo letreiro neon, nos tamanhos e cores do jogo.',
+    content: <AbilityIconShowcase />,
   },
   {
     id: 'tabuleiro',
