@@ -33,6 +33,9 @@
 Depois: FE-18 (sala e jogada via STOMP, 21–22/10), FE-19 (habilidades e timer, 23–24/10), FE-20
 (reconexão, 25–26/10) e FE-29 (revanche, 27–28/10). Homologação de todos em 29–30/10.
 
+Fora da sequência: FE-46 (ícones neon das 10 habilidades e fim dos emojis na interface, 28/10 ✓),
+aberta na revisão da FE-11. A Loja (FE-31) usa o mesmo `AbilityIcon`.
+
 ## Quando cada pessoa entra
 
 | Pessoa  | Cards (em ordem, com datas)                                                          | Começa quando estiver pronto |
@@ -68,4 +71,4 @@ Decidido com o GP em 15/10. Corre em paralelo e não depende da base, que já es
   absoluto); revanche com 15s e reinício completo.
 - **Entrou:** base da ERS V2, tokens neon e paisagem, personagens neon, servidor simulado, Acesso
   (e-mail ou usuário + senha), recuperação de senha, Sala de Espera, Arena, mira e efeitos das 10 habilidades, revanche, REST de
-  conta, Loja, Coins simbólicos, Perfil e Como Jogar.
+  conta, Loja, Coins simbólicos, Perfil, Como Jogar e os ícones neon das habilidades.
