@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, useReducedMotion } from 'framer-motion'
-import { Banner } from '../../components/ui'
+import { Banner, PauseIcon } from '../../components/ui'
 import { CHARACTER_INFO } from '../../constants/characters'
 import { useServerTimer } from '../../hooks/useServerTimer'
 import { otherSlot } from '../../lib/match'
@@ -128,7 +128,7 @@ export function Arena({ onQuit }: ArenaProps) {
                 onClick={() => setPauseOpen(true)}
                 className="relative z-[5] grid size-8 shrink-0 place-items-center rounded-lg border border-line font-mono text-sm text-text-muted transition hover:border-line hover:text-primary focus-visible:outline-2 focus-visible:outline-primary"
               >
-                ⏸
+                <PauseIcon className="size-4" />
               </button>
             )}
             <p

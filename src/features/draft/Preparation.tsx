@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Button, TimerBar } from '../../components/ui'
+import { Button, LockIcon, TimerBar } from '../../components/ui'
 import { ABILITY_INFO } from '../../constants/abilities'
 import { CHARACTER_INFO } from '../../constants/characters'
 import {
@@ -12,6 +12,7 @@ import {
 } from '../../constants/game'
 import { useServerTimer } from '../../hooks/useServerTimer'
 import { Character } from '../characters'
+import { AbilityIcon } from '../powers/AbilityIcon'
 import { otherSlot } from '../../lib/match'
 import { sendCommand } from '../../sockets/gameClient'
 import { useDraftStore } from '../../stores/draftStore'
@@ -213,10 +214,13 @@ export function Preparation({
                       {info.name}
                     </span>
                     <span className="text-center text-[10px] leading-tight text-text-muted short:text-left sm:text-xs">
+                      {(reservedByOpponent || locked) && (
+                        <LockIcon className="mr-0.5 size-3 align-[-2px]" />
+                      )}
                       {reservedByOpponent
-                        ? `🔒 Reservado por ${opponent?.nickname ?? 'oponente'}`
+                        ? `Reservado por ${opponent?.nickname ?? 'oponente'}`
                         : locked
-                          ? `🔒 ${info.price} Coins · Loja`
+                          ? `${info.price} Coins · Loja`
                           : selected
                             ? 'Selecionado'
                             : 'Disponível'}
@@ -267,9 +271,7 @@ export function Preparation({
                   aria-label={`${info.name}. ${info.description}`}
                   className={`relative flex min-h-0 flex-col items-center justify-center gap-1 rounded-xl border-2 bg-bg-panel px-2 py-1 text-center transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${selected ? 'border-primary shadow-glow shadow-primary/30' : 'border-line'} hover:border-primary/60`}
                 >
-                  <span className="text-xl leading-none sm:text-2xl" aria-hidden="true">
-                    {ABILITY_GLYPHS[ability]}
-                  </span>
+                  <AbilityIcon ability={ability} className="size-6 text-primary" />
                   <span className="font-display text-xs font-bold text-primary sm:text-sm">
                     {info.name}
                   </span>
@@ -352,17 +354,4 @@ function StepButton({
       {done ? ' ✓' : ''}
     </button>
   )
-}
-
-const ABILITY_GLYPHS: Record<AbilityId, string> = {
-  BOMBA: '💣',
-  ESCUDO: '🛡️',
-  AMPULHETA: '⏳',
-  TORNADO: '🌪️',
-  BURACO_NEGRO: '🕳️',
-  CONGELAR: '❄️',
-  CAMPO_DE_FORCA: '🔰',
-  SILENCIO: '🤫',
-  TROCA_RAPIDA: '⚡',
-  REFORCO: '💪',
 }

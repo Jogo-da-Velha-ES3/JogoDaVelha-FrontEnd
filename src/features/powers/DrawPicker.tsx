@@ -7,6 +7,7 @@ import { useServerTimer } from '../../hooks/useServerTimer'
 import { sendCommand } from '../../sockets/gameClient'
 import { useRoomStore } from '../../stores/roomStore'
 import type { AbilityId } from '../../types/game'
+import { AbilityIcon } from './AbilityIcon'
 
 export interface DrawPickerProps {
   options: AbilityId[] | null
@@ -142,8 +143,11 @@ function CardContent({ ability, experiment }: { ability: AbilityId; experiment: 
   return (
     <>
       <span className="flex w-full items-start justify-between gap-1">
-        <span className="font-display text-base leading-tight font-extrabold text-primary uppercase sm:text-lg">
-          {info.name}
+        <span className="flex min-w-0 items-center gap-2 text-primary">
+          <AbilityIcon ability={ability} className="size-6 short:size-5 sm:size-7" />
+          <span className="font-display text-base leading-tight font-extrabold uppercase sm:text-lg">
+            {info.name}
+          </span>
         </span>
         {experiment && (
           <span className="shrink-0 rounded-full border border-coin/50 bg-coin/10 px-1.5 py-0.5 font-display text-[9px] font-bold tracking-wide text-coin uppercase sm:text-[10px]">
