@@ -2,6 +2,7 @@
 // servidor simulado (FE-35) chamam applyServerEvent; nenhum componente assina eventos direto.
 // Cada store reflete o que o servidor confirmou: nada aqui calcula placar, vencedor ou timeout.
 import type { CharacterId, PlayerSlot, PlayerState } from '../types/game'
+import { otherSlot } from '../lib/match'
 import type { ServerEnvelope, ServerEvent } from '../types/events'
 import { initialBoardState, useBoardStore } from './boardStore'
 import { useClockStore } from './clockStore'
@@ -147,6 +148,7 @@ export function applyServerEvent(envelope: ServerEnvelope, receivedAt = Date.now
         players: r.players.map((p) => ({
           ...p,
           consecutiveTimeouts: consecutiveTimeouts[p.slot],
+          ...(p.slot === otherSlot(turn.player) && p.silenced ? { silenced: false } : {}),
         })),
       }))
       usePowersStore.setState({ aim: null })
@@ -158,7 +160,13 @@ export function applyServerEvent(envelope: ServerEnvelope, receivedAt = Date.now
       return
 
     case 'ABILITY_RESOLVED':
-      useBoardStore.setState({ lastAbility: { ...event.payload, serverTime } })
+      useBoardStore.setState({ lastAbility: { ...event.payload, serverTime, receivedAt } })
+      if (event.payload.ability === 'SILENCIO') {
+        const silencedPlayer = otherSlot(event.payload.by)
+        useRoomStore.setState((r) => ({
+          players: patchPlayer(r.players, silencedPlayer, { silenced: true }),
+        }))
+      }
       usePowersStore.setState({ aim: null })
       return
 

@@ -11,7 +11,7 @@ export interface BoardState {
   /** Linha vencedora confirmada pelo servidor no fim do round */
   winningLine: number[] | null
   /** Última habilidade resolvida, para a animação e o aviso ("anulada", "sem efeito") */
-  lastAbility: (AbilityResolved & { serverTime: number }) | null
+  lastAbility: (AbilityResolved & { serverTime: number; receivedAt: number }) | null
 }
 
 export const emptyCells = (): Cell[] =>

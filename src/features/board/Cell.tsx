@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react'
 import { CHARACTER_INFO } from '../../constants/characters'
 import type { CellEffect, CellEffectKind, CharacterId } from '../../types/game'
 import { Character } from '../characters'
+import { AbilityImpact } from '../powers/AbilityImpact'
 
 /** Mira de habilidade: `target` = alvo possível, `selected` = alvo já escolhido */
 export type CellAim = 'target' | 'selected'
@@ -15,6 +16,8 @@ export interface CellProps {
   /** Efeitos com contador de turnos, como o servidor manda [RN-ARN-07] */
   effects?: readonly CellEffect[]
   aim?: CellAim
+  /** Efeito visual derivado de ABILITY_RESOLVED (nunca de uma intenção local) */
+  impact?: NonNullable<import('../../stores/boardStore').BoardState['lastAbility']>
   /** Faz parte da linha vencedora confirmada pelo servidor */
   winning?: boolean
   /** Sem `onSelect`, ou com `disabled`, a casa só mostra o estado */
@@ -50,12 +53,9 @@ function describe({ row, col, piece, effects = [], aim, winning }: CellProps): s
     .join(', ')
 }
 
-/**
- * Casa do tabuleiro com os estados da ERS [RF-ARN-01]. Só visual: recebe o estado por props.
- * Os efeitos são camadas sobrepostas, então nenhum estado muda o tamanho da casa.
- */
+/** Casa do tabuleiro com estados do servidor e camadas visuais que não alteram seu tamanho. */
 export function Cell(props: CellProps) {
-  const { piece, effects = [], aim, winning = false, onSelect, disabled = false } = props
+  const { piece, effects = [], aim, impact, winning = false, onSelect, disabled = false } = props
   const has = (kind: CellEffectKind) => effects.some((e) => e.kind === kind)
   const interactive = onSelect !== undefined && !disabled
   const color = piece ? CHARACTER_INFO[piece].color : 'var(--color-primary)'
@@ -78,7 +78,6 @@ export function Cell(props: CellProps) {
         />
       )}
 
-      {/* Absoluta: % de altura num item de grade nem sempre resolve no Safari (peça fora do centro) */}
       {piece && (
         <Character
           id={piece}
@@ -121,14 +120,11 @@ export function Cell(props: CellProps) {
       {aim && (
         <span
           data-layer="aim"
-          className={[
-            'absolute inset-0.5 rounded-md border-2 border-primary',
-            aim === 'target'
-              ? 'border-dashed motion-safe:animate-glow-pulse'
-              : 'shadow-glow shadow-primary/60',
-          ].join(' ')}
+          className={`absolute inset-0.5 rounded-md border-2 border-primary ${aim === 'target' ? 'border-dashed motion-safe:animate-glow-pulse' : 'shadow-glow shadow-primary/60'}`}
         />
       )}
+
+      {impact && <AbilityImpact result={impact} />}
 
       {effects.length > 0 && (
         <span

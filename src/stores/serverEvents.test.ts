@@ -315,6 +315,23 @@ describe('Preparação, sorteio e habilidades', () => {
     expect(powers().aim).toBeNull()
   })
 
+  it('Silêncio marca o adversário como silenciado até o fim do turno dele', () => {
+    send('ABILITY_RESOLVED', {
+      by: 'P2',
+      ability: 'SILENCIO',
+      targetCell: null,
+      destinationCell: null,
+      absorbed: false,
+      noEffect: false,
+    })
+    expect(useRoomStore.getState().players.find((p) => p.slot === 'P1')?.silenced).toBe(true)
+
+    send('TURN_START', turn('P1'))
+    expect(useRoomStore.getState().players.find((p) => p.slot === 'P1')?.silenced).toBe(true)
+    send('TURN_START', turn('P2'))
+    expect(useRoomStore.getState().players.find((p) => p.slot === 'P1')?.silenced).toBe(false)
+  })
+
   it('BOARD_UPDATE troca as casas', () => {
     send('BOARD_UPDATE', { board: cells('X...............') })
     expect(useBoardStore.getState().cells[0].owner).toBe('P1')
