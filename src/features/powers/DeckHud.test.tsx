@@ -100,6 +100,24 @@ describe('DeckHud (FE-11)', () => {
     expect(usePowersStore.getState().aim).toBeNull()
   })
 
+  it('carta com alvo e nenhum alvo agora: desabilitada com "Sem alvo" só na minha vez', () => {
+    const { rerender } = renderHud({ withoutTarget: ['BOMBA'] })
+    expect(card(/^Bomba, ofensiva, sorteada, sem alvo$/)).toBeDisabled()
+    expect(screen.getByText('Sem alvo')).toBeInTheDocument()
+    expect(card(/^Ampulheta/)).toBeEnabled()
+
+    rerender({ withoutTarget: ['BOMBA'], canUse: false })
+    expect(screen.queryByText('Sem alvo')).not.toBeInTheDocument()
+  })
+
+  it('mira enviada: a carta fica em "Enviando…", tudo trava e a mira não pode ser cancelada', () => {
+    usePowersStore.getState().startAim('BOMBA')
+    renderHud({ aimPending: true })
+    expect(within(card(/^Bomba/)).getByText('Enviando…')).toBeInTheDocument()
+    expect(card(/^Ampulheta/)).toBeDisabled()
+    expect(screen.queryByRole('button', { name: 'Cancelar mira' })).not.toBeInTheDocument()
+  })
+
   it('sem alvo: confirma, envia só a intenção e espera o servidor sem marcar a carta', () => {
     renderHud()
     fireEvent.click(card(/^Ampulheta/))

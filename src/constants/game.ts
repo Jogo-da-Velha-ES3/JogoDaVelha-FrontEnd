@@ -41,6 +41,9 @@ export const ROUND_COIN_FLIP_SECONDS = 1.2
  * [A VALIDAR COM O BACK]
  */
 export const ROUND_INTRO_SECONDS = 2.5
+/** Habilidade resolvida (FE-27): o efeito na casa e o aviso ("Oponente usou…", "Anulada…") */
+export const ABILITY_IMPACT_SECONDS = 1
+export const ABILITY_NOTICE_SECONDS = 2.5
 
 export const INITIAL_ABILITIES_TO_PICK = 2
 export const DECK_SIZE = 3 // 2 iniciais + 1 sorteada [RN-DRAFT-02]

@@ -152,6 +152,10 @@ estratégico e competitivo, **sem pay-to-win**.
   mesmo turno, nem usar 2 habilidades `[RN-ARN-02]`.
 - **O deck do oponente é oculto:** você só descobre uma habilidade dele quando ela é usada
   (decisão de interface).
+- **Mira só com alvo que tem efeito (decidido em 29/10, FE-27):** a peça com Reforço não é alvo de
+  Bomba, Tornado nem Buraco Negro, e a peça sem casa vizinha livre não é alvo de Tornado nem de
+  Troca Rápida. A carta que fica sem nenhum alvo aparece desabilitada, com "Sem alvo". O
+  servidor continua aceitando esses alvos (`[RN-ARN-05]`: executa sem efeito).
 
 ### Duração dos efeitos `[RN-ARN-07]`
 
@@ -404,6 +408,12 @@ Abrir o jogo → [sem sessão] Acesso → Hub (Jogar; abas Loja / Perfil)
   `MATCH_END`, a Arena segura **2 segundos**, como no W.O., e o subtítulo troca para "+20 Coins
   para cada" (Coins vindos do servidor); então vai para o Resultado.
 
+- **Habilidade resolvida (decidido em 29/10, FE-27):** o efeito aparece na casa (ou no centro do
+  tabuleiro, nas habilidades sem casa) por 1s, na **cor de quem usou**; anulada, com o ícone do
+  Campo de Força na cor de quem tinha o campo; sem efeito, neutro. O aviso fica 2,5s na coluna
+  direita, sem cobrir o tabuleiro: toda habilidade do oponente ("Oponente usou Bomba") e as minhas
+  só quando anuladas ou sem efeito ("Anulada pelo Campo de Força!", "Sem efeito!").
+
 ### Morte Súbita: pacote de pressão
 
 - **Entrada:** tela treme e pisca em vermelho, sirene, "MORTE SÚBITA" bate na tela, fitas de
@@ -475,6 +485,8 @@ Abrir o jogo → [sem sessão] Acesso → Hub (Jogar; abas Loja / Perfil)
 - Regra nova da MD3 (18/10): até 3 rounds, só acaba antes em 2×0, empate absoluto com placar
   igual no fim do round 3 (§6)
 - Apresentação do round (24/10): 2,5s entre o fim do sorteio e o primeiro `TURN_START` (§9)
+- Silêncio (29/10): mandar quem está silenciado no `TURN_START`; até lá o front deduz do
+  `ABILITY_RESOLVED` (ARCHITECTURE §6)
 
 ## 12. Prioridade de implementação (MVP 1)
 

@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react'
 import { CHARACTER_INFO } from '../../constants/characters'
+import type { ResolvedAbility } from '../../stores/boardStore'
 import type { CellEffect, CellEffectKind, CharacterId } from '../../types/game'
 import { Character } from '../characters'
 import { AbilityImpact } from '../powers/AbilityImpact'
@@ -16,8 +17,9 @@ export interface CellProps {
   /** Efeitos com contador de turnos, como o servidor manda [RN-ARN-07] */
   effects?: readonly CellEffect[]
   aim?: CellAim
-  /** Efeito visual derivado de ABILITY_RESOLVED (nunca de uma intenção local) */
-  impact?: NonNullable<import('../../stores/boardStore').BoardState['lastAbility']>
+  /** Habilidade que o servidor resolveu nesta casa (alvo ou destino), com a cor do efeito */
+  impact?: ResolvedAbility
+  impactColor?: string
   /** Faz parte da linha vencedora confirmada pelo servidor */
   winning?: boolean
   /** Sem `onSelect`, ou com `disabled`, a casa só mostra o estado */
@@ -53,7 +55,10 @@ function describe({ row, col, piece, effects = [], aim, winning }: CellProps): s
     .join(', ')
 }
 
-/** Casa do tabuleiro com estados do servidor e camadas visuais que não alteram seu tamanho. */
+/**
+ * Casa do tabuleiro com os estados da ERS [RF-ARN-01]. Só visual: recebe o estado por props.
+ * Os efeitos são camadas sobrepostas, então nenhum estado muda o tamanho da casa.
+ */
 export function Cell(props: CellProps) {
   const { piece, effects = [], aim, impact, winning = false, onSelect, disabled = false } = props
   const has = (kind: CellEffectKind) => effects.some((e) => e.kind === kind)
@@ -78,6 +83,7 @@ export function Cell(props: CellProps) {
         />
       )}
 
+      {/* Absoluta: % de altura num item de grade nem sempre resolve no Safari (peça fora do centro) */}
       {piece && (
         <Character
           id={piece}
@@ -120,11 +126,16 @@ export function Cell(props: CellProps) {
       {aim && (
         <span
           data-layer="aim"
-          className={`absolute inset-0.5 rounded-md border-2 border-primary ${aim === 'target' ? 'border-dashed motion-safe:animate-glow-pulse' : 'shadow-glow shadow-primary/60'}`}
+          className={[
+            'absolute inset-0.5 rounded-md border-2 border-primary',
+            aim === 'target'
+              ? 'border-dashed motion-safe:animate-glow-pulse'
+              : 'shadow-glow shadow-primary/60',
+          ].join(' ')}
         />
       )}
 
-      {impact && <AbilityImpact result={impact} />}
+      {impact && <AbilityImpact result={impact} color={props.impactColor} />}
 
       {effects.length > 0 && (
         <span

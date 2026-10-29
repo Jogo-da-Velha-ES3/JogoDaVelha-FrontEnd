@@ -74,47 +74,31 @@ describe('Cell', () => {
     expect(screen.getByRole('img')).toHaveAccessibleName('Linha 4, coluna 1: X, linha vencedora')
   })
 
-  it('mostra o efeito da habilidade somente com a resolução confirmada', () => {
+  it('efeito da habilidade resolvida: o ícone dela ou, anulada, o do Campo de Força', () => {
+    const resolved = {
+      by: 'P1' as const,
+      ability: 'BOMBA' as const,
+      targetCell: 0,
+      destinationCell: null,
+      absorbed: false,
+      noEffect: false,
+      serverTime: 1,
+      receivedAt: 1,
+    }
     const { container, rerender } = render(<Cell row={0} col={0} piece="O" />)
     expect(layer(container, 'ability-impact')).toBeNull()
 
-    rerender(
-      <Cell
-        row={0}
-        col={0}
-        piece="O"
-        impact={{
-          by: 'P1',
-          ability: 'BOMBA',
-          targetCell: 0,
-          destinationCell: null,
-          absorbed: false,
-          noEffect: false,
-          serverTime: 123,
-          receivedAt: 123,
-        }}
-      />,
+    rerender(<Cell row={0} col={0} piece="O" impact={resolved} impactColor="#b07cff" />)
+    expect(layer(container, 'ability-impact')?.querySelector('[data-ability]')).toHaveAttribute(
+      'data-ability',
+      'BOMBA',
     )
-    expect(layer(container, 'ability-impact')).not.toBeNull()
 
-    rerender(
-      <Cell
-        row={0}
-        col={0}
-        piece="O"
-        impact={{
-          by: 'P1',
-          ability: 'BOMBA',
-          targetCell: 0,
-          destinationCell: null,
-          absorbed: true,
-          noEffect: false,
-          serverTime: 124,
-          receivedAt: 124,
-        }}
-      />,
+    rerender(<Cell row={0} col={0} piece="O" impact={{ ...resolved, absorbed: true }} />)
+    expect(layer(container, 'ability-impact')?.querySelector('[data-ability]')).toHaveAttribute(
+      'data-ability',
+      'CAMPO_DE_FORCA',
     )
-    expect(layer(container, 'ability-impact')).toHaveTextContent('Anulada')
   })
 
   it('camadas dos estados são sobrepostas: não mudam o tamanho da casa', () => {
@@ -140,9 +124,7 @@ describe('Cell', () => {
   it('com onSelect vira botão: clique e teclado chamam a ação', async () => {
     const onSelect = vi.fn<() => void>()
     render(<Cell row={0} col={0} piece={null} onSelect={onSelect} />)
-    const button = screen.getByRole('button', {
-      name: 'Linha 1, coluna 1: vazia',
-    })
+    const button = screen.getByRole('button', { name: 'Linha 1, coluna 1: vazia' })
 
     await userEvent.click(button)
     button.focus()

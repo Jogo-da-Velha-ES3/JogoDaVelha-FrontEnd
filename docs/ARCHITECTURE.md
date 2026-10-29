@@ -28,6 +28,7 @@ src/
 ├── sockets/            # cliente STOMP + servidor simulado (mock/) com a mesma interface
 ├── lib/                # lógica pura, sem React (testável isolado)
 │   ├── winCheck.ts       # verificação de vitória N×N/K, ignorando peças congeladas
+│   ├── abilityTargets.ts # casas vizinhas e os alvos que a mira deixa tocar
 │   ├── timer.ts          # cálculo do tempo restante a partir do timestamp do servidor
 │   └── match.ts          # regras da MD3: fim da partida, quem começa, match point, Coins
 ├── constants/          # valores fixos do jogo (seção 4)
@@ -91,6 +92,12 @@ Arena segura o banner por `RESULT_HOLD_SECONDS` antes do Resultado; no empate ab
 (PROJECT_CONTEXT §9). Os efeitos da Morte Súbita ficam em `SuddenDeathLayer` (FE-13).
 A Arena fica em `src/features/match/Arena.tsx`, com as regiões prontas para as faixas e banners
 (FE-05), o deck (FE-11) e a mira (FE-27).
+
+A mira (FE-27) fica em `src/features/powers/useAbilityAim.ts`: alvos da etapa atual (com
+`getAimTargets`, de `src/lib/abilityTargets.ts`), o envio da intenção e a espera pelo servidor,
+com o tabuleiro travado até o `ABILITY_RESOLVED` ou um erro. O resultado aparece em duas peças: o
+`AbilityImpact`, o efeito na casa ou no centro do tabuleiro por `ABILITY_IMPACT_SECONDS`, e o
+`AbilityNotice`, o aviso na coluna direita por `ABILITY_NOTICE_SECONDS`.
 
 Revanche e saída (FE-29) ficam em `src/features/results/`: o `RematchPanel` (Revanche, Aceitar /
 Recusar com a barra dos 15s e Voltar ao Lobby) entra na tela de Resultado da FE-15, e o
@@ -208,7 +215,9 @@ implementados no back (revisão de telas, 06/10), então usar as rotas e payload
     MATCH POINT ou a entrada da Morte Súbita), que assim não come o tempo do primeiro turno
   - `BOARD_UPDATE` — casas e efeitos depois de uma ação
   - `ABILITY_RESOLVED` — quem usou, qual, alvo, se foi anulada pelo Campo de Força, se ficou sem
-    efeito
+    efeito. **[A VALIDAR COM O BACK]** (29/10) Só o `ROOM_SNAPSHOT` traz o `silenced`: o front
+    deduz o Silêncio daqui (quando não foi anulado) e o desfaz no `TURN_START` do outro jogador e
+    no `ROUND_START`. Pedir o `silenced` de cada lado no `TURN_START`, como os estouros
   - `TURN_TIMEOUT` — jogador e estouros consecutivos (x/3)
   - `ROUND_END` — vencedor ou empate, linha vencedora, placar
   - `MATCH_END` — resultado (vitória, empate absoluto, W.O.) e Coins de cada um

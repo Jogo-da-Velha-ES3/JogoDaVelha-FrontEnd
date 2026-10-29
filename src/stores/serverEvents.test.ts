@@ -315,21 +315,38 @@ describe('Preparação, sorteio e habilidades', () => {
     expect(powers().aim).toBeNull()
   })
 
-  it('Silêncio marca o adversário como silenciado até o fim do turno dele', () => {
-    send('ABILITY_RESOLVED', {
-      by: 'P2',
-      ability: 'SILENCIO',
-      targetCell: null,
-      destinationCell: null,
-      absorbed: false,
-      noEffect: false,
-    })
-    expect(useRoomStore.getState().players.find((p) => p.slot === 'P1')?.silenced).toBe(true)
+  describe('Silêncio', () => {
+    const silence = (absorbed = false) =>
+      send('ABILITY_RESOLVED', {
+        by: 'P2',
+        ability: 'SILENCIO',
+        targetCell: null,
+        destinationCell: null,
+        absorbed,
+        noEffect: false,
+      })
+    const silenced = () => useRoomStore.getState().players.find((p) => p.slot === 'P1')?.silenced
 
-    send('TURN_START', turn('P1'))
-    expect(useRoomStore.getState().players.find((p) => p.slot === 'P1')?.silenced).toBe(true)
-    send('TURN_START', turn('P2'))
-    expect(useRoomStore.getState().players.find((p) => p.slot === 'P1')?.silenced).toBe(false)
+    it('cala o oponente até o fim do próximo turno dele', () => {
+      silence()
+      expect(silenced()).toBe(true)
+
+      send('TURN_START', turn('P1'))
+      expect(silenced()).toBe(true)
+      send('TURN_START', turn('P2'))
+      expect(silenced()).toBe(false)
+    })
+
+    it('anulado pelo Campo de Força não cala ninguém', () => {
+      silence(true)
+      expect(silenced()).toBe(false)
+    })
+
+    it('não passa para o round seguinte', () => {
+      silence()
+      send('ROUND_START', { round: 2, startingPlayer: 'P1', suddenDeath: false })
+      expect(silenced()).toBe(false)
+    })
   })
 
   it('BOARD_UPDATE troca as casas', () => {

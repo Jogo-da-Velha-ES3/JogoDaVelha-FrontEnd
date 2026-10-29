@@ -1,8 +1,10 @@
 import type { KeyboardEvent } from 'react'
+import { CHARACTER_INFO } from '../../constants/characters'
+import type { ResolvedAbility } from '../../stores/boardStore'
 import type { Cell as CellState, CharacterId, PlayerSlot } from '../../types/game'
-import type { BoardState } from '../../stores/boardStore'
-import { Cell } from './Cell'
 import { AbilityImpact } from '../powers/AbilityImpact'
+import { abilityImpactSide } from '../powers/abilityImpactSide'
+import { Cell } from './Cell'
 
 export interface BoardAim {
   /** Casas que podem ser alvo da habilidade em mira */
@@ -19,8 +21,8 @@ export interface BoardProps {
   /** Linha vencedora confirmada pelo servidor */
   winningLine?: readonly number[] | null
   aim?: BoardAim | null
-  /** Última resolução confirmada pelo servidor, com relógio único para repetir efeitos */
-  impact?: BoardState['lastAbility']
+  /** Habilidade que o servidor acabou de resolver: efeito no alvo e no destino, ou no centro */
+  impact?: ResolvedAbility | null
   /** Casas clicáveis agora (quem decide é a Arena). Sem isto, todas são */
   selectable?: readonly number[]
   /** Intenção de jogada: o tabuleiro não muda nada, só avisa o índice */
@@ -31,10 +33,7 @@ export interface BoardProps {
 }
 
 // Enquanto o servidor não confirmou os personagens (ex: demonstrações), cada lado usa X ou O
-const FALLBACK_CHARACTER: Record<PlayerSlot, CharacterId> = {
-  P1: 'X',
-  P2: 'O',
-}
+const FALLBACK_CHARACTER: Record<PlayerSlot, CharacterId> = { P1: 'X', P2: 'O' }
 
 const ARROWS: Record<string, readonly [number, number]> = {
   ArrowUp: [-1, 0],
@@ -92,6 +91,11 @@ export function Board({
   }
 
   const tracks = `repeat(${size}, minmax(0, 1fr))`
+  const impactSide = impact ? abilityImpactSide(impact) : null
+  const impactColor = impactSide
+    ? CHARACTER_INFO[characters[impactSide] ?? FALLBACK_CHARACTER[impactSide]].color
+    : undefined
+  const impactCells = impact ? [impact.targetCell, impact.destinationCell] : []
 
   return (
     <div
@@ -122,11 +126,8 @@ export function Board({
                 piece={piece}
                 effects={cell.effects}
                 aim={aimState}
-                impact={
-                  impact && (impact.targetCell === index || impact.destinationCell === index)
-                    ? impact
-                    : undefined
-                }
+                impact={impact && impactCells.includes(index) ? impact : undefined}
+                impactColor={impactColor}
                 winning={winning.has(index)}
                 onSelect={canSelect(index) ? () => onCellSelect?.(index) : undefined}
               />
@@ -135,7 +136,7 @@ export function Board({
         })}
       </div>
       {impact && impact.targetCell === null && impact.destinationCell === null && (
-        <AbilityImpact result={impact} global />
+        <AbilityImpact result={impact} color={impactColor} global />
       )}
     </div>
   )

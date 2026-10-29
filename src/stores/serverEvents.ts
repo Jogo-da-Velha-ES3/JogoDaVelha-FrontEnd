@@ -133,6 +133,10 @@ export function applyServerEvent(envelope: ServerEnvelope, receivedAt = Date.now
       })
       useBoardStore.setState({ winningLine: null, lastAbility: null })
       usePowersStore.setState({ aim: null })
+      // O Silêncio não passa de um round para o outro
+      useRoomStore.setState((r) => ({
+        players: r.players.map((p) => ({ ...p, silenced: false })),
+      }))
       return
     }
 
@@ -144,11 +148,12 @@ export function applyServerEvent(envelope: ServerEnvelope, receivedAt = Date.now
       const { consecutiveTimeouts, ...turn } = event.payload
       useTimerStore.setState({ turn })
       useMatchStore.setState({ consecutiveTimeouts })
+      // O Silêncio vale só para o turno de quem foi silenciado: acaba quando começa o do outro
       useRoomStore.setState((r) => ({
         players: r.players.map((p) => ({
           ...p,
           consecutiveTimeouts: consecutiveTimeouts[p.slot],
-          ...(p.slot === otherSlot(turn.player) && p.silenced ? { silenced: false } : {}),
+          silenced: p.slot === turn.player && p.silenced,
         })),
       }))
       usePowersStore.setState({ aim: null })
@@ -161,10 +166,12 @@ export function applyServerEvent(envelope: ServerEnvelope, receivedAt = Date.now
 
     case 'ABILITY_RESOLVED':
       useBoardStore.setState({ lastAbility: { ...event.payload, serverTime, receivedAt } })
-      if (event.payload.ability === 'SILENCIO') {
-        const silencedPlayer = otherSlot(event.payload.by)
+      // Silêncio confirmado (não anulado pelo Campo de Força) cala o oponente no próximo turno dele.
+      // [A VALIDAR COM O BACK] hoje só o snapshot traz o `silenced`; pedir o dos dois lados no
+      // TURN_START, como os estouros
+      if (event.payload.ability === 'SILENCIO' && !event.payload.absorbed) {
         useRoomStore.setState((r) => ({
-          players: patchPlayer(r.players, silencedPlayer, { silenced: true }),
+          players: patchPlayer(r.players, otherSlot(event.payload.by), { silenced: true }),
         }))
       }
       usePowersStore.setState({ aim: null })

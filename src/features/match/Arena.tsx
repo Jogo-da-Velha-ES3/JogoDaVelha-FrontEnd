@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, useReducedMotion } from 'framer-motion'
 import { Banner, PauseIcon } from '../../components/ui'
 import { CHARACTER_INFO } from '../../constants/characters'
-import { ABILITY_INFO } from '../../constants/abilities'
-import { useServerTimer } from '../../hooks/useServerTimer'
+import { ABILITY_IMPACT_SECONDS } from '../../constants/game'
 import { useIsBefore } from '../../hooks/useIsBefore'
+import { useServerTimer } from '../../hooks/useServerTimer'
 import { otherSlot } from '../../lib/match'
 import { PATHS } from '../../routes/paths'
 import { sendCommand } from '../../sockets/gameClient'
@@ -14,12 +14,13 @@ import { useMatchStore } from '../../stores/matchStore'
 import { usePowersStore } from '../../stores/powersStore'
 import { useRoomStore } from '../../stores/roomStore'
 import { useTimerStore } from '../../stores/timerStore'
-import { getAimTargets } from '../powers/aimTargets'
 import type { CharacterId, PlayerSlot } from '../../types/game'
 import { Board } from '../board'
 import { HowToPlayModal } from '../hub/HowToPlayModal'
+import { AbilityNotice } from '../powers/AbilityNotice'
 import { DrawPicker } from '../powers/DrawPicker'
 import { DeckHud } from '../powers/DeckHud'
+import { useAbilityAim } from '../powers/useAbilityAim'
 import { VitaoSlot } from '../vitao/VitaoSlot'
 import { OpponentDisconnectedNotice } from './OpponentDisconnectedNotice'
 import { PauseOverlay } from './PauseOverlay'
@@ -32,8 +33,6 @@ import { TurnTimeoutToast } from './TurnTimeoutToast'
 import { VsBanner } from './VsBanner'
 
 type ModalKind = 'howToPlay' | 'quit' | null
-
-const ABILITY_FEEDBACK_DURATION_MS = 1000
 
 const colorOf = (character: CharacterId | null | undefined) =>
   character ? CHARACTER_INFO[character].color : undefined
@@ -71,63 +70,24 @@ export function Arena({ onQuit }: ArenaProps) {
   const winningLine = useBoardStore((s) => s.winningLine)
   const lastAbility = useBoardStore((s) => s.lastAbility)
   const deck = usePowersStore((s) => s.deck)
-  const aim = usePowersStore((s) => s.aim)
-  const selectAimCell = usePowersStore((s) => s.selectAimCell)
-  const cancelAim = usePowersStore((s) => s.cancelAim)
   const drawOptions = usePowersStore((s) => s.drawOptions)
   const turn = useTimerStore((s) => s.turn)
-  const abilityFeedbackVisible = useIsBefore(
-    lastAbility ? lastAbility.receivedAt + ABILITY_FEEDBACK_DURATION_MS : null,
-  )
+  const turnKey = turn?.startedAt ?? null
 
   const player = (slot: PlayerSlot) => players.find((p) => p.slot === slot)
-  const characters = {
-    P1: player('P1')?.character,
-    P2: player('P2')?.character,
-  }
+  const characters = { P1: player('P1')?.character, P2: player('P2')?.character }
   const myTurn = phase === 'PLAYING' && turn?.player === me
   const turnColor = colorOf(turn ? characters[turn.player] : null)
   const empty = cells.filter((c) => c.owner === null).map((c) => c.index)
-  const aimTargets = aim ? getAimTargets(cells, aim.ability, me, aim.selectedCell) : []
-  const visibleAbility = abilityFeedbackVisible ? lastAbility : null
-
-  // A mira não sobrevive à troca de vez/fase nem à desconexão. O servidor também a limpa ao
-  // confirmar ABILITY_RESOLVED.
-  useEffect(() => {
-    if (aim && (!myTurn || reconnecting || phase !== 'PLAYING')) cancelAim()
-  }, [aim, myTurn, reconnecting, phase, cancelAim])
-
-  useEffect(() => {
-    if (!aim) return
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') cancelAim()
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [aim, cancelAim])
-
-  const selectBoardCell = (cell: number) => {
-    if (!myTurn || reconnecting) return
-    if (!aim) {
-      sendCommand({ type: 'MOVE', payload: { cell } })
-      return
-    }
-    if (!aimTargets.includes(cell)) return
-    const info = ABILITY_INFO[aim.ability]
-    if (info.needsDestination && aim.selectedCell === null) {
-      selectAimCell(cell)
-      return
-    }
-    sendCommand({
-      type: 'USE_ABILITY',
-      payload: {
-        ability: aim.ability,
-        ...(info.needsDestination
-          ? { targetCell: aim.selectedCell!, destinationCell: cell }
-          : { targetCell: cell }),
-      },
-    })
-  }
+  const { aim, targets, selected, pending, withoutTarget, hint, selectTarget } = useAbilityAim({
+    me,
+    canAct: myTurn && !reconnecting,
+    turnKey,
+  })
+  // O efeito na casa dura ABILITY_IMPACT_SECONDS a partir da chegada do ABILITY_RESOLVED
+  const impactVisible = useIsBefore(
+    lastAbility ? lastAbility.receivedAt + ABILITY_IMPACT_SECONDS * 1000 : null,
+  )
 
   // Fim do round 3 com o placar igual (1×1 ou 0×0) é empate absoluto [RN-ARN-06] (regra de 18/10).
   // Só muda o banner: o resultado oficial chega no MATCH_END
@@ -223,23 +183,16 @@ export function Arena({ onQuit }: ArenaProps) {
             cells={cells}
             characters={characters}
             winningLine={winningLine}
-            aim={
-              aim
-                ? {
-                    targets: aimTargets,
-                    selected: aim.selectedCell ?? undefined,
-                  }
-                : null
-            }
-            impact={visibleAbility}
-            // Em mira, apenas o alvo válido da etapa atual pode ser tocado.
-            selectable={myTurn ? (aim ? aimTargets : empty) : []}
+            aim={aim ? { targets, selected } : null}
+            impact={impactVisible ? lastAbility : null}
+            // Com a mira aberta, só os alvos da etapa atual (nenhum enquanto espera o servidor)
+            selectable={!myTurn ? [] : aim ? targets : empty}
             disabled={reconnecting}
-            onCellSelect={selectBoardCell}
+            onCellSelect={(cell) =>
+              aim ? selectTarget(cell) : sendCommand({ type: 'MOVE', payload: { cell } })
+            }
           />
         </div>
-
-        <AbilityResolutionNotice result={visibleAbility} />
 
         {/* ── Coluna direita: subtexto de vez + deck (o timer do turno fica na faixa) ── */}
         <aside
@@ -267,16 +220,16 @@ export function Arena({ onQuit }: ArenaProps) {
               {myTurn ? (
                 <>
                   {/* "SUA VEZ" em display + subtítulo instrucional
-                      Na Morte Súbita: só "SUA VEZ" em vermelho, sem subtítulo */}
+                      Na Morte Súbita: só "SUA VEZ" em vermelho, sem subtítulo (menos a mira) */}
                   <p
                     className={`font-display text-xl leading-tight font-extrabold uppercase short:text-lg ${suddenDeath ? 'text-danger' : ''}`}
                     style={suddenDeath ? undefined : { color: turnColor }}
                   >
                     Sua vez
                   </p>
-                  {!suddenDeath && (
+                  {(hint || !suddenDeath) && (
                     <p className="mt-0.5 font-body text-xs text-text-muted">
-                      Toque numa casa ou use uma habilidade
+                      {hint ?? 'Toque numa casa ou use uma habilidade'}
                     </p>
                   )}
                 </>
@@ -299,12 +252,17 @@ export function Arena({ onQuit }: ArenaProps) {
             </p>
           )}
 
+          {/* Habilidade do oponente, anulada ou sem efeito: aqui, para não cobrir o tabuleiro */}
+          <AbilityNotice />
+
           <DeckHud
             deck={deck}
             canUse={myTurn && !reconnecting}
             silenced={player(me)?.silenced ?? false}
             aim={aim}
-            turnKey={turn?.startedAt ?? null}
+            aimPending={pending}
+            withoutTarget={withoutTarget}
+            turnKey={turnKey}
             color={colorOf(characters[me])}
           />
         </aside>
@@ -422,25 +380,5 @@ function SuddenDeathTimerValue() {
     >
       {seconds}
     </motion.span>
-  )
-}
-
-function AbilityResolutionNotice({
-  result,
-}: {
-  result: ReturnType<typeof useBoardStore.getState>['lastAbility']
-}) {
-  if (!result || (!result.absorbed && !result.noEffect)) return null
-  const message = result.absorbed
-    ? 'Anulada pelo Campo de Força!'
-    : `Sem efeito: ${ABILITY_INFO[result.ability].needsDestination ? 'nenhuma casa vizinha livre' : 'a habilidade não teve efeito'}.`
-  return (
-    <p
-      key={result.serverTime}
-      role="status"
-      className="pointer-events-none absolute inset-x-0 top-1/2 z-20 mx-auto w-fit -translate-y-1/2 rounded-xl border border-line bg-bg-deep/95 px-4 py-2 text-center font-display text-sm font-bold text-primary shadow-glow"
-    >
-      {message}
-    </p>
   )
 }

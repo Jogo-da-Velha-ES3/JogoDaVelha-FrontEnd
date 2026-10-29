@@ -3,6 +3,8 @@ import { MotionGlobalConfig } from 'framer-motion'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  ABILITY_IMPACT_SECONDS,
+  ABILITY_NOTICE_SECONDS,
   ROUND_BANNER_SECONDS,
   ROUND_COIN_FLIP_SECONDS,
   SUDDEN_DEATH_ENTRY_SECONDS,
@@ -283,8 +285,8 @@ describe('sorteio da 3ª habilidade (FE-10)', () => {
   })
 })
 
-describe('mira e efeitos visuais (FE-27)', () => {
-  const activeDeck = () =>
+describe('mira e efeitos das habilidades (FE-27)', () => {
+  const deck = () =>
     send('DECK_UPDATE', {
       deck: [
         { ability: 'BOMBA', source: 'INITIAL', usedThisRound: false },
@@ -293,151 +295,170 @@ describe('mira e efeitos visuais (FE-27)', () => {
       ],
     })
 
-  it('envia Bomba apenas ao tocar numa peça oponente e aguarda a resposta do servidor', () => {
+  /** Tabuleiro com peças do oponente (Vini, O) nas casas indicadas */
+  const opponentAt = (...indexes: number[]) =>
+    send('BOARD_UPDATE', {
+      board: Array.from({ length: 16 }, (_, index) => ({
+        index,
+        owner: indexes.includes(index) ? ('P2' as const) : null,
+        effects: [],
+      })),
+    })
+
+  const resolved = (
+    patch: Partial<Extract<ServerEvent, { type: 'ABILITY_RESOLVED' }>['payload']>,
+  ) =>
+    send('ABILITY_RESOLVED', {
+      by: 'P2',
+      ability: 'BOMBA',
+      targetCell: 5,
+      destinationCell: null,
+      absorbed: false,
+      noEffect: false,
+      ...patch,
+    })
+
+  const turnOf = (slot: PlayerSlot) =>
+    send('TURN_START', {
+      player: slot,
+      startedAt: Date.now(),
+      durationSeconds: 10,
+      consecutiveTimeouts: { P1: 0, P2: 0 },
+    })
+
+  const impact = () => document.querySelector('[data-layer="ability-impact"]')
+
+  it('Bomba: só a peça do oponente é alvo; depois do envio, nada é clicável até o servidor', () => {
     renderArena()
-    activeDeck()
-    const board = Array.from({ length: 16 }, (_, index) => ({
-      index,
-      owner: index === 5 ? ('P2' as const) : null,
-      effects: [],
-    }))
-    send('BOARD_UPDATE', { board })
+    deck()
+    opponentAt(5)
 
     fireEvent.click(screen.getByRole('button', { name: /^Bomba,/ }))
-    expect(screen.getByRole('button', { name: /alvo possível/ })).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: /Linha 2, coluna 2: O/ }))
+    expect(screen.getByText('Bomba: escolha uma peça do oponente')).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: /alvo possível/ })).toHaveLength(1)
 
+    fireEvent.click(screen.getByRole('button', { name: /Linha 2, coluna 2: O/ }))
     expect(sendCommand).toHaveBeenCalledWith({
       type: 'USE_ABILITY',
       payload: { ability: 'BOMBA', targetCell: 5 },
     })
-    expect(usePowersStore.getState().aim?.ability).toBe('BOMBA')
-    expect(screen.getByRole('button', { name: /Linha 2, coluna 2: O/ })).toBeInTheDocument()
+    // Esperando o servidor: o alvo não aceita outro toque e a mira não pode ser cancelada
+    expect(screen.queryByRole('button', { name: /Linha 2, coluna 2/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Cancelar mira' })).not.toBeInTheDocument()
+    expect(screen.getByText('Enviando…')).toBeInTheDocument()
 
-    send('ABILITY_RESOLVED', {
-      by: 'P1',
-      ability: 'BOMBA',
-      targetCell: 5,
-      destinationCell: null,
-      absorbed: false,
-      noEffect: false,
-    })
+    resolved({ by: 'P1' })
     expect(usePowersStore.getState().aim).toBeNull()
-    expect(screen.getByRole('img', { name: /Linha 2, coluna 2: O/ })).toBeInTheDocument()
-    expect(document.querySelector('[data-layer="ability-impact"]')).not.toBeNull()
+    expect(impact()).not.toBeNull()
+    expect(sendCommand).toHaveBeenCalledTimes(1)
   })
 
-  it('Tornado solicita primeiro a peça e depois uma casa vizinha; Esc cancela a mira', () => {
+  it('um erro do servidor destrava a mira para escolher outro alvo', () => {
     renderArena()
-    activeDeck()
-    send('BOARD_UPDATE', {
-      board: Array.from({ length: 16 }, (_, index) => ({
-        index,
-        owner: index === 1 ? ('P2' as const) : null,
-        effects: [],
-      })),
+    deck()
+    opponentAt(5, 6)
+
+    fireEvent.click(screen.getByRole('button', { name: /^Bomba,/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Linha 2, coluna 2: O/ }))
+    send('ERROR', { code: 'INVALID_TARGET', message: 'Escolha uma peça do oponente.' })
+
+    fireEvent.click(screen.getByRole('button', { name: /Linha 2, coluna 3: O/ }))
+    expect(sendCommand).toHaveBeenLastCalledWith({
+      type: 'USE_ABILITY',
+      payload: { ability: 'BOMBA', targetCell: 6 },
     })
+  })
+
+  it('Tornado: primeiro a peça, depois a casa vizinha de destino', () => {
+    renderArena()
+    deck()
+    opponentAt(1)
 
     fireEvent.click(screen.getByRole('button', { name: /^Tornado,/ }))
     fireEvent.click(screen.getByRole('button', { name: /Linha 1, coluna 2: O/ }))
-    expect(usePowersStore.getState().aim?.selectedCell).toBe(1)
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Linha 1, coluna 3: vazia, alvo possível',
-      }),
-    )
+    expect(screen.getByText('Tornado: agora escolha a casa de destino')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Linha 1, coluna 3: vazia, alvo possível' }))
     expect(sendCommand).toHaveBeenCalledWith({
       type: 'USE_ABILITY',
       payload: { ability: 'TORNADO', targetCell: 1, destinationCell: 2 },
     })
-    expect(usePowersStore.getState().aim?.selectedCell).toBe(1)
+  })
 
+  it('Esc cancela a mira e volta para "Sua vez"', () => {
+    renderArena()
+    deck()
+    opponentAt(1)
+
+    fireEvent.click(screen.getByRole('button', { name: /^Bomba,/ }))
     fireEvent.keyDown(window, { key: 'Escape' })
     expect(usePowersStore.getState().aim).toBeNull()
+    expect(screen.getByText('Toque numa casa ou use uma habilidade')).toBeInTheDocument()
   })
 
-  it('mostra o aviso de habilidade anulada após a resposta do servidor', () => {
+  it('carta sem nenhum alvo fica desabilitada, com "Sem alvo"', () => {
     renderArena()
-    activeDeck()
-    send('ABILITY_RESOLVED', {
-      by: 'P2',
-      ability: 'BOMBA',
-      targetCell: 0,
-      destinationCell: null,
-      absorbed: true,
-      noEffect: false,
-    })
-    expect(screen.getByText('Anulada pelo Campo de Força!')).toHaveAttribute('role', 'status')
+    deck() // tabuleiro vazio: Bomba e Tornado não têm peça do oponente para mirar
+
+    expect(screen.getByRole('button', { name: /^Bomba, ofensiva, sem alvo/ })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /^Escudo,/ })).toBeEnabled()
+
+    opponentAt(5)
+    expect(screen.getByRole('button', { name: /^Bomba,/ })).toBeEnabled()
   })
 
-  it('mostra o Silêncio do oponente e desabilita as habilidades no meu turno', () => {
+  it('habilidade do oponente: efeito na casa por 1s e aviso por 2,5s, sem voltar depois', async () => {
     renderArena()
-    activeDeck()
-    send('ABILITY_RESOLVED', {
-      by: 'P2',
-      ability: 'SILENCIO',
-      targetCell: null,
-      destinationCell: null,
-      absorbed: false,
-      noEffect: false,
-    })
-    send('TURN_START', {
-      player: 'P1',
-      startedAt: Date.now(),
-      durationSeconds: 10,
-      consecutiveTimeouts: { P1: 0, P2: 0 },
-    })
+    opponentAt(5)
 
+    resolved({})
+    expect(screen.getByText('Oponente usou Bomba')).toBeInTheDocument()
+    expect(impact()).not.toBeNull()
+
+    await tick(ABILITY_IMPACT_SECONDS * 1000)
+    expect(impact()).toBeNull()
+    expect(screen.getByText('Oponente usou Bomba')).toBeInTheDocument()
+
+    await tick((ABILITY_NOTICE_SECONDS - ABILITY_IMPACT_SECONDS) * 1000)
+    expect(screen.queryByText('Oponente usou Bomba')).not.toBeInTheDocument()
+
+    opponentAt(5)
+    expect(impact()).toBeNull()
+  })
+
+  it('anulada pelo Campo de Força ou sem efeito: avisa também quando a habilidade é minha', () => {
+    renderArena()
+
+    resolved({ by: 'P1', absorbed: true })
+    expect(screen.getByText('Anulada pelo Campo de Força!')).toBeInTheDocument()
+    expect(screen.getByText('Você usou Bomba')).toBeInTheDocument()
+
+    resolved({ ability: 'TORNADO', noEffect: true })
+    expect(screen.getByText('Sem efeito!')).toBeInTheDocument()
+    expect(screen.getByText('Oponente usou Tornado')).toBeInTheDocument()
+  })
+
+  it('habilidade minha com efeito não tem aviso, só o efeito na casa', () => {
+    renderArena()
+    resolved({ by: 'P1' })
+    expect(impact()).not.toBeNull()
+    expect(screen.queryByText(/usou Bomba/)).not.toBeInTheDocument()
+  })
+
+  it('Silêncio do oponente: efeito no centro e minhas habilidades travadas só no meu turno', () => {
+    renderArena()
+    deck()
+    opponentAt(5)
+
+    resolved({ ability: 'SILENCIO', targetCell: null })
+    expect(document.querySelector('[data-layer="ability-impact-global"]')).not.toBeNull()
+
+    turnOf('P1')
     expect(screen.getByText('Silenciado: sem habilidades neste turno.')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Bomba,/ })).toBeDisabled()
-    expect(screen.getByRole('button', { name: /Tornado,/ })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /^Bomba,/ })).toBeDisabled()
 
-    send('TURN_START', {
-      player: 'P2',
-      startedAt: Date.now(),
-      durationSeconds: 10,
-      consecutiveTimeouts: { P1: 0, P2: 0 },
-    })
+    turnOf('P2')
     expect(screen.queryByText('Silenciado: sem habilidades neste turno.')).not.toBeInTheDocument()
-  })
-
-  it('não reaparece após 1s quando a casa é remontada numa atualização seguinte', async () => {
-    renderArena()
-    activeDeck()
-    send('ABILITY_RESOLVED', {
-      by: 'P2',
-      ability: 'BOMBA',
-      targetCell: 5,
-      destinationCell: null,
-      absorbed: false,
-      noEffect: false,
-    })
-    expect(document.querySelector('[data-layer="ability-impact"]')).not.toBeNull()
-
-    send('TURN_START', {
-      player: 'P2',
-      startedAt: Date.now(),
-      durationSeconds: 10,
-      consecutiveTimeouts: { P1: 0, P2: 0 },
-    })
-    await tick(1001)
-    expect(document.querySelector('[data-layer="ability-impact"]')).toBeNull()
-
-    send('BOARD_UPDATE', {
-      board: Array.from({ length: 16 }, (_, index) => ({
-        index,
-        owner: index === 5 ? ('P2' as const) : null,
-        effects: [],
-      })),
-    })
-    send('TURN_START', {
-      player: 'P1',
-      startedAt: Date.now(),
-      durationSeconds: 10,
-      consecutiveTimeouts: { P1: 0, P2: 0 },
-    })
-
-    expect(document.querySelector('[data-layer="ability-impact"]')).toBeNull()
   })
 })
 
@@ -525,6 +546,14 @@ describe('deck na Arena (FE-11)', () => {
         { ability: 'ESCUDO', source: 'INITIAL', usedThisRound: false },
         { ability: 'TORNADO', source: 'DRAWN', usedThisRound: false },
       ],
+    })
+    // Uma peça do oponente, para a Bomba ter alvo
+    send('BOARD_UPDATE', {
+      board: Array.from({ length: 16 }, (_, index) => ({
+        index,
+        owner: index === 15 ? ('P2' as const) : null,
+        effects: [],
+      })),
     })
     expect(screen.getAllByRole('button', { name: /vazia/ }).length).toBeGreaterThan(0)
 

@@ -1,7 +1,8 @@
 // Resolução das 10 habilidades no servidor simulado [RF-ARN-03]. Funções puras: recebem o
 // tabuleiro e devolvem o novo, sem mexer no original.
 import { ABILITY_INFO } from '../../constants/abilities'
-import { BOARD_SIZE, EFFECT_DURATION_TURNS } from '../../constants/game'
+import { EFFECT_DURATION_TURNS } from '../../constants/game'
+import { adjacentCells, isFree } from '../../lib/abilityTargets'
 import { otherSlot } from '../../lib/match'
 import type { AbilityId, Cell, CellEffectKind, PlayerSlot } from '../../types/game'
 
@@ -46,27 +47,6 @@ export const isBlockedFor = (
   index: number,
   slot: PlayerSlot,
 ) => has(cells[index], 'ESCUDO') && shieldOwners[index] !== slot
-
-/** Casa vazia e sem Escudo: destino válido para mover uma peça */
-export const isFree = (cell: Cell) => cell.owner === null && !has(cell, 'ESCUDO')
-
-/**
- * Casas vizinhas, incluindo as diagonais. A ERS diz só "casa adjacente"; o back confirmou a
- * diagonal em 15/10.
- */
-export function adjacentCells(index: number, size = BOARD_SIZE): number[] {
-  const row = Math.floor(index / size)
-  const col = index % size
-  const result: number[] = []
-  for (let dr = -1; dr <= 1; dr++) {
-    for (let dc = -1; dc <= 1; dc++) {
-      const r = row + dr
-      const c = col + dc
-      if ((dr || dc) && r >= 0 && r < size && c >= 0 && c < size) result.push(r * size + c)
-    }
-  }
-  return result
-}
 
 const pick = <T>(items: readonly T[], random: () => number): T | undefined =>
   items[Math.floor(random() * items.length)]

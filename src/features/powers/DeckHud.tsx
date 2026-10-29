@@ -14,6 +14,10 @@ interface DeckHudProps {
   canUse: boolean
   silenced: boolean
   aim: Aim | null
+  /** A mira já mandou o alvo e espera o servidor (FE-27) */
+  aimPending?: boolean
+  /** Habilidades com alvo sem nenhum alvo válido agora: a carta fica desabilitada ("Sem alvo") */
+  withoutTarget?: readonly AbilityId[]
   /** Início do turno atual (timestamp do servidor): um envio só fica pendente no turno em que saiu */
   turnKey: number | null
   /** Cor do meu personagem (cor do lado) */
@@ -26,7 +30,16 @@ interface DeckHudProps {
  * DECK_UPDATE. Habilidade com alvo só inicia a mira (FE-27); sem alvo, pede confirmação e envia.
  * Sem descrição na partida, para caber no celular deitado: ela aparece na Preparação e no sorteio.
  */
-export function DeckHud({ deck, canUse, silenced, aim, turnKey, color }: DeckHudProps) {
+export function DeckHud({
+  deck,
+  canUse,
+  silenced,
+  aim,
+  aimPending = false,
+  withoutTarget = [],
+  turnKey,
+  color,
+}: DeckHudProps) {
   const descriptionId = useId()
   const lastError = useRoomStore((s) => s.lastError)
   const startAim = usePowersStore((s) => s.startAim)
@@ -42,15 +55,19 @@ export function DeckHud({ deck, canUse, silenced, aim, turnKey, color }: DeckHud
 
   const ready = deck.length === DECK_SIZE
   const pending =
-    sent &&
-    sent.turnKey === turnKey &&
-    sent.error === lastError &&
-    !deck.some((slot) => slot.ability === sent.ability && slot.usedThisRound)
-      ? sent.ability
-      : null
+    aimPending && aim
+      ? aim.ability
+      : sent &&
+          sent.turnKey === turnKey &&
+          sent.error === lastError &&
+          !deck.some((slot) => slot.ability === sent.ability && slot.usedThisRound)
+        ? sent.ability
+        : null
   const blocked = !canUse || silenced || !ready || pending !== null
+  const noTarget = (slot: DeckSlot) =>
+    !blocked && !slot.usedThisRound && withoutTarget.includes(slot.ability)
   const usable = (slot: DeckSlot | undefined): slot is DeckSlot =>
-    slot !== undefined && !blocked && !slot.usedThisRound
+    slot !== undefined && !blocked && !slot.usedThisRound && !noTarget(slot)
   const confirmingNow = confirming?.turnKey === turnKey ? confirming.ability : null
 
   const select = (slot: DeckSlot) => {
@@ -91,14 +108,16 @@ export function DeckHud({ deck, canUse, silenced, aim, turnKey, color }: DeckHud
                   ? 'Usada'
                   : silenced
                     ? 'Silenciada'
-                    : info.kind
+                    : noTarget(slot)
+                      ? 'Sem alvo'
+                      : info.kind
 
             return (
               <li key={slot.ability} className="flex">
                 <button
                   type="button"
                   aria-pressed={selected}
-                  aria-label={`${info.name}, ${info.kind.toLowerCase()}${slot.source === 'DRAWN' ? ', sorteada' : ''}${slot.usedThisRound ? ', usada' : silenced ? ', silenciada' : ''}`}
+                  aria-label={`${info.name}, ${info.kind.toLowerCase()}${slot.source === 'DRAWN' ? ', sorteada' : ''}${slot.usedThisRound ? ', usada' : silenced ? ', silenciada' : noTarget(slot) ? ', sem alvo' : ''}`}
                   aria-describedby={`${descriptionId}-${slot.ability}`}
                   disabled={!usable(slot)}
                   onClick={() => select(slot)}
@@ -160,7 +179,7 @@ export function DeckHud({ deck, canUse, silenced, aim, turnKey, color }: DeckHud
             Aguardando confirmação do servidor…
           </p>
         )}
-        {aim && (
+        {aim && pending === null && (
           <Button size="sm" variant="ghost" onClick={cancelAim}>
             Cancelar mira
           </Button>
