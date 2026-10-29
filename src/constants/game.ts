@@ -83,3 +83,9 @@ export const ABILITY_PRICE = 350
 
 // O Vitão fica fora do MVP 1: só o espaço reservado na Arena.
 export const VITAO_ENABLED = false
+/** Vitão: no máximo 1 fala a cada tantos segundos (FE-44) */
+export const VITAO_COOLDOWN_SECONDS = 6
+/** Vitão: quanto tempo o balão fica na tela */
+export const VITAO_BUBBLE_SECONDS = 4
+/** Vitão: janela para reunir eventos que chegam juntos e escolher o de maior prioridade */
+export const VITAO_DECISION_WINDOW_MS = 500
