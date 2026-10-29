@@ -103,6 +103,13 @@ acabou de chegar (`outcomeReceivedAt`): só então tocam a comemoração e a con
 reconecta vê o estado final parado, e uma memória por partida (sala, início do último round,
 resultado e Coins) evita repetir a festa se a tela for desmontada e montada de novo.
 
+O motor de reações do Vitão (FE-44) fica em `src/features/vitao/` e `src/lib/`. As regras são puras
+(`lib/vitao.ts`: 1 fala a cada 6s, momentos grandes primeiro, "Diabo" na Morte Súbita, filtro) e a
+detecção dos momentos também (`lib/vitaoMoments.ts`, pela diferença entre dois retratos das
+stores). O hook `useVitaoReactions` observa as stores, que só mudam por evento do servidor, e
+entrega a fala atual ao `VitaoSlot`. As falas provisórias estão em `lib/vitaoLines.ts` (FE-43 as
+troca). A flag `VITAO_ENABLED` continua desligada até a FE-44 ser aprovada.
+
 ## 3. Stores (Zustand)
 
 | Store          | Guarda                                                                                                 |
