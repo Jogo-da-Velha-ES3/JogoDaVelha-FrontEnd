@@ -14,7 +14,7 @@ import {
   onServerEventForDebug,
   sendCommand,
 } from '../../sockets/gameClient'
-import { adjacentCells } from '../../sockets/mock/abilities'
+import { adjacentCells } from '../../lib/abilityTargets'
 import {
   BOT_REMATCH_BEHAVIORS,
   type BotRematch,
@@ -198,8 +198,8 @@ export function MockMatchShowcase() {
           Avançado: testar habilidades
         </summary>
         <p className="mt-2 mb-3 text-xs text-text-muted">
-          A Arena ainda não tem a mira de habilidade (é a FE-27). Para testar o servidor, use este
-          tabuleiro: na sua vez, toque numa habilidade do deck e depois no alvo.
+          A mira da Arena (FE-27) só deixa tocar nos alvos válidos. Para mandar outros alvos ao
+          servidor, use este tabuleiro: na sua vez, toque numa habilidade do deck e depois no alvo.
         </p>
         <AbilityTester />
       </details>

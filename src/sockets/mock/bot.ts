@@ -2,9 +2,10 @@
 // às vezes usa uma habilidade, senão joga numa casa livre (preferindo o centro).
 import { ABILITY_INFO } from '../../constants/abilities'
 import { otherSlot } from '../../lib/match'
+import { isFree } from '../../lib/abilityTargets'
 import { findWinningLine } from '../../lib/winCheck'
 import type { AbilityId, Cell, DeckSlot, PlayerSlot } from '../../types/game'
-import { isBlockedFor, isFree, type ShieldOwners } from './abilities'
+import { isBlockedFor, type ShieldOwners } from './abilities'
 
 export type BotAction =
   { kind: 'MOVE'; cell: number } | { kind: 'ABILITY'; ability: AbilityId; targetCell?: number }

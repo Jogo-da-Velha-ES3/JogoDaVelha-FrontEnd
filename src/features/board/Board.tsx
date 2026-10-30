@@ -1,5 +1,9 @@
 import type { KeyboardEvent } from 'react'
+import { CHARACTER_INFO } from '../../constants/characters'
+import type { ResolvedAbility } from '../../stores/boardStore'
 import type { Cell as CellState, CharacterId, PlayerSlot } from '../../types/game'
+import { AbilityImpact } from '../powers/AbilityImpact'
+import { abilityImpactSide } from '../powers/abilityImpactSide'
 import { Cell } from './Cell'
 
 export interface BoardAim {
@@ -17,6 +21,8 @@ export interface BoardProps {
   /** Linha vencedora confirmada pelo servidor */
   winningLine?: readonly number[] | null
   aim?: BoardAim | null
+  /** Habilidade que o servidor acabou de resolver: efeito no alvo e no destino, ou no centro */
+  impact?: ResolvedAbility | null
   /** Casas clicáveis agora (quem decide é a Arena). Sem isto, todas são */
   selectable?: readonly number[]
   /** Intenção de jogada: o tabuleiro não muda nada, só avisa o índice */
@@ -45,6 +51,7 @@ export function Board({
   characters,
   winningLine,
   aim,
+  impact,
   selectable,
   onCellSelect,
   disabled = false,
@@ -84,9 +91,16 @@ export function Board({
   }
 
   const tracks = `repeat(${size}, minmax(0, 1fr))`
+  const impactSide = impact ? abilityImpactSide(impact) : null
+  const impactColor = impactSide
+    ? CHARACTER_INFO[characters[impactSide] ?? FALLBACK_CHARACTER[impactSide]].color
+    : undefined
+  const impactCells = impact ? [impact.targetCell, impact.destinationCell] : []
 
   return (
-    <div className={`grid size-full place-items-center [container-type:size] ${className}`}>
+    <div
+      className={`relative grid size-full place-items-center [container-type:size] ${className}`}
+    >
       <div
         role="group"
         aria-label="Tabuleiro"
@@ -112,6 +126,8 @@ export function Board({
                 piece={piece}
                 effects={cell.effects}
                 aim={aimState}
+                impact={impact && impactCells.includes(index) ? impact : undefined}
+                impactColor={impactColor}
                 winning={winning.has(index)}
                 onSelect={canSelect(index) ? () => onCellSelect?.(index) : undefined}
               />
@@ -119,6 +135,9 @@ export function Board({
           )
         })}
       </div>
+      {impact && impact.targetCell === null && impact.destinationCell === null && (
+        <AbilityImpact result={impact} color={impactColor} global />
+      )}
     </div>
   )
 }

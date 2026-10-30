@@ -1,7 +1,9 @@
 import type { CSSProperties } from 'react'
 import { CHARACTER_INFO } from '../../constants/characters'
+import type { ResolvedAbility } from '../../stores/boardStore'
 import type { CellEffect, CellEffectKind, CharacterId } from '../../types/game'
 import { Character } from '../characters'
+import { AbilityImpact } from '../powers/AbilityImpact'
 
 /** Mira de habilidade: `target` = alvo possível, `selected` = alvo já escolhido */
 export type CellAim = 'target' | 'selected'
@@ -15,6 +17,9 @@ export interface CellProps {
   /** Efeitos com contador de turnos, como o servidor manda [RN-ARN-07] */
   effects?: readonly CellEffect[]
   aim?: CellAim
+  /** Habilidade que o servidor resolveu nesta casa (alvo ou destino), com a cor do efeito */
+  impact?: ResolvedAbility
+  impactColor?: string
   /** Faz parte da linha vencedora confirmada pelo servidor */
   winning?: boolean
   /** Sem `onSelect`, ou com `disabled`, a casa só mostra o estado */
@@ -55,7 +60,7 @@ function describe({ row, col, piece, effects = [], aim, winning }: CellProps): s
  * Os efeitos são camadas sobrepostas, então nenhum estado muda o tamanho da casa.
  */
 export function Cell(props: CellProps) {
-  const { piece, effects = [], aim, winning = false, onSelect, disabled = false } = props
+  const { piece, effects = [], aim, impact, winning = false, onSelect, disabled = false } = props
   const has = (kind: CellEffectKind) => effects.some((e) => e.kind === kind)
   const interactive = onSelect !== undefined && !disabled
   const color = piece ? CHARACTER_INFO[piece].color : 'var(--color-primary)'
@@ -129,6 +134,8 @@ export function Cell(props: CellProps) {
           ].join(' ')}
         />
       )}
+
+      {impact && <AbilityImpact result={impact} color={props.impactColor} />}
 
       {effects.length > 0 && (
         <span

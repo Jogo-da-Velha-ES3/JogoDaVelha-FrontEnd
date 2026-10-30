@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { motion, useReducedMotion } from 'framer-motion'
 import { Banner, PauseIcon } from '../../components/ui'
 import { CHARACTER_INFO } from '../../constants/characters'
+import { ABILITY_IMPACT_SECONDS } from '../../constants/game'
+import { useIsBefore } from '../../hooks/useIsBefore'
 import { useServerTimer } from '../../hooks/useServerTimer'
 import { otherSlot } from '../../lib/match'
 import { PATHS } from '../../routes/paths'
@@ -15,8 +17,10 @@ import { useTimerStore } from '../../stores/timerStore'
 import type { CharacterId, PlayerSlot } from '../../types/game'
 import { Board } from '../board'
 import { HowToPlayModal } from '../hub/HowToPlayModal'
+import { AbilityNotice } from '../powers/AbilityNotice'
 import { DrawPicker } from '../powers/DrawPicker'
 import { DeckHud } from '../powers/DeckHud'
+import { useAbilityAim } from '../powers/useAbilityAim'
 import { VitaoSlot } from '../vitao/VitaoSlot'
 import { OpponentDisconnectedNotice } from './OpponentDisconnectedNotice'
 import { PauseOverlay } from './PauseOverlay'
@@ -64,16 +68,26 @@ export function Arena({ onQuit }: ArenaProps) {
   const enteringSuddenDeath = useSuddenDeathEntrance()
   const cells = useBoardStore((s) => s.cells)
   const winningLine = useBoardStore((s) => s.winningLine)
+  const lastAbility = useBoardStore((s) => s.lastAbility)
   const deck = usePowersStore((s) => s.deck)
-  const aim = usePowersStore((s) => s.aim)
   const drawOptions = usePowersStore((s) => s.drawOptions)
   const turn = useTimerStore((s) => s.turn)
+  const turnKey = turn?.startedAt ?? null
 
   const player = (slot: PlayerSlot) => players.find((p) => p.slot === slot)
   const characters = { P1: player('P1')?.character, P2: player('P2')?.character }
   const myTurn = phase === 'PLAYING' && turn?.player === me
   const turnColor = colorOf(turn ? characters[turn.player] : null)
   const empty = cells.filter((c) => c.owner === null).map((c) => c.index)
+  const { aim, targets, selected, pending, withoutTarget, hint, selectTarget } = useAbilityAim({
+    me,
+    canAct: myTurn && !reconnecting,
+    turnKey,
+  })
+  // O efeito na casa dura ABILITY_IMPACT_SECONDS a partir da chegada do ABILITY_RESOLVED
+  const impactVisible = useIsBefore(
+    lastAbility ? lastAbility.receivedAt + ABILITY_IMPACT_SECONDS * 1000 : null,
+  )
 
   // Fim do round 3 com o placar igual (1×1 ou 0×0) é empate absoluto [RN-ARN-06] (regra de 18/10).
   // Só muda o banner: o resultado oficial chega no MATCH_END
@@ -169,10 +183,14 @@ export function Arena({ onQuit }: ArenaProps) {
             cells={cells}
             characters={characters}
             winningLine={winningLine}
-            // Com a mira aberta, tocar numa casa não pode virar jogada (o alvo é a FE-27)
-            selectable={myTurn && !aim ? empty : []}
+            aim={aim ? { targets, selected } : null}
+            impact={impactVisible ? lastAbility : null}
+            // Com a mira aberta, só os alvos da etapa atual (nenhum enquanto espera o servidor)
+            selectable={!myTurn ? [] : aim ? targets : empty}
             disabled={reconnecting}
-            onCellSelect={(cell) => sendCommand({ type: 'MOVE', payload: { cell } })}
+            onCellSelect={(cell) =>
+              aim ? selectTarget(cell) : sendCommand({ type: 'MOVE', payload: { cell } })
+            }
           />
         </div>
 
@@ -202,16 +220,16 @@ export function Arena({ onQuit }: ArenaProps) {
               {myTurn ? (
                 <>
                   {/* "SUA VEZ" em display + subtítulo instrucional
-                      Na Morte Súbita: só "SUA VEZ" em vermelho, sem subtítulo */}
+                      Na Morte Súbita: só "SUA VEZ" em vermelho, sem subtítulo (menos a mira) */}
                   <p
                     className={`font-display text-xl leading-tight font-extrabold uppercase short:text-lg ${suddenDeath ? 'text-danger' : ''}`}
                     style={suddenDeath ? undefined : { color: turnColor }}
                   >
                     Sua vez
                   </p>
-                  {!suddenDeath && (
+                  {(hint || !suddenDeath) && (
                     <p className="mt-0.5 font-body text-xs text-text-muted">
-                      Toque numa casa ou use uma habilidade
+                      {hint ?? 'Toque numa casa ou use uma habilidade'}
                     </p>
                   )}
                 </>
@@ -234,12 +252,17 @@ export function Arena({ onQuit }: ArenaProps) {
             </p>
           )}
 
+          {/* Habilidade do oponente, anulada ou sem efeito: aqui, para não cobrir o tabuleiro */}
+          <AbilityNotice />
+
           <DeckHud
             deck={deck}
             canUse={myTurn && !reconnecting}
             silenced={player(me)?.silenced ?? false}
             aim={aim}
-            turnKey={turn?.startedAt ?? null}
+            aimPending={pending}
+            withoutTarget={withoutTarget}
+            turnKey={turnKey}
             color={colorOf(characters[me])}
           />
         </aside>
