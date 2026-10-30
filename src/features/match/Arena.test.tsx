@@ -326,7 +326,7 @@ describe('mira e efeitos das habilidades (FE-27)', () => {
       consecutiveTimeouts: { P1: 0, P2: 0 },
     })
 
-  const impact = () => document.querySelector('[data-layer="ability-impact"]')
+  const impact = () => document.querySelector('[data-layer="ability-effect"]')
 
   it('Bomba: só a peça do oponente é alvo; depois do envio, nada é clicável até o servidor', () => {
     renderArena()
@@ -451,7 +451,9 @@ describe('mira e efeitos das habilidades (FE-27)', () => {
     opponentAt(5)
 
     resolved({ ability: 'SILENCIO', targetCell: null })
-    expect(document.querySelector('[data-layer="ability-impact-global"]')).not.toBeNull()
+    expect(
+      document.querySelector('[data-layer="ability-effect"][data-ability="SILENCIO"]'),
+    ).not.toBeNull()
 
     turnOf('P1')
     expect(screen.getByText('Silenciado: sem habilidades neste turno.')).toBeInTheDocument()

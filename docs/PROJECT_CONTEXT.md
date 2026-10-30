@@ -413,6 +413,8 @@ Abrir o jogo → [sem sessão] Acesso → Hub (Jogar; abas Loja / Perfil)
   Campo de Força na cor de quem tinha o campo; sem efeito, neutro. O aviso fica 2,5s na coluna
   direita, sem cobrir o tabuleiro: toda habilidade do oponente ("Oponente usou Bomba") e as minhas
   só quando anuladas ou sem efeito ("Anulada pelo Campo de Força!", "Sem efeito!").
+  Cada habilidade tem a sua animação (FE-47); no Congelar, o anel fica na cor de quem usou e os
+  cristais em azul-gelo, a cor da peça congelada (decidido em 30/10).
 
 ### Morte Súbita: pacote de pressão
 

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { AbilityEffectShowcase } from './AbilityEffectShowcase'
 import { AbilityIconShowcase } from './AbilityIconShowcase'
 import { BoardShowcase } from './BoardShowcase'
 import { CellShowcase } from './CellShowcase'
@@ -33,8 +34,13 @@ const TABS: Tab[] = [
     id: 'habilidades',
     label: 'Habilidades',
     description:
-      'Os ícones das 10 habilidades no estilo letreiro neon, nos tamanhos e cores do jogo.',
-    content: <AbilityIconShowcase />,
+      'As animações das 10 habilidades num tabuleiro de exemplo e os ícones no estilo letreiro neon, nos tamanhos e cores do jogo.',
+    content: (
+      <div className="flex flex-col gap-4">
+        <AbilityEffectShowcase />
+        <AbilityIconShowcase />
+      </div>
+    ),
   },
   {
     id: 'tabuleiro',
