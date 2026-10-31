@@ -20,7 +20,7 @@ src/
 │   ├── lobby/           # criar/entrar em sala, código numérico de 4 dígitos, Sala de Espera
 │   ├── draft/           # Preparação: personagem (com bloqueio) e 2 habilidades iniciais
 │   ├── board/           # tabuleiro 4×4, células e seus estados
-│   ├── powers/          # sorteio da 3ª, deck, mira, efeitos visuais e ícones neon (`AbilityIcon`) das 10 habilidades
+│   ├── powers/          # sorteio da 3ª, deck, mira, ícones neon (`AbilityIcon`) e, em `effects/`, a animação de cada uma das 10 habilidades
 │   ├── match/           # Arena: turnos, timer, placar MD3, Morte Súbita, banners
 │   ├── results/         # Resultado, Coins, revanche
 │   ├── characters/      # os 6 personagens em SVG (estilo neon) + paleta
@@ -95,9 +95,18 @@ A Arena fica em `src/features/match/Arena.tsx`, com as regiões prontas para as 
 
 A mira (FE-27) fica em `src/features/powers/useAbilityAim.ts`: alvos da etapa atual (com
 `getAimTargets`, de `src/lib/abilityTargets.ts`), o envio da intenção e a espera pelo servidor,
-com o tabuleiro travado até o `ABILITY_RESOLVED` ou um erro. O resultado aparece em duas peças: o
-`AbilityImpact`, o efeito na casa ou no centro do tabuleiro por `ABILITY_IMPACT_SECONDS`, e o
-`AbilityNotice`, o aviso na coluna direita por `ABILITY_NOTICE_SECONDS`.
+com o tabuleiro travado até o `ABILITY_RESOLVED` ou um erro. O resultado aparece em duas peças: a
+animação da habilidade no tabuleiro, por `ABILITY_IMPACT_SECONDS`, e o `AbilityNotice`, o aviso na
+coluna direita por `ABILITY_NOTICE_SECONDS`.
+
+As animações (FE-47) ficam em `src/features/powers/effects/`, uma por arquivo (`BombEffect`,
+`TornadoEffect`...), mais a anulada, a sem efeito e a versão parada para "reduzir movimento". O
+`AbilityEffect` escolhe qual tocar e é desenhado **dentro do grid do tabuleiro**: cada camada se
+posiciona pela linha e coluna da casa (por isso as casas também têm posição explícita no `Board`).
+O tabuleiro já chega com o estado final, então a peça que a habilidade levou fica escondida no
+destino (`pieceHidden`) até a animação terminar de levá-la, e a peça que a Bomba removeu é
+desenhada por cima só para explodir. O `AbilityEffect` não lê store: a vitrine (aba Habilidades)
+mostra cada animação com o cenário de `abilityDemo.ts`, que a Loja (FE-31) também pode usar.
 
 Revanche e saída (FE-29) ficam em `src/features/results/`: o `RematchPanel` (Revanche, Aceitar /
 Recusar com a barra dos 15s e Voltar ao Lobby) entra na tela de Resultado da FE-15, e o

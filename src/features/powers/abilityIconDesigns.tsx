@@ -22,8 +22,8 @@ function snowflakePath(cx: number, cy: number, r: number): string {
   return parts.join(' ')
 }
 
-/** Hexágono com a ponta para cima (Campo de Força) */
-function hexagonPath(cx: number, cy: number, r: number): string {
+/** Hexágono com a ponta para cima (Campo de Força; também nos efeitos da FE-47) */
+export function hexagonPath(cx: number, cy: number, r: number): string {
   const points = Array.from({ length: 6 }, (_, i) => {
     const a = (Math.PI / 3) * i - Math.PI / 2
     return `${(cx + Math.cos(a) * r).toFixed(1)} ${(cy + Math.sin(a) * r).toFixed(1)}`

@@ -34,7 +34,9 @@ Depois: FE-18 (sala e jogada via STOMP, 21–22/10), FE-19 (habilidades e timer,
 (reconexão, 25–26/10) e FE-29 (revanche, 27–28/10). Homologação de todos em 29–30/10.
 
 Fora da sequência: FE-46 (ícones neon das 10 habilidades e fim dos emojis na interface, 28/10 ✓),
-aberta na revisão da FE-11. A Loja (FE-31) usa o mesmo `AbilityIcon`.
+aberta na revisão da FE-11. A Loja (FE-31) usa o mesmo `AbilityIcon`. FE-47 (animação própria de
+cada uma das 10 habilidades, 29/10–02/11), aberta na revisão da FE-27; a demonstração em loop da
+Loja (FE-31) pode reusar o `AbilityEffect` e o cenário `abilityDemo`.
 
 ## Quando cada pessoa entra
 

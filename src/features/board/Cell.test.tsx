@@ -74,31 +74,10 @@ describe('Cell', () => {
     expect(screen.getByRole('img')).toHaveAccessibleName('Linha 4, coluna 1: X, linha vencedora')
   })
 
-  it('efeito da habilidade resolvida: o ícone dela ou, anulada, o do Campo de Força', () => {
-    const resolved = {
-      by: 'P1' as const,
-      ability: 'BOMBA' as const,
-      targetCell: 0,
-      destinationCell: null,
-      absorbed: false,
-      noEffect: false,
-      serverTime: 1,
-      receivedAt: 1,
-    }
-    const { container, rerender } = render(<Cell row={0} col={0} piece="O" />)
-    expect(layer(container, 'ability-impact')).toBeNull()
-
-    rerender(<Cell row={0} col={0} piece="O" impact={resolved} impactColor="#b07cff" />)
-    expect(layer(container, 'ability-impact')?.querySelector('[data-ability]')).toHaveAttribute(
-      'data-ability',
-      'BOMBA',
-    )
-
-    rerender(<Cell row={0} col={0} piece="O" impact={{ ...resolved, absorbed: true }} />)
-    expect(layer(container, 'ability-impact')?.querySelector('[data-ability]')).toHaveAttribute(
-      'data-ability',
-      'CAMPO_DE_FORCA',
-    )
+  it('peça escondida durante a animação continua no nome acessível', () => {
+    const { container } = render(<Cell row={0} col={0} piece="O" pieceHidden />)
+    expect(container.querySelector('svg')).toHaveClass('opacity-0')
+    expect(screen.getByRole('img', { name: 'Linha 1, coluna 1: O' })).toBeInTheDocument()
   })
 
   it('camadas dos estados são sobrepostas: não mudam o tamanho da casa', () => {
