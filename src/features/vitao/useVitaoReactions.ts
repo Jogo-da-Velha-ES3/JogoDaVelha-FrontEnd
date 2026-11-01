@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { VITAO_BUBBLE_SECONDS, VITAO_DECISION_WINDOW_MS } from '../../constants/game'
 import { decideVitaoReaction, type VitaoMoment, type VitaoReaction } from '../../lib/vitao'
-import { VITAO_LINES } from '../../lib/vitaoLines'
 import { momentsFromChange, type VitaoSnapshot } from '../../lib/vitaoMoments'
 import { useBoardStore } from '../../stores/boardStore'
 import { useMatchStore } from '../../stores/matchStore'
 import { useRoomStore } from '../../stores/roomStore'
+import { VITAO_LINES } from './vitaoLines'
 
 export interface ShownReaction extends VitaoReaction {
   /** Muda a cada fala nova, mesmo com o mesmo texto */
@@ -40,8 +40,9 @@ function readSnapshot(): VitaoSnapshot {
 /**
  * Motor de reações do Vitão (FE-44): observa as stores do jogo, que só mudam por evento confirmado
  * pelo servidor, junta o que chegou numa janela curta, decide a reação pelas regras puras de
- * src/lib/vitao.ts (1 fala a cada 6s, momentos grandes primeiro, "Diabo" na Morte Súbita) e devolve
- * a fala atual, que some sozinha depois de alguns segundos.
+ * src/lib/vitao.ts (1 fala a cada 6s, momentos grandes primeiro, 1 em 3 jogadas, "Diabo" na Morte
+ * Súbita) e devolve a fala atual, que some sozinha depois de alguns segundos. Um momento grande que
+ * chega durante a pausa de 6s fala na hora, no lugar da fala atual.
  */
 export function useVitaoReactions(): ShownReaction | null {
   const [reaction, setReaction] = useState<ShownReaction | null>(null)

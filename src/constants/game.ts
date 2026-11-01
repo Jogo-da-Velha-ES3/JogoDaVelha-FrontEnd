@@ -41,6 +41,9 @@ export const ROUND_COIN_FLIP_SECONDS = 1.2
  * [A VALIDAR COM O BACK]
  */
 export const ROUND_INTRO_SECONDS = 2.5
+/** Habilidade resolvida (FE-27): o efeito na casa e o aviso ("Oponente usou…", "Anulada…") */
+export const ABILITY_IMPACT_SECONDS = 1
+export const ABILITY_NOTICE_SECONDS = 2.5
 
 export const INITIAL_ABILITIES_TO_PICK = 2
 export const DECK_SIZE = 3 // 2 iniciais + 1 sorteada [RN-DRAFT-02]
@@ -81,10 +84,16 @@ export const COINS_REWARD = {
 // O valor oficial vem do catálogo do back.
 export const ABILITY_PRICE = 350
 
-// O Vitão fica fora do MVP 1: só o espaço reservado na Arena.
-export const VITAO_ENABLED = false
-/** Vitão: no máximo 1 fala a cada tantos segundos (FE-44) */
+// O Vitão (FE-41 a FE-45) foi ligado em 31/10, com a FE-44. Com `false`, só o espaço dele fica na
+// Arena (PROJECT_CONTEXT §9).
+export const VITAO_ENABLED = true
+/** Vitão: no máximo 1 fala a cada tantos segundos, menos nos momentos grandes (FE-44) */
 export const VITAO_COOLDOWN_SECONDS = 6
+/**
+ * Vitão: chance de comentar uma jogada de peça (1 em 3). Habilidades, estouros e momentos grandes
+ * ele sempre comenta
+ */
+export const VITAO_MOVE_COMMENT_CHANCE = 1 / 3
 /** Vitão: quanto tempo o balão fica na tela */
 export const VITAO_BUBBLE_SECONDS = 4
 /** Vitão: janela para reunir eventos que chegam juntos e escolher o de maior prioridade */

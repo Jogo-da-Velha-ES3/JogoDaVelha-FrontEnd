@@ -1,5 +1,6 @@
 // Motor de reações do Vitão (FE-44)
 // Recebe o que aconteceu, a hora, a última fala e o filtro, e devolve a reação e a fala, ou nada. Quem chama (o hook) é que observa as stores.
+import { VITAO_COOLDOWN_SECONDS, VITAO_MOVE_COMMENT_CHANCE } from '../constants/game'
 
 /** Expressões da arte do Vitão (FE-41) */
 export type VitaoExpression =
@@ -42,9 +43,7 @@ export interface VitaoLine {
 /** Falas por momento: a versão normal e a versão "Diabo" (Morte Súbita) */
 export type VitaoLines = Partial<Record<VitaoLineKey, { normal: VitaoLine[]; devil: VitaoLine[] }>>
 
-/** No máximo 1 fala a cada 6s */
-/** No máximo 1 fala a cada 6s */
-export const VITAO_COOLDOWN_SECONDS = 6
+/** No máximo 1 fala a cada 6s, menos nos momentos grandes */
 export const VITAO_COOLDOWN_MS = VITAO_COOLDOWN_SECONDS * 1000
 
 export interface VitaoContext {
@@ -85,6 +84,12 @@ export const momentPriority = (moment: VitaoMoment) => PRIORITY[moment.kind]
 
 export const isBigMoment = (moment: VitaoMoment) => momentPriority(moment) >= BIG_PRIORITY
 
+/** Quanto falta (ms) para o Vitão poder falar de novo: 0 se já pode */
+export function cooldownLeft(now: number, lastSpeechAt: number | null): number {
+  if (lastSpeechAt === null) return 0
+  return Math.max(0, lastSpeechAt + VITAO_COOLDOWN_MS - now)
+}
+
 /** Qual conjunto de falas serve para o momento */
 export function lineKey(moment: VitaoMoment): VitaoLineKey {
   switch (moment.kind) {
@@ -108,19 +113,29 @@ export function lineKey(moment: VitaoMoment): VitaoLineKey {
 
 /**
  * Decide a reação do Vitão para os momentos que acabaram de chegar (todos já confirmados pelo
- * servidor). Devolve null se ele deve ficar quieto: sem momentos, dentro dos 6s da última fala,
- * sem fala disponível ou todas filtradas.
+ * servidor). Devolve null se ele deve ficar quieto: sem momentos, momento pequeno dentro dos 6s da
+ * última fala, jogada de peça fora do sorteio de 1 em 3, sem fala disponível ou todas filtradas.
  */
 export function decideVitaoReaction(
   moments: VitaoMoment[],
   ctx: VitaoContext,
   lines: VitaoLines,
 ): VitaoReaction | null {
-  if (moments.length === 0) return null
-  if (ctx.lastSpeechAt !== null && ctx.now - ctx.lastSpeechAt < VITAO_COOLDOWN_MS) return null
+  const random = ctx.random ?? Math.random
+  const inPause = cooldownLeft(ctx.now, ctx.lastSpeechAt) > 0
+  const candidates = moments.filter((m) => {
+    // Na pausa de 6s só os momentos grandes falam, na hora e no lugar da fala atual: esperar a
+    // pausa acabar pareceria atraso
+    if (inPause) return isBigMoment(m)
+    // Jogada de peça: comenta só 1 em cada 3, para não falar o tempo todo
+    return m.kind !== 'MOVE' || random() < VITAO_MOVE_COMMENT_CHANCE
+  })
+  if (candidates.length === 0) return null
 
   // Maior prioridade; em empate, o mais recente (o último da lista)
-  const moment = moments.reduce((best, m) => (momentPriority(m) >= momentPriority(best) ? m : best))
+  const moment = candidates.reduce((best, m) =>
+    momentPriority(m) >= momentPriority(best) ? m : best,
+  )
 
   const entry = lines[lineKey(moment)]
   if (!entry) return null
@@ -129,7 +144,6 @@ export function decideVitaoReaction(
   const pool = devil && entry.devil.length > 0 ? entry.devil : entry.normal
   const allowed = ctx.filterOn ? pool.filter((line) => !line.explicit) : pool
 
-  const random = ctx.random ?? Math.random
   const line = allowed[Math.floor(random() * allowed.length)]
   if (!line) return null
 

@@ -14,6 +14,13 @@ import { useVitaoReactions } from './useVitaoReactions'
 const boardWith = (owners: Record<number, PlayerSlot>) =>
   emptyCells().map((cell) => ({ ...cell, owner: owners[cell.index] ?? null }))
 
+const timeout = (player: PlayerSlot) => ({
+  player,
+  consecutiveTimeouts: 1,
+  serverTime: 0,
+  receivedAt: 0,
+})
+
 const wait = (ms: number) => act(() => void vi.advanceTimersByTime(ms))
 const waitWindow = () => wait(VITAO_DECISION_WINDOW_MS)
 
@@ -56,10 +63,45 @@ describe('useVitaoReactions', () => {
     expect(result.current?.id).toBe(firstId) // dentro dos 6s: calado
 
     wait(VITAO_COOLDOWN_SECONDS * 1000)
+    expect(result.current).toBeNull() // a jogada da pausa foi descartada, não volta depois
     act(() => useBoardStore.setState({ cells: boardWith({ 5: 'P1', 6: 'P2', 7: 'P1' }) }))
     waitWindow()
     expect(result.current).not.toBeNull()
     expect(result.current?.id).not.toBe(firstId) // passaram os 6s: fala de novo
+  })
+
+  it('momento grande na pausa de 6s fala na hora, no lugar da fala atual', () => {
+    const { result } = renderHook(() => useVitaoReactions())
+    act(() => useBoardStore.setState({ cells: boardWith({ 5: 'P1' }) }))
+    waitWindow()
+    const smallId = result.current?.id
+    expect(result.current?.moment.kind).toBe('MOVE')
+
+    wait(1000)
+    act(() => useMatchStore.setState({ roundEnd: { round: 1, winner: 'P1', winningLine: null } }))
+    waitWindow()
+    expect(result.current?.moment.kind).toBe('ROUND_END') // sem esperar a pausa acabar
+    expect(result.current?.id).not.toBe(smallId)
+
+    // A pausa recomeça na fala grande: o estouro logo depois fica sem fala
+    const bigId = result.current?.id
+    wait(1000)
+    act(() => useMatchStore.setState({ lastTimeout: timeout('P2') }))
+    waitWindow()
+    expect(result.current?.id).toBe(bigId)
+  })
+
+  it('jogada fora do sorteio de 1 em 3 fica sem fala e não gasta a pausa', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.5)
+    const { result } = renderHook(() => useVitaoReactions())
+    act(() => useBoardStore.setState({ cells: boardWith({ 5: 'P1' }) }))
+    waitWindow()
+    expect(result.current).toBeNull()
+
+    wait(1000)
+    act(() => useMatchStore.setState({ lastTimeout: timeout('P2') }))
+    waitWindow()
+    expect(result.current?.moment).toEqual({ kind: 'TIMEOUT', by: 'OPPONENT' })
   })
 
   it('o momento grande ganha da jogada que chegou junto', () => {

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  cooldownLeft,
   decideVitaoReaction,
   isBigMoment,
   VITAO_COOLDOWN_MS,
@@ -56,9 +57,13 @@ describe('decideVitaoReaction', () => {
     expect(decideVitaoReaction([move], exactly, lines)).not.toBeNull()
   })
 
-  it('nem o momento grande fura o limite de 6s', () => {
+  it('na pausa de 6s, só o momento grande fala (na hora, sem esperar a pausa acabar)', () => {
     const recent = ctx({ lastSpeechAt: 100_000 - 1000 })
-    expect(decideVitaoReaction([roundEnd], recent, lines)).toBeNull()
+    const timeout: VitaoMoment = { kind: 'TIMEOUT', by: 'OPPONENT' }
+    expect(decideVitaoReaction([roundEnd], recent, lines)?.text).toBe('Round seu')
+    expect(decideVitaoReaction([move, roundEnd], recent, lines)?.text).toBe('Round seu')
+    expect(decideVitaoReaction([move], recent, lines)).toBeNull()
+    expect(decideVitaoReaction([timeout], recent, lines)).toBeNull()
   })
 
   it('o momento grande passa na frente do pequeno, em qualquer ordem', () => {
@@ -101,5 +106,27 @@ describe('decideVitaoReaction', () => {
   it('momento sem falas cadastradas: fica quieto, sem quebrar', () => {
     const moment: VitaoMoment = { kind: 'WO', winner: 'OPPONENT' }
     expect(decideVitaoReaction([moment], ctx(), lines)).toBeNull()
+  })
+
+  it('comenta só 1 em cada 3 jogadas de peça', () => {
+    expect(decideVitaoReaction([move], ctx({ random: () => 0.33 }), lines)?.text).toBe('Jogada boa')
+    expect(decideVitaoReaction([move], ctx({ random: () => 0.34 }), lines)).toBeNull()
+  })
+
+  it('habilidade, estouro e momento grande não passam pelo sorteio das jogadas', () => {
+    const timeout: VitaoMoment = { kind: 'TIMEOUT', by: 'OPPONENT' }
+    const noLuck = ctx({ random: () => 0.99 })
+    expect(decideVitaoReaction([timeout], noLuck, lines)?.text).toBe('Dormiu, lixo')
+    expect(decideVitaoReaction([roundEnd], noLuck, lines)?.text).toBe('Round seu')
+    expect(decideVitaoReaction([roundEnd, move], noLuck, lines)?.text).toBe('Round seu')
+  })
+})
+
+describe('cooldownLeft', () => {
+  it('diz quanto falta para a pausa de 6s acabar', () => {
+    expect(cooldownLeft(100_000, null)).toBe(0)
+    expect(cooldownLeft(100_000, 100_000 - 1000)).toBe(VITAO_COOLDOWN_MS - 1000)
+    expect(cooldownLeft(100_000, 100_000 - VITAO_COOLDOWN_MS)).toBe(0)
+    expect(cooldownLeft(100_000, 0)).toBe(0)
   })
 })

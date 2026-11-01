@@ -74,6 +74,12 @@ describe('Cell', () => {
     expect(screen.getByRole('img')).toHaveAccessibleName('Linha 4, coluna 1: X, linha vencedora')
   })
 
+  it('peça escondida durante a animação continua no nome acessível', () => {
+    const { container } = render(<Cell row={0} col={0} piece="O" pieceHidden />)
+    expect(container.querySelector('svg')).toHaveClass('opacity-0')
+    expect(screen.getByRole('img', { name: 'Linha 1, coluna 1: O' })).toBeInTheDocument()
+  })
+
   it('camadas dos estados são sobrepostas: não mudam o tamanho da casa', () => {
     const { container } = render(
       <Cell

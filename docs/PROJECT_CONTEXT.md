@@ -152,6 +152,10 @@ estratégico e competitivo, **sem pay-to-win**.
   mesmo turno, nem usar 2 habilidades `[RN-ARN-02]`.
 - **O deck do oponente é oculto:** você só descobre uma habilidade dele quando ela é usada
   (decisão de interface).
+- **Mira só com alvo que tem efeito (decidido em 29/10, FE-27):** a peça com Reforço não é alvo de
+  Bomba, Tornado nem Buraco Negro, e a peça sem casa vizinha livre não é alvo de Tornado nem de
+  Troca Rápida. A carta que fica sem nenhum alvo aparece desabilitada, com "Sem alvo". O
+  servidor continua aceitando esses alvos (`[RN-ARN-05]`: executa sem efeito).
 
 ### Duração dos efeitos `[RN-ARN-07]`
 
@@ -404,6 +408,14 @@ Abrir o jogo → [sem sessão] Acesso → Hub (Jogar; abas Loja / Perfil)
   `MATCH_END`, a Arena segura **2 segundos**, como no W.O., e o subtítulo troca para "+20 Coins
   para cada" (Coins vindos do servidor); então vai para o Resultado.
 
+- **Habilidade resolvida (decidido em 29/10, FE-27):** o efeito aparece na casa (ou no centro do
+  tabuleiro, nas habilidades sem casa) por 1s, na **cor de quem usou**; anulada, com o ícone do
+  Campo de Força na cor de quem tinha o campo; sem efeito, neutro. O aviso fica 2,5s na coluna
+  direita, sem cobrir o tabuleiro: toda habilidade do oponente ("Oponente usou Bomba") e as minhas
+  só quando anuladas ou sem efeito ("Anulada pelo Campo de Força!", "Sem efeito!").
+  Cada habilidade tem a sua animação (FE-47); no Congelar, o anel fica na cor de quem usou e os
+  cristais em azul-gelo, a cor da peça congelada (decidido em 30/10).
+
 ### Morte Súbita: pacote de pressão
 
 - **Entrada:** tela treme e pisca em vermelho, sirene, "MORTE SÚBITA" bate na tela, fitas de
@@ -430,9 +442,17 @@ Abrir o jogo → [sem sessão] Acesso → Hub (Jogar; abas Loja / Perfil)
   `src/features/vitao/assets/`. Para casar com o neon, o contorno brilhante é feito no código
   (FE-42), sem mexer na arte. Em ~48px, normal, bravo e muito bravo ficam parecidos: na reação de
   raiva, usar o "muito bravo".
-- **Regras:** falas em arquivo editável, no máximo uma a cada 6s, balão que nunca cobre o
-  tabuleiro, linguagem sem filtro por padrão (com opção de filtrar nas Configurações). Tudo é
-  feito com `VITAO_ENABLED=false`; a flag é ligada quando o motor de reações (FE-44) for aprovado.
+- **Regras:** falas em arquivo editável, no máximo uma a cada 6s (menos nos momentos grandes, logo
+  abaixo), balão que nunca cobre o tabuleiro, linguagem sem filtro por padrão (com opção de filtrar
+  nas Configurações).
+- **Quando ele fala (decidido em 31/10, FE-44):** comenta só 1 em cada 3 jogadas de peça (sorteio);
+  habilidades, estouros de tempo e os momentos grandes (fim do round, entrada da Morte Súbita e
+  W.O.) ele sempre comenta. Os momentos grandes falam na hora, mesmo dentro da pausa de 6s: tomam o
+  lugar da fala atual (com a voz, cortam o áudio dela) e a pausa recomeça a partir deles. Esperar a
+  pausa acabar pareceria atraso. Na Morte Súbita ele fica Diabo o tempo todo, não só quando fala.
+- **Flag:** a `VITAO_ENABLED` foi ligada em 31/10, com a FE-44, para o time ver o Vitão enquanto
+  termina falas (FE-43), animação (FE-42) e voz (FE-45). Até lá, as falas e a cabeça parada são
+  provisórias.
 - **Autorização:** o uso da imagem, das falas e da voz do Vitão num link público precisa do ok
   dele, registrado na FE-41. O Vitão autorizou tudo em 25/10: imagem, desenho, falas e voz.
 - **Voz do jogo:** além do Vitão, os textos da interface (anúncios gritados, banners, erros,
@@ -475,6 +495,8 @@ Abrir o jogo → [sem sessão] Acesso → Hub (Jogar; abas Loja / Perfil)
 - Regra nova da MD3 (18/10): até 3 rounds, só acaba antes em 2×0, empate absoluto com placar
   igual no fim do round 3 (§6)
 - Apresentação do round (24/10): 2,5s entre o fim do sorteio e o primeiro `TURN_START` (§9)
+- Silêncio (29/10): mandar quem está silenciado no `TURN_START`; até lá o front deduz do
+  `ABILITY_RESOLVED` (ARCHITECTURE §6)
 
 ## 12. Prioridade de implementação (MVP 1)
 

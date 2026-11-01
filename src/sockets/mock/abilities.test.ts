@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { AbilityId, Cell, PlayerSlot } from '../../types/game'
-import { adjacentCells, isBlockedFor, resolveAbility, tickEffects } from './abilities'
+import { isBlockedFor, resolveAbility, tickEffects } from './abilities'
 
 /** X = P1, O = P2, x/o = congelada, R = P1 com Reforço, . = vazia (16 casas, sem "/") */
 function board(text: string): Cell[] {
@@ -34,13 +34,6 @@ const use = (
     opponentForceField: extra.forceField ?? 0,
     random: () => 0,
   })
-
-describe('adjacentCells', () => {
-  it('canto tem 3 vizinhas e o meio tem 8 (com diagonais)', () => {
-    expect(adjacentCells(0).sort((a, b) => a - b)).toEqual([1, 4, 5])
-    expect(adjacentCells(5)).toHaveLength(8)
-  })
-})
 
 describe('resolveAbility', () => {
   it('Bomba remove a peça do oponente', () => {

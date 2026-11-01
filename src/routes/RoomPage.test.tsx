@@ -165,7 +165,7 @@ describe('Arena', () => {
     expect(screen.queryByRole('progressbar', { name: 'Seu tempo' })).not.toBeInTheDocument()
   })
 
-  it('faixas mostram os dois jogadores e o espaço do Vitão fica vazio com a flag desligada', async () => {
+  it('faixas mostram os dois jogadores e o Vitão fica no espaço entre elas', async () => {
     renderRoom('normal')
     await toPlaying()
     // O banner do Confronto já saiu (só aparece na fase VERSUS)
@@ -173,9 +173,9 @@ describe('Arena', () => {
     expect(screen.getByRole('region', { name: /^Oponente Simulado:/ })).toBeInTheDocument()
     expect(screen.getByRole('region', { name: /\(você\):/ })).toBeInTheDocument()
 
-    const vitao = document.querySelector('[data-region="vitao"]')
-    expect(vitao).toBeEmptyDOMElement()
-    expect(screen.queryByText(/Vitão/)).not.toBeInTheDocument()
+    const vitao = document.querySelector<HTMLElement>('[data-region="vitao"]')
+    expect(vitao).not.toBeNull()
+    expect(within(vitao!).getByAltText('Vitão')).toBeInTheDocument()
   })
 
   it('W.O.: a Arena segura o banner por 2s antes do Resultado', async () => {

@@ -1,5 +1,6 @@
 import { VITAO_ENABLED } from '../../constants/game'
 import type { VitaoExpression } from '../../lib/vitao'
+import { useMatchStore } from '../../stores/matchStore'
 import bravo from './assets/vitao-bravo.webp'
 import debochado from './assets/vitao-debochado.webp'
 import diabo from './assets/vitao-diabo.webp'
@@ -24,7 +25,9 @@ const IMAGES: Record<VitaoExpression, string> = {
 /** Versão provisória até a FE-42 (bonequinho animado): cabeça da expressão + balão */
 function VitaoPresence() {
   const reaction = useVitaoReactions()
-  const expression = reaction?.expression ?? 'NORMAL'
+  const suddenDeath = useMatchStore((s) => s.suddenDeath)
+  // Na Morte Súbita ele é o Diabo o tempo todo, não só quando fala
+  const expression = reaction?.expression ?? (suddenDeath ? 'DIABO' : 'NORMAL')
 
   return (
     <div className="flex min-h-0 items-center gap-2">

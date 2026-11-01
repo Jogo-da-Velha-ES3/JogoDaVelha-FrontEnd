@@ -15,6 +15,8 @@ export interface CellProps {
   /** Efeitos com contador de turnos, como o servidor manda [RN-ARN-07] */
   effects?: readonly CellEffect[]
   aim?: CellAim
+  /** A peça fica invisível enquanto a animação de uma habilidade a leva até aqui (FE-47) */
+  pieceHidden?: boolean
   /** Faz parte da linha vencedora confirmada pelo servidor */
   winning?: boolean
   /** Sem `onSelect`, ou com `disabled`, a casa só mostra o estado */
@@ -84,7 +86,7 @@ export function Cell(props: CellProps) {
           id={piece}
           variant="piece"
           decorative
-          className={`absolute top-[11%] left-[11%] size-[78%] ${has('CONGELAR') ? 'brightness-90 saturate-[.3]' : ''}`}
+          className={`absolute top-[11%] left-[11%] size-[78%] ${has('CONGELAR') ? 'brightness-90 saturate-[.3]' : ''} ${props.pieceHidden ? 'opacity-0' : ''}`}
         />
       )}
 

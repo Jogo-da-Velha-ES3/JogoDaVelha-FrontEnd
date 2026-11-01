@@ -1,7 +1,8 @@
 // Falas PROVISÓRIAS do Vitão, só para o motor funcionar e ser testado.
-// A FE-43 troca por as falas de verdade (e a FE-40 define o guia de tom).
+// A FE-43 troca pelas falas de verdade (e a FE-40 define o guia de tom).
 // `explicit: true` = fala sem filtro, que some quando o filtro das Configurações está ligado.
-import type { VitaoExpression, VitaoLine, VitaoLines } from './vitao'
+// Raiva é sempre MUITO_BRAVO: na cabeça pequena, o BRAVO fica igual ao NORMAL (FE-41).
+import type { VitaoExpression, VitaoLine, VitaoLines } from '../../lib/vitao'
 
 const say = (text: string, expression: VitaoExpression, explicit = false): VitaoLine => ({
   text,
@@ -34,7 +35,7 @@ export const VITAO_LINES: VitaoLines = {
   ABILITY_OPPONENT: {
     normal: [
       say('Ih, o rival tirou habilidade da manga!', 'SURPRESO'),
-      say('Isso vai doer.', 'BRAVO'),
+      say('Isso vai doer.', 'MUITO_BRAVO'),
     ],
     devil: [say('Poderes? Aqui embaixo também temos.', 'DIABO')],
   },
@@ -53,7 +54,10 @@ export const VITAO_LINES: VitaoLines = {
     devil: [say('Poder jogado fora. Delicioso.', 'DIABO')],
   },
   TIMEOUT_ME: {
-    normal: [say('Acorda! O tempo acabou.', 'BRAVO'), say('Dormiu no ponto, campeão.', 'DORMINDO')],
+    normal: [
+      say('Acorda! O tempo acabou.', 'MUITO_BRAVO'),
+      say('Dormiu no ponto, campeão.', 'DORMINDO'),
+    ],
     devil: [say('O tempo é meu aliado, não seu.', 'DIABO')],
   },
   TIMEOUT_OPPONENT: {
