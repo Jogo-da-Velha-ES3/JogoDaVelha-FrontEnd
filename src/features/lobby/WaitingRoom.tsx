@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Button } from '../../components/ui'
 import { MATCH_FOUND_COUNTDOWN_SECONDS } from '../../constants/game'
+import { ROOM_TEXTS } from '../../constants/texts'
 import { otherSlot } from '../../lib/match'
 import { PATHS } from '../../routes/paths'
 import { useRoomStore } from '../../stores/roomStore'
@@ -44,7 +45,7 @@ export function WaitingRoom({ code }: { code: string }) {
           ) : (
             <>
               <h1 className="font-display text-lg font-bold tracking-wide text-text-muted uppercase">
-                Sala de {host?.nickname ?? 'Jogador'}
+                {ROOM_TEXTS.roomOf(host?.nickname ?? 'Jogador')}
               </h1>
               <RoomCode code={code} />
               <ShareButtons code={code} />
@@ -103,17 +104,15 @@ function ShareButtons({ code }: { code: string }) {
     const ok = await copyText(code)
     showToast(
       ok
-        ? { message: 'Código copiado!' }
-        : { message: `Não deu para copiar. O código é ${code}.`, tone: 'danger' },
+        ? { message: ROOM_TEXTS.codeCopied }
+        : { message: ROOM_TEXTS.codeCopyFailed(code), tone: 'danger' },
     )
   }
 
   async function handleShare() {
     const result = await shareRoomLink(code)
-    if (result === 'copied') showToast({ message: 'Link copiado!' })
-    if (result === 'failed') {
-      showToast({ message: 'Não deu para copiar o link. Passe o código da sala.', tone: 'danger' })
-    }
+    if (result === 'copied') showToast({ message: ROOM_TEXTS.linkCopied })
+    if (result === 'failed') showToast({ message: ROOM_TEXTS.linkCopyFailed, tone: 'danger' })
     // 'shared' e 'cancelled': a folha nativa já deu o retorno
   }
 
@@ -143,7 +142,7 @@ function MatchFound({ opponentName }: { opponentName: string }) {
           transition={{ type: 'spring', stiffness: 520, damping: 22 }}
           className="font-display text-6xl leading-none font-extrabold tracking-wider text-primary uppercase [text-shadow:0_0_18px_var(--color-primary)] short:text-5xl"
         >
-          Match feito!
+          {ROOM_TEXTS.matchFound}
         </motion.h1>
         <motion.p
           initial={{ y: 8, opacity: 0 }}
@@ -151,12 +150,12 @@ function MatchFound({ opponentName }: { opponentName: string }) {
           transition={{ delay: 0.25, duration: 0.25 }}
           className="font-display text-2xl font-bold short:text-xl"
         >
-          {opponentName} entrou!
+          {ROOM_TEXTS.opponentJoined(opponentName)}
         </motion.p>
       </div>
       {seconds > 0 ? (
         <p className="flex flex-col items-center font-display text-sm tracking-wide text-text-muted uppercase">
-          Preparação em
+          {ROOM_TEXTS.preparationIn}
           <motion.b
             key={seconds}
             initial={{ scale: 1.5, opacity: 0 }}
@@ -168,7 +167,9 @@ function MatchFound({ opponentName }: { opponentName: string }) {
           </motion.b>
         </p>
       ) : (
-        <p className="font-display text-sm tracking-wide text-text-muted uppercase">Preparando…</p>
+        <p className="font-display text-sm tracking-wide text-text-muted uppercase">
+          {ROOM_TEXTS.preparing}
+        </p>
       )}
     </div>
   )
@@ -228,7 +229,7 @@ function EmptySlot() {
         ?
       </span>
       <p role="status" className="animate-pulse text-text-muted motion-reduce:animate-none">
-        Aguardando adversário…
+        {ROOM_TEXTS.waitingOpponent}
       </p>
     </div>
   )

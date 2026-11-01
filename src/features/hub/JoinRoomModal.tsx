@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { joinRoomByCode } from '../../api/rooms'
 import { ApiError } from '../../api/client'
 import { Button, Modal } from '../../components/ui'
+import { ROOM_TEXTS } from '../../constants/texts'
 import {
   emptyDigits,
   eraseDigit,
@@ -85,7 +86,7 @@ function JoinRoomForm({ pending, setPending }: JoinRoomFormProps) {
       navigate(roomPath(room.code))
     } catch (err) {
       // joinRoomByCode já traduz: "Sala 4821 não encontrada.", "já está cheia", "já começou"
-      setError(err instanceof ApiError ? err.message : 'Não foi possível entrar na sala agora.')
+      setError(err instanceof ApiError ? err.message : ROOM_TEXTS.errors.joinFailed)
       setPending(false)
     }
   }

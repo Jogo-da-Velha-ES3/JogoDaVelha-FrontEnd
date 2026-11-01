@@ -4,7 +4,9 @@ import { motion, useReducedMotion } from 'framer-motion'
 import { Banner, PauseIcon } from '../../components/ui'
 import { CHARACTER_INFO } from '../../constants/characters'
 import { ABILITY_IMPACT_SECONDS } from '../../constants/game'
+import { ABILITY_TEXTS, ARENA_TEXTS as T, joinParts, RESULT_TEXTS } from '../../constants/texts'
 import { useIsBefore } from '../../hooks/useIsBefore'
+import { useVoice } from '../../hooks/useLanguageFilter'
 import { useServerTimer } from '../../hooks/useServerTimer'
 import { otherSlot } from '../../lib/match'
 import { PATHS } from '../../routes/paths'
@@ -49,6 +51,7 @@ export interface ArenaProps {
  */
 export function Arena({ onQuit }: ArenaProps) {
   const navigate = useNavigate()
+  const voice = useVoice()
   const [pauseOpen, setPauseOpen] = useState(false)
   const [activeModal, setActiveModal] = useState<ModalKind>(null)
 
@@ -98,12 +101,21 @@ export function Arena({ onQuit }: ArenaProps) {
 
   const roundLabel =
     phase === 'VERSUS'
-      ? 'Confronto'
+      ? T.roundLabel.versus
       : phase === 'ROUND_END'
-        ? `Fim do round ${round}`
+        ? T.roundLabel.roundEnd(round)
         : suddenDeath
-          ? `Round ${round} · Morte Súbita`
-          : `Round ${round} · MD3`
+          ? T.roundLabel.suddenDeath(round)
+          : T.roundLabel.normal(round)
+
+  // Banner do fim do round: a fala do narrador (some com o filtro) antes do placar
+  const roundEndLine =
+    roundEnd?.winner === me
+      ? voice(T.roundEnd.mineLine)
+      : roundEnd?.winner === opp
+        ? voice(T.roundEnd.opponentsLine)
+        : null
+  const woWon = outcome?.kind === 'WO' && outcome.winner === me
 
   const openModal = (kind: Exclude<ModalKind, null>) => {
     setPauseOpen(false)
@@ -225,11 +237,11 @@ export function Arena({ onQuit }: ArenaProps) {
                     className={`font-display text-xl leading-tight font-extrabold uppercase short:text-lg ${suddenDeath ? 'text-danger' : ''}`}
                     style={suddenDeath ? undefined : { color: turnColor }}
                   >
-                    Sua vez
+                    {T.turn.yours}
                   </p>
                   {(hint || !suddenDeath) && (
                     <p className="mt-0.5 font-body text-xs text-text-muted">
-                      {hint ?? 'Toque numa casa ou use uma habilidade'}
+                      {hint ?? T.turn.hint}
                     </p>
                   )}
                 </>
@@ -241,14 +253,14 @@ export function Arena({ onQuit }: ArenaProps) {
                   style={suddenDeath ? undefined : { color: turnColor }}
                   title={player(opp)?.nickname}
                 >
-                  {`Vez de ${player(opp)?.nickname ?? 'Oponente'}…`}
+                  {T.turn.opponents(player(opp)?.nickname ?? T.opponent)}
                 </p>
               )}
             </div>
           )}
           {phase === 'ROUND_DRAW' && (
             <p role="status" className="font-display text-lg leading-tight font-bold uppercase">
-              Sorteio da 3ª habilidade
+              {ABILITY_TEXTS.draw.title}
             </p>
           )}
 
@@ -283,29 +295,23 @@ export function Arena({ onQuit }: ArenaProps) {
             show={phase === 'ROUND_END' && roundEnd !== null && !absoluteDraw}
             title={
               roundEnd?.winner === me
-                ? 'Round seu!'
+                ? T.roundEnd.mine
                 : roundEnd?.winner === opp
-                  ? 'Round do oponente'
-                  : 'Round empatado'
+                  ? T.roundEnd.opponents
+                  : T.roundEnd.draw
             }
-            subtitle={`Placar ${score[me]} × ${score[opp]}`}
+            subtitle={joinParts(roundEndLine, T.roundEnd.score(score[me], score[opp]))}
             color={roundEnd?.winner ? colorOf(characters[roundEnd.winner]) : undefined}
           />
 
-          {/* W.O. — largura total */}
+          {/* W.O. — largura total, com o mesmo título e a mesma fala do Resultado */}
           <Banner
             className="absolute inset-x-0 top-1/2 w-full -translate-y-1/2"
             show={outcome?.kind === 'WO'}
-            title={outcome?.kind === 'WO' && outcome.winner === me ? 'Vitória por W.O.' : 'W.O.!'}
-            subtitle={
-              outcome?.kind === 'WO' && outcome.winner === me
-                ? 'O oponente esgotou o tempo 3 vezes'
-                : '3 tempos esgotados seguidos · Derrota'
-            }
+            title={woWon ? RESULT_TEXTS.titles.WO_WIN : RESULT_TEXTS.titles.WO_LOSS}
+            subtitle={voice(woWon ? RESULT_TEXTS.lines.WO_WIN : RESULT_TEXTS.lines.WO_LOSS)}
             tone="danger"
-            color={
-              outcome?.kind === 'WO' && outcome.winner === me ? colorOf(characters[me]) : undefined
-            }
+            color={woWon ? colorOf(characters[me]) : undefined}
           />
 
           {/* Empate absoluto: um banner só, do fim do round 3 até o Resultado. Quando o MATCH_END
@@ -313,13 +319,13 @@ export function Arena({ onQuit }: ArenaProps) {
           <Banner
             className="absolute inset-x-0 top-1/2 w-full -translate-y-1/2"
             show={absoluteDraw || outcome?.kind === 'ABSOLUTE_DRAW'}
-            title="Empate absoluto"
+            title={T.absoluteDraw.title}
             subtitle={
               coins
-                ? `+${coins[me]} Coins para cada`
+                ? T.absoluteDraw.coinsEach(coins[me])
                 : roundEnd?.winner
-                  ? `Placar final ${score[me]} × ${score[opp]}`
-                  : 'Ninguém venceu a Morte Súbita'
+                  ? T.absoluteDraw.finalScore(score[me], score[opp])
+                  : T.absoluteDraw.nobody
             }
             tone="coin"
           />

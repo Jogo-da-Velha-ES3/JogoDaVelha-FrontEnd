@@ -1,4 +1,5 @@
 import { useEffect, useEffectEvent } from 'react'
+import { useLanguageFilter } from '../../hooks/useLanguageFilter'
 import { useMatchStore } from '../../stores/matchStore'
 import { useRoomStore } from '../../stores/roomStore'
 import { rematchCancelledMessage } from './rematch'
@@ -13,11 +14,12 @@ export function useRoomExit(onExit: (message: string) => void) {
   const phase = useRoomStore((s) => s.phase)
   const closedReason = useRoomStore((s) => s.closedReason)
   const cancelled = useMatchStore((s) => s.rematchCancelled)
+  const filterOn = useLanguageFilter()
   const exit = useEffectEvent(onExit)
 
   let message: string | null = null
   if (cancelled && me !== null && cancelled.requestedBy === me) {
-    message = rematchCancelledMessage(cancelled.reason, true)
+    message = rematchCancelledMessage(cancelled.reason, true, filterOn)
   } else if (closedReason !== null && phase !== 'RESULT') {
     message = closedReason
   }

@@ -22,6 +22,7 @@ import {
   type RegisterField,
 } from '../../lib/authValidation'
 import { CHARACTER_INFO } from '../../constants/characters'
+import { ACCESS_TEXTS } from '../../constants/texts'
 import { useAuthStore } from '../../stores/authStore'
 import type { CharacterId } from '../../types/game'
 import { Character } from '../characters'
@@ -208,7 +209,7 @@ function LoginForm({
     <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-3 short:gap-2">
       {created && !formError && (
         <p role="status" className="text-center text-sm text-primary">
-          Conta criada! Agora é só entrar com sua senha.
+          {ACCESS_TEXTS.accountCreated}
         </p>
       )}
       <TextField

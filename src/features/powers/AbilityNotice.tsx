@@ -2,7 +2,9 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { ABILITY_INFO } from '../../constants/abilities'
 import { CHARACTER_INFO } from '../../constants/characters'
 import { ABILITY_NOTICE_SECONDS } from '../../constants/game'
+import { ABILITY_TEXTS as T, joinParts } from '../../constants/texts'
 import { useIsBefore } from '../../hooks/useIsBefore'
+import { useVoice } from '../../hooks/useLanguageFilter'
 import { useBoardStore } from '../../stores/boardStore'
 import { useRoomStore } from '../../stores/roomStore'
 import { AbilityIcon } from './AbilityIcon'
@@ -13,16 +15,22 @@ import { abilityImpactSide } from './abilityImpactSide'
  * tabuleiro. O deck do oponente é oculto, então toda habilidade dele é anunciada; as minhas só
  * quando foram anuladas pelo Campo de Força ou ficaram sem efeito. Some depois de
  * ABILITY_NOTICE_SECONDS; quem reconecta não vê o aviso de novo (o snapshot não traz habilidade).
+ * Embaixo, a fala do narrador (FE-40): a da habilidade, ou a da anulada / sem efeito.
  */
 export function AbilityNotice() {
+  const voice = useVoice()
   const me = useRoomStore((s) => s.mySlot) ?? 'P1'
   const players = useRoomStore((s) => s.players)
   const result = useBoardStore((s) => s.lastAbility)
   const visible = useIsBefore(result ? result.receivedAt + ABILITY_NOTICE_SECONDS * 1000 : null)
 
   const show = result !== null && (result.by !== me || result.absorbed || result.noEffect)
-  const used =
-    result && `${result.by === me ? 'Você' : 'Oponente'} usou ${ABILITY_INFO[result.ability].name}`
+  const used = result && T.used(result.by === me, ABILITY_INFO[result.ability].name)
+  const line =
+    result &&
+    voice(
+      result.absorbed ? T.absorbedLine : result.noEffect ? T.noEffectLine : T.lines[result.ability],
+    )
   const side = result && abilityImpactSide(result)
   const character = side && players.find((p) => p.slot === side)?.character
   const color = character ? CHARACTER_INFO[character].color : 'var(--color-text-muted)'
@@ -37,7 +45,7 @@ export function AbilityNotice() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -6 }}
           transition={{ duration: 0.18, ease: 'easeOut' }}
-          className="pointer-events-none flex items-center gap-2 rounded-xl border bg-bg-panel px-2.5 py-1.5 shadow-glow"
+          className="pointer-events-none flex items-center gap-2 rounded-xl border bg-bg-panel px-2.5 py-1.5 shadow-glow short:py-1"
           style={{ borderColor: color, color }}
         >
           <AbilityIcon ability={result.ability} className="size-6 shrink-0 short:size-5" />
@@ -45,14 +53,23 @@ export function AbilityNotice() {
             {result.absorbed || result.noEffect ? (
               <>
                 <p className="font-display text-sm leading-tight font-bold uppercase short:text-xs">
-                  {result.absorbed ? 'Anulada pelo Campo de Força!' : 'Sem efeito!'}
+                  {result.absorbed ? T.absorbed : T.noEffect}
                 </p>
-                <p className="font-body text-xs text-text-muted">{used}</p>
+                <p className="font-body text-xs text-text-muted short:text-[11px] short:leading-tight">
+                  {joinParts(used, line)}
+                </p>
               </>
             ) : (
-              <p className="font-display text-sm leading-tight font-bold uppercase short:text-xs">
-                {used}
-              </p>
+              <>
+                <p className="font-display text-sm leading-tight font-bold uppercase short:text-xs">
+                  {used}
+                </p>
+                {line && (
+                  <p className="font-body text-xs text-text-muted short:text-[11px] short:leading-tight">
+                    {line}
+                  </p>
+                )}
+              </>
             )}
           </div>
         </motion.div>

@@ -1,7 +1,9 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { CHARACTER_INFO } from '../../constants/characters'
 import { MAX_CONSECUTIVE_TIMEOUTS } from '../../constants/game'
+import { ARENA_TEXTS, joinParts } from '../../constants/texts'
 import { useIsBefore } from '../../hooks/useIsBefore'
+import { useVoice } from '../../hooks/useLanguageFilter'
 import { useMatchStore } from '../../stores/matchStore'
 import { useRoomStore } from '../../stores/roomStore'
 
@@ -19,6 +21,7 @@ const TOAST_MS = 3000
  * Some automaticamente após 3s.
  */
 export function TurnTimeoutToast() {
+  const voice = useVoice()
   const mySlot = useRoomStore((s) => s.mySlot) ?? 'P1'
   const players = useRoomStore((s) => s.players)
   const lastTimeout = useMatchStore((s) => s.lastTimeout)
@@ -42,15 +45,9 @@ export function TurnTimeoutToast() {
   const borderColor = isMyTimeout ? 'var(--color-danger)' : toasterColor
 
   // Texto conforme a tabela do PROJECT_CONTEXT §9 (só para 1/3 e 2/3; W.O. fica no Banner)
-  let title: string
-  let subtitle: string
-  if (isMyTimeout) {
-    title = 'Tempo Esgotado!'
-    subtitle = count === 1 ? 'Você perdeu a vez · 1/3' : '2/3 · Mais um e é W.O.!'
-  } else {
-    title = 'Oponente perdeu a vez'
-    subtitle = `${count}/3`
-  }
+  const T = ARENA_TEXTS.timeout
+  const title = isMyTimeout ? T.title : T.opponentTitle
+  const subtitle = isMyTimeout ? joinParts(voice(T.mine(count)), T.count(count)) : T.count(count)
 
   return (
     <AnimatePresence>

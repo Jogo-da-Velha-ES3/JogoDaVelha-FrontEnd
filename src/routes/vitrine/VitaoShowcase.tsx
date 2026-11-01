@@ -1,6 +1,11 @@
 import React, { useState } from 'react'
 import { VitaoSlot, type VitaoReacao } from '../../features/vitao/VitaoSlot'
 
+const VitaoSlotComProps = VitaoSlot as unknown as React.ComponentType<{
+  reacao: VitaoReacao
+  fala: string
+}>
+
 const REACOES_DISPONIVEIS: VitaoReacao[] = [
   'normal',
   'comemorar',
@@ -22,7 +27,7 @@ export function VitaoShowcase() {
       <div className="flex flex-col md:flex-row gap-6 items-center justify-between">
         {/* Slot de Exibição */}
         <div className="p-8 border border-slate-800 bg-slate-950/70 rounded-xl flex items-center justify-center min-w-[240px] min-h-[200px]">
-          <VitaoSlot reacao={reacao} fala={fala} />
+          <VitaoSlotComProps reacao={reacao} fala={fala} />
         </div>
 
         {/* Controlo de Estados */}

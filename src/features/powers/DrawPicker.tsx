@@ -3,6 +3,7 @@ import { motion, useReducedMotion } from 'framer-motion'
 import { TimerBar } from '../../components/ui'
 import { ABILITY_INFO } from '../../constants/abilities'
 import { DRAW_PICK_SECONDS, STARTER_ABILITIES } from '../../constants/game'
+import { ABILITY_TEXTS } from '../../constants/texts'
 import { useServerTimer } from '../../hooks/useServerTimer'
 import { sendCommand } from '../../sockets/gameClient'
 import { useRoomStore } from '../../stores/roomStore'
@@ -20,6 +21,8 @@ export interface DrawPickerProps {
 // TODO FE-30: trocar pelas habilidades desbloqueadas do jogador
 const isExperiment = (ability: AbilityId) =>
   !STARTER_ABILITIES.includes(ability as (typeof STARTER_ABILITIES)[number])
+
+const T = ABILITY_TEXTS.draw
 
 /** Overlay do sorteio: envia somente a intenção e espera a confirmação do servidor. */
 export function DrawPicker({ options, deadline, chosen }: DrawPickerProps) {
@@ -65,13 +68,9 @@ export function DrawPicker({ options, deadline, chosen }: DrawPickerProps) {
             id="draw-picker-title"
             className="font-display text-2xl font-black tracking-wide text-primary uppercase short:text-xl"
           >
-            Sorteio da 3ª habilidade
+            {T.title}
           </h2>
-          <p className="text-sm text-text-muted short:text-xs">
-            {confirmed
-              ? 'Esta é a sua 3ª habilidade nesta rodada.'
-              : 'Escolha uma carta para completar seu deck.'}
-          </p>
+          <p className="text-sm text-text-muted short:text-xs">{confirmed ? T.chosen : T.choose}</p>
         </header>
 
         {timerDeadline && (
@@ -113,12 +112,12 @@ export function DrawPicker({ options, deadline, chosen }: DrawPickerProps) {
               <CardContent ability={confirmed} experiment={isExperiment(confirmed)} />
             </div>
             <p role="status" className="text-center text-xs text-text-muted">
-              Aguardando o oponente…
+              {T.waitingOpponent}
             </p>
           </div>
         ) : (
           <p role="status" className="py-5 text-center font-display font-bold text-text-muted">
-            Aguardando as cartas do servidor…
+            {T.waitingCards}
           </p>
         )}
 
@@ -128,9 +127,7 @@ export function DrawPicker({ options, deadline, chosen }: DrawPickerProps) {
             role="status"
             className="min-h-5 text-center text-xs text-text-muted"
           >
-            {pending
-              ? 'Enviando escolha ao servidor…'
-              : 'Tempo esgotado. Aguardando a escolha automática do servidor…'}
+            {pending ? T.sending : T.expired}
           </p>
         )}
       </motion.section>

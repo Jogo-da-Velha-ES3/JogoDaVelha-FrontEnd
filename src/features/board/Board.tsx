@@ -1,9 +1,9 @@
 import type { KeyboardEvent } from 'react'
-import { CHARACTER_INFO } from '../../constants/characters'
+import { useReducedMotion } from 'framer-motion'
 import type { ResolvedAbility } from '../../stores/boardStore'
 import type { Cell as CellState, CharacterId, PlayerSlot } from '../../types/game'
-import { AbilityImpact } from '../powers/AbilityImpact'
-import { abilityImpactSide } from '../powers/abilityImpactSide'
+import { AbilityEffect } from '../powers/effects/AbilityEffect'
+import { BOARD_GAP_PERCENT, movesPiece } from '../powers/effects/effectGeometry'
 import { Cell } from './Cell'
 
 export interface BoardAim {
@@ -21,7 +21,7 @@ export interface BoardProps {
   /** Linha vencedora confirmada pelo servidor */
   winningLine?: readonly number[] | null
   aim?: BoardAim | null
-  /** Habilidade que o servidor acabou de resolver: efeito no alvo e no destino, ou no centro */
+  /** Habilidade que o servidor acabou de resolver: a animação dela fica por cima das casas */
   impact?: ResolvedAbility | null
   /** Casas clicáveis agora (quem decide é a Arena). Sem isto, todas são */
   selectable?: readonly number[]
@@ -57,6 +57,7 @@ export function Board({
   disabled = false,
   className = '',
 }: BoardProps) {
+  const reduceMotion = useReducedMotion()
   const size = Math.sqrt(cells.length)
   if (!Number.isInteger(size) || size === 0) {
     throw new Error(`Tabuleiro precisa ser quadrado; recebeu ${cells.length} casas`)
@@ -91,26 +92,29 @@ export function Board({
   }
 
   const tracks = `repeat(${size}, minmax(0, 1fr))`
-  const impactSide = impact ? abilityImpactSide(impact) : null
-  const impactColor = impactSide
-    ? CHARACTER_INFO[characters[impactSide] ?? FALLBACK_CHARACTER[impactSide]].color
-    : undefined
-  const impactCells = impact ? [impact.targetCell, impact.destinationCell] : []
+  const sides: Record<PlayerSlot, CharacterId> = {
+    P1: characters.P1 ?? FALLBACK_CHARACTER.P1,
+    P2: characters.P2 ?? FALLBACK_CHARACTER.P2,
+  }
+  // O tabuleiro já chega com a peça no destino: ela aparece quando a animação termina de levá-la
+  const arriving = impact && !reduceMotion && movesPiece(impact) ? impact.destinationCell : null
 
   return (
-    <div
-      className={`relative grid size-full place-items-center [container-type:size] ${className}`}
-    >
+    <div className={`grid size-full place-items-center [container-type:size] ${className}`}>
       <div
         role="group"
         aria-label="Tabuleiro"
         onKeyDown={handleKeyDown}
-        className="grid size-[min(100cqw,100cqh)] gap-[2%] rounded-2xl border border-line bg-bg-base p-[2%]"
-        style={{ gridTemplateColumns: tracks, gridTemplateRows: tracks }}
+        className="grid size-[min(100cqw,100cqh)] rounded-2xl border border-line bg-bg-base p-[2%]"
+        style={{
+          gridTemplateColumns: tracks,
+          gridTemplateRows: tracks,
+          gap: `${BOARD_GAP_PERCENT}%`,
+        }}
       >
         {cells.map((cell, index) => {
           const owner = cell.owner
-          const piece = owner ? (characters[owner] ?? FALLBACK_CHARACTER[owner]) : null
+          const piece = owner ? sides[owner] : null
           const aimState =
             aim?.selected === index
               ? 'selected'
@@ -119,25 +123,31 @@ export function Board({
                 : undefined
 
           return (
-            <div key={index} data-cell={index} className="min-h-0 min-w-0">
+            // Posição explícita: assim o efeito da habilidade pode ocupar a mesma área (FE-47)
+            <div
+              key={index}
+              data-cell={index}
+              className="min-h-0 min-w-0"
+              style={{ gridRow: Math.floor(index / size) + 1, gridColumn: (index % size) + 1 }}
+            >
               <Cell
                 row={Math.floor(index / size)}
                 col={index % size}
                 piece={piece}
                 effects={cell.effects}
                 aim={aimState}
-                impact={impact && impactCells.includes(index) ? impact : undefined}
-                impactColor={impactColor}
+                pieceHidden={index === arriving}
                 winning={winning.has(index)}
                 onSelect={canSelect(index) ? () => onCellSelect?.(index) : undefined}
               />
             </div>
           )
         })}
+        {/* Dentro do grid, para cada efeito se posicionar pela linha e coluna das casas (FE-47) */}
+        {impact && (
+          <AbilityEffect key={impact.receivedAt} result={impact} characters={sides} size={size} />
+        )}
       </div>
-      {impact && impact.targetCell === null && impact.destinationCell === null && (
-        <AbilityImpact result={impact} color={impactColor} global />
-      )}
     </div>
   )
 }

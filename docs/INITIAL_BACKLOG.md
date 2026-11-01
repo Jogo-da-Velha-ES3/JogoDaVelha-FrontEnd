@@ -34,7 +34,9 @@ Depois: FE-18 (sala e jogada via STOMP, 21–22/10), FE-19 (habilidades e timer,
 (reconexão, 25–26/10) e FE-29 (revanche, 27–28/10). Homologação de todos em 29–30/10.
 
 Fora da sequência: FE-46 (ícones neon das 10 habilidades e fim dos emojis na interface, 28/10 ✓),
-aberta na revisão da FE-11. A Loja (FE-31) usa o mesmo `AbilityIcon`.
+aberta na revisão da FE-11. A Loja (FE-31) usa o mesmo `AbilityIcon`. FE-47 (animação própria de
+cada uma das 10 habilidades, 29/10–02/11), aberta na revisão da FE-27; a demonstração em loop da
+Loja (FE-31) pode reusar o `AbilityEffect` e o cenário `abilityDemo`.
 
 ## Quando cada pessoa entra
 
@@ -48,7 +50,8 @@ aberta na revisão da FE-11. A Loja (FE-31) usa o mesmo `AbilityIcon`.
 ## Personalidade: som, voz e Vitão (terceiro grupo)
 
 Decidido com o GP em 15/10. Corre em paralelo e não depende da base, que já está pronta. O Vitão
-é feito atrás da flag `VITAO_ENABLED=false`, ligada quando a FE-44 for aprovada.
+é feito atrás da flag `VITAO_ENABLED`, ligada em 31/10 com a FE-44 (antes da FE-42 e da FE-43, para
+o time ver o Vitão enquanto faz as falas, a animação e a voz).
 
 | Card  | Entrega                                                      | Data     | Depende de          |
 | ----- | ------------------------------------------------------------ | -------- | ------------------- |
@@ -61,6 +64,7 @@ Decidido com o GP em 15/10. Corre em paralelo e não depende da base, que já es
 | FE-43 | Falas do Vitão por momento da partida                        | 21–22/10 | FE-40               |
 | FE-44 | Motor de reações (1 fala a cada 6s, "Diabo" na Morte Súbita) | 25–26/10 | FE-42, FE-43        |
 | FE-45 | Voz gravada do Vitão                                         | 27–28/10 | FE-37, FE-43, FE-44 |
+| FE-48 | Voz do narrador (falas gravadas do Rafik)                    | 03–07/11 | FE-37, FE-39, FE-40 |
 
 ## O que mudou da v1 para a v2
 

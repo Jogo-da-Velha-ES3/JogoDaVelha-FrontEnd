@@ -1,5 +1,6 @@
 // Tradução das mensagens que chegam do back para o envelope do front (ARCHITECTURE §6).
 // [A VALIDAR COM O BACK] Se o formato mudar na FE-17, só este arquivo muda.
+import { APP_TEXTS } from '../constants/texts'
 import type { ServerEnvelope } from '../types/events'
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -43,7 +44,7 @@ function parseBackError(data: Record<string, unknown>, receivedAt: number): Serv
     type: 'ERROR',
     payload: {
       code: data.code,
-      message: text('message') ?? text('error') ?? 'Não foi possível fazer essa ação.',
+      message: text('message') ?? text('error') ?? APP_TEXTS.errors.actionFailed,
     },
     serverTime: Number.isNaN(timestamp) ? receivedAt : timestamp,
   } as ServerEnvelope
