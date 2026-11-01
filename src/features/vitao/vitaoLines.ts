@@ -1,5 +1,5 @@
 // Falas PROVISÓRIAS do Vitão, só para o motor funcionar e ser testado.
-// A FE-43 troca pelas falas de verdade (e a FE-40 define o guia de tom).
+// A FE-43 troca pelas falas de verdade, no tom de docs/VOICE_GUIDE.md (FE-40).
 // `explicit: true` = fala sem filtro, que some quando o filtro das Configurações está ligado.
 // Raiva é sempre MUITO_BRAVO: na cabeça pequena, o BRAVO fica igual ao NORMAL (FE-41).
 import type { VitaoExpression, VitaoLine, VitaoLines } from '../../lib/vitao'

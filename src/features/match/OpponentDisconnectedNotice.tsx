@@ -1,5 +1,7 @@
 import { CHARACTER_INFO } from '../../constants/characters'
 import { MAX_CONSECUTIVE_TIMEOUTS } from '../../constants/game'
+import { ARENA_TEXTS } from '../../constants/texts'
+import { useVoice } from '../../hooks/useLanguageFilter'
 import { otherSlot } from '../../lib/match'
 import { useRoomStore } from '../../stores/roomStore'
 import { useOpponentDisconnect } from './useOpponentDisconnect'
@@ -15,6 +17,7 @@ import { useOpponentDisconnect } from './useOpponentDisconnect'
  */
 export function OpponentDisconnectedNotice() {
   const { disconnected, consecutiveTimeouts } = useOpponentDisconnect()
+  const voice = useVoice()
   const mySlot = useRoomStore((s) => s.mySlot) ?? 'P1'
   const opp = useRoomStore((s) => s.players.find((p) => p.slot === otherSlot(mySlot)))
 
@@ -33,10 +36,10 @@ export function OpponentDisconnectedNotice() {
         className="font-display text-xs leading-tight font-bold tracking-wide uppercase"
         style={{ color: oppColor }}
       >
-        Oponente desconectado
+        {ARENA_TEXTS.opponentDisconnected.title}
       </p>
       <p className="font-mono text-[10px] text-text-muted">
-        Os turnos dele continuam correndo ·{' '}
+        {voice(ARENA_TEXTS.opponentDisconnected.line)} ·{' '}
         <span style={{ color: oppColor }}>
           {consecutiveTimeouts}/{MAX_CONSECUTIVE_TIMEOUTS}
         </span>

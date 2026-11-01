@@ -64,6 +64,7 @@ o time ver o Vitão enquanto faz as falas, a animação e a voz).
 | FE-43 | Falas do Vitão por momento da partida                        | 21–22/10 | FE-40               |
 | FE-44 | Motor de reações (1 fala a cada 6s, "Diabo" na Morte Súbita) | 25–26/10 | FE-42, FE-43        |
 | FE-45 | Voz gravada do Vitão                                         | 27–28/10 | FE-37, FE-43, FE-44 |
+| FE-48 | Voz do narrador (falas gravadas do Rafik)                    | 03–07/11 | FE-37, FE-39, FE-40 |
 
 ## O que mudou da v1 para a v2
 

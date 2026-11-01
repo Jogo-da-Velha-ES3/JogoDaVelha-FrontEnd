@@ -1,6 +1,8 @@
 import { useNavigate } from 'react-router-dom'
 import { Button, TimerBar } from '../../components/ui'
 import { REMATCH_WINDOW_SECONDS } from '../../constants/game'
+import { RESULT_TEXTS } from '../../constants/texts'
+import { useLanguageFilter, useVoice } from '../../hooks/useLanguageFilter'
 import { otherSlot } from '../../lib/match'
 import { PATHS } from '../../routes/paths'
 import { leaveRoom, sendCommand } from '../../sockets/gameClient'
@@ -21,6 +23,8 @@ export interface RematchPanelProps {
  */
 export function RematchPanel({ onLeave, className = '' }: RematchPanelProps) {
   const navigate = useNavigate()
+  const filterOn = useLanguageFilter()
+  const voice = useVoice()
   const me = useRoomStore((s) => s.mySlot) ?? 'P1'
   const opponent = useRoomStore((s) => s.players.find((p) => p.slot === otherSlot(me)))
   const closedReason = useRoomStore((s) => s.closedReason)
@@ -36,19 +40,19 @@ export function RematchPanel({ onLeave, className = '' }: RematchPanelProps) {
 
   // Sala encerrada: a revanche fica desabilitada na hora [RN-POS-02]
   let ended: string | null = null
-  if (cancelled) ended = rematchCancelledMessage(cancelled.reason, cancelled.requestedBy === me)
-  else if (!opponent) ended = 'O oponente saiu da sala.'
+  const T = RESULT_TEXTS.rematch
+  if (cancelled) {
+    ended = rematchCancelledMessage(cancelled.reason, cancelled.requestedBy === me, filterOn)
+  } else if (!opponent) ended = voice(T.opponentLeft)
   else if (closedReason !== null) ended = closedReason
 
   const pending = ended === null ? rematch : null
   const askedByOpponent = pending !== null && pending.requestedBy !== me
-  const opponentName = opponent?.nickname ?? 'O oponente'
+  const opponentName = opponent?.nickname ?? T.opponent
 
   let status: string | null = ended
   if (pending) {
-    status = askedByOpponent
-      ? `${opponentName} quer revanche!`
-      : `Revanche pedida! Esperando ${opponentName} aceitar…`
+    status = askedByOpponent ? T.opponentWants(opponentName) : T.waiting(opponentName)
   }
 
   return (

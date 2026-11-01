@@ -2,6 +2,7 @@
 // sabem com qual estão falando. Destinos em destinations.ts, tradução em envelope.ts.
 import { Client, type IMessage, type StompConfig, type StompSubscription } from '@stomp/stompjs'
 import { getAuthToken } from '../api/session'
+import { APP_TEXTS } from '../constants/texts'
 import type { ClientCommand, ServerEnvelope } from '../types/events'
 import {
   commandDestination,
@@ -63,7 +64,7 @@ export class StompConnection implements GameConnection {
         else resolve()
       }
       const timer = setTimeout(
-        () => settle(new Error('Não foi possível conectar ao servidor. Tentando de novo…')),
+        () => settle(new Error(APP_TEXTS.errors.connectTimeout)),
         this.options.connectTimeoutMs ?? 10_000,
       )
 
@@ -84,7 +85,7 @@ export class StompConnection implements GameConnection {
           settle()
         },
         onStompError: (frame) => {
-          const message = frame.headers.message || 'O servidor recusou a conexão.'
+          const message = frame.headers.message || APP_TEXTS.errors.connectionRefused
           this.setStatus('ERROR')
           if (settled) this.emitLocalError('CONNECTION_ERROR', message)
           settle(new Error(message))
@@ -141,7 +142,7 @@ export class StompConnection implements GameConnection {
 
   send(command: ClientCommand): void {
     if (!this.client?.connected || !this.roomCode) {
-      this.emitLocalError('NOT_CONNECTED', 'Sem conexão com o servidor. Tentando reconectar…')
+      this.emitLocalError('NOT_CONNECTED', APP_TEXTS.errors.notConnected)
       return
     }
     this.client.publish({

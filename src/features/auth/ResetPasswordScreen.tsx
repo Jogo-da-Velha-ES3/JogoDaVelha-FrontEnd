@@ -3,8 +3,9 @@
 // no alto, para o teclado não cobrir [PROJECT_CONTEXT §3 e §9].
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { INVALID_RESET_LINK_MESSAGE, resetPassword, resetPasswordErrorFor } from '../../api/auth'
+import { resetPassword, resetPasswordErrorFor } from '../../api/auth'
 import { Button } from '../../components/ui'
+import { ACCESS_TEXTS } from '../../constants/texts'
 import {
   hasErrors,
   PASSWORD_MAX,
@@ -16,8 +17,6 @@ import { PATHS } from '../../routes/paths'
 import { useAuthStore } from '../../stores/authStore'
 import { showToast } from '../../stores/toastStore'
 import { FormError, TextField } from './FormFields'
-
-export const PASSWORD_CHANGED_MESSAGE = 'Senha alterada! Entre com a senha nova.'
 
 /** `token` é o que veio no link; vazio = link sem token, que já cai direto no link inválido */
 export function ResetPasswordScreen({ token }: { token: string }) {
@@ -44,7 +43,7 @@ function InvalidLink() {
     <div className="flex flex-col gap-3 short:flex-row short:items-center short:gap-4">
       {/* Alinhada com o título, e não centralizada como o FormError, para não ficar solta no meio */}
       <p role="alert" className="flex-1 text-sm text-danger">
-        {INVALID_RESET_LINK_MESSAGE}
+        {ACCESS_TEXTS.invalidResetLink}
       </p>
       <Button block className="short:w-auto" onClick={() => navigate(PATHS.access)}>
         Voltar ao Acesso
@@ -77,7 +76,7 @@ function ResetPasswordForm({ token, onInvalidLink }: { token: string; onInvalidL
       // Só depois da resposta de sucesso (nada otimista). Quem abriu o link logado sai da sessão
       // deste aparelho e entra com a senha nova; sem isso, o RequireGuest levaria ao Hub
       logout()
-      showToast({ message: PASSWORD_CHANGED_MESSAGE })
+      showToast({ message: ACCESS_TEXTS.passwordChanged })
       navigate(PATHS.access)
     } catch (error) {
       const result = resetPasswordErrorFor(error)

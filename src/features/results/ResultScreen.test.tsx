@@ -1,11 +1,11 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { RESULT_TEXTS } from '../../constants/texts'
 import { applyServerEvent, resetGameStores } from '../../stores/serverEvents'
 import type { ClientCommand, ServerEvent } from '../../types/events'
 import type { CharacterId, MatchOutcome, PlayerSlot, PlayerState } from '../../types/game'
 import { ResultScreen } from './ResultScreen'
-import { RESULT_TITLES } from './resultTexts'
 
 const client = vi.hoisted(() => ({
   sendCommand: vi.fn<(command: ClientCommand) => void>(),
@@ -107,7 +107,7 @@ const CASES: Case[] = [
       coins: { P1: 50, P2: 10 },
     },
     title: 'Vitória impecável',
-    subtitle: null,
+    subtitle: 'Botou na mesa e mandou medir…',
     score: '2 × 0',
     tone: 'win',
     characters: ['X'],
@@ -122,7 +122,7 @@ const CASES: Case[] = [
       coins: { P1: 50, P2: 10 },
     },
     title: 'Vitória',
-    subtitle: null,
+    subtitle: 'Botou na mesa e mandou medir…',
     score: '2 × 1',
     tone: 'win',
     characters: ['X'],
@@ -137,7 +137,7 @@ const CASES: Case[] = [
       coins: { P1: 50, P2: 10 },
     },
     title: 'Vitória',
-    subtitle: null,
+    subtitle: 'Botou na mesa e mandou medir…',
     score: '1 × 0',
     tone: 'win',
     characters: ['X'],
@@ -152,7 +152,7 @@ const CASES: Case[] = [
       coins: { P1: 10, P2: 50 },
     },
     title: 'Derrota',
-    subtitle: null,
+    subtitle: 'É a vergonha da profissão.',
     score: '0 × 2',
     tone: 'loss',
     characters: ['O'],
@@ -184,7 +184,7 @@ const CASES: Case[] = [
       rounds: [1, 0],
     },
     title: 'Vitória por W.O.',
-    subtitle: 'O oponente esgotou o tempo 3 vezes',
+    subtitle: 'O oponente… arregou!',
     score: '1 × 0',
     tone: 'win',
     characters: ['X'],
@@ -200,7 +200,7 @@ const CASES: Case[] = [
       rounds: [0, 1],
     },
     title: 'Derrota por W.O.',
-    subtitle: '3 tempos esgotados seguidos',
+    subtitle: 'Assoprou a velhinha errada, hein… entendeu?',
     score: '0 × 1',
     tone: 'loss',
     characters: ['O'],
@@ -252,7 +252,7 @@ describe('ResultScreen: um resultado, uma apresentação', () => {
   })
 
   it('a tabela cobre os seis títulos, e nenhum deles junta dois textos', () => {
-    expect(new Set(CASES.map((c) => c.title))).toEqual(new Set(Object.values(RESULT_TITLES)))
+    expect(new Set(CASES.map((c) => c.title))).toEqual(new Set(Object.values(RESULT_TEXTS.titles)))
     for (const c of CASES) expect(c.title).not.toContain('·')
   })
   it('vendo do outro lado: sou o P2 de uma vitória 2×0 do P1, então é derrota com os meus Coins', () => {

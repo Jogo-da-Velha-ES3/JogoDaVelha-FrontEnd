@@ -139,7 +139,7 @@ describe('revanche (FE-29)', () => {
     const router = await toResult('sai')
     await tick(MOCK_TIMINGS.botRematch + NET)
     expect(router.state.location.pathname).toBe('/sala/4821')
-    expect(screen.getByText('O oponente saiu da sala.')).toBeInTheDocument()
+    expect(screen.getByText('O oponente sentiu a pressão, neném!')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Revanche' })).toBeDisabled()
   })
 })

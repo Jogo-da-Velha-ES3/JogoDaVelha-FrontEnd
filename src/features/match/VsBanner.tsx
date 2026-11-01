@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import type { CSSProperties } from 'react'
 import { CHARACTER_INFO } from '../../constants/characters'
+import { ARENA_TEXTS } from '../../constants/texts'
 import { useRoomStore } from '../../stores/roomStore'
 import type { CharacterId } from '../../types/game'
 import { Character } from '../characters'
@@ -98,19 +99,29 @@ export function VsBanner() {
             </p>
           </div>
 
-          {/* "VS" central com efeito de cor dupla */}
-          <motion.p
-            aria-hidden="true"
-            initial={{ scale: 2.6, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.1, type: 'spring', stiffness: 380, damping: 22 }}
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-display text-6xl font-extrabold text-primary short:text-5xl"
-            style={{
-              textShadow: `3px 0 ${myColor}, -3px 0 ${oppColor}, 0 0 24px var(--color-primary)`,
-            }}
-          >
-            VS
-          </motion.p>
+          {/* "VS" central com efeito de cor dupla e, logo abaixo, a fala do narrador */}
+          <div className="absolute top-1/2 left-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-1">
+            <motion.p
+              aria-hidden="true"
+              initial={{ scale: 2.6, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.1, type: 'spring', stiffness: 380, damping: 22 }}
+              className="font-display text-6xl font-extrabold text-primary short:text-5xl"
+              style={{
+                textShadow: `3px 0 ${myColor}, -3px 0 ${oppColor}, 0 0 24px var(--color-primary)`,
+              }}
+            >
+              VS
+            </motion.p>
+            <motion.p
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.45, duration: 0.25 }}
+              className="font-display text-sm font-bold tracking-widest whitespace-nowrap text-text uppercase [text-shadow:0_0_6px_var(--color-bg-deep),0_0_12px_var(--color-bg-deep)] short:text-xs"
+            >
+              {ARENA_TEXTS.versusLine}
+            </motion.p>
+          </div>
         </motion.div>
       )}
     </AnimatePresence>

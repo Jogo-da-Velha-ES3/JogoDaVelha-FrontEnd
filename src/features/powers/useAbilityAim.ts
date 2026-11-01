@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { ABILITY_INFO } from '../../constants/abilities'
+import { ABILITY_TEXTS } from '../../constants/texts'
 import { getAimTargets } from '../../lib/abilityTargets'
 import { sendCommand } from '../../sockets/gameClient'
 import { useBoardStore } from '../../stores/boardStore'
@@ -15,21 +16,15 @@ interface AbilityAimOptions {
   turnKey: number | null
 }
 
-const TARGET_HINT = {
-  OPPONENT_PIECE: 'escolha uma peça do oponente',
-  OWN_PIECE: 'escolha uma peça sua',
-  EMPTY_CELL: 'escolha uma casa vazia',
-} as const
-
 /** Instrução da etapa atual da mira, ex: "Tornado: agora escolha a casa de destino" */
 export function aimHint({ ability, selectedCell }: Aim): string {
   const info = ABILITY_INFO[ability]
   if (info.target === 'NONE') return info.name
-  const step =
-    info.needsDestination && selectedCell !== null
-      ? 'agora escolha a casa de destino'
-      : TARGET_HINT[info.target]
-  return `${info.name}: ${step}`
+  const T = ABILITY_TEXTS.aim
+  return T.step(
+    info.name,
+    info.needsDestination && selectedCell !== null ? T.destination : T[info.target],
+  )
 }
 
 /**

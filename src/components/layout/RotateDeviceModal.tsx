@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion'
+import { APP_TEXTS } from '../../constants/texts'
 import { useShouldRotateDevice } from '../../hooks/useShouldRotateDevice'
 import { Modal } from '../ui/Modal'
 
@@ -10,7 +11,7 @@ export function RotateDeviceModal() {
   const shouldRotate = useShouldRotateDevice()
 
   return (
-    <Modal open={shouldRotate} dismissible={false} size="sm" title="Gire o celular">
+    <Modal open={shouldRotate} dismissible={false} size="sm" title={APP_TEXTS.rotateTitle}>
       <div className="flex flex-col items-center gap-4 py-2 text-center">
         <motion.svg
           viewBox="0 0 64 64"
@@ -31,7 +32,7 @@ export function RotateDeviceModal() {
           />
           <line x1="29" y1="51" x2="35" y2="51" stroke="currentColor" strokeWidth="3" />
         </motion.svg>
-        <p>O Jogo do Velho é jogado com o celular deitado.</p>
+        <p>{APP_TEXTS.rotateBody}</p>
       </div>
     </Modal>
   )

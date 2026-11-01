@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { Button, Modal } from '../components/ui'
+import { HUB_TEXTS } from '../constants/texts'
 import { Character } from '../features/characters'
 import { HUB_PLACEHOLDER_PROFILE } from '../features/hub/placeholderProfile'
 import { useAuthStore } from '../stores/authStore'
@@ -58,7 +59,7 @@ function HubNav() {
       <Modal
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
-        title="Quer mesmo sair?"
+        title={HUB_TEXTS.logoutTitle}
         size="sm"
         actions={
           <>
@@ -72,7 +73,7 @@ function HubNav() {
           </>
         }
       >
-        Você vai precisar entrar de novo com seu e-mail ou usuário e senha.
+        {HUB_TEXTS.logoutBody}
       </Modal>
     </nav>
   )

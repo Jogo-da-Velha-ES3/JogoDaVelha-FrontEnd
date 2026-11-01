@@ -390,13 +390,17 @@ Abrir o jogo → [sem sessão] Acesso → Hub (Jogar; abas Loja / Perfil)
   `MATCH_END` do servidor, nunca quando o timer do front chega a 0. Vermelho só para quem está em
   perigo; para o outro jogador, a cor do personagem de quem é o aviso.
 
-  | Situação                  | Quem vê      | Título                | Subtítulo                             | Cor                   |
-  | ------------------------- | ------------ | --------------------- | ------------------------------------- | --------------------- |
-  | 1º estouro                | quem estoura | TEMPO ESGOTADO!       | Você perdeu a vez · 1/3               | vermelho              |
-  | 2º estouro seguido        | quem estoura | TEMPO ESGOTADO!       | 2/3 · Mais um e é W.O.!               | vermelho              |
-  | 1º/2º estouro do oponente | o outro      | OPONENTE PERDEU A VEZ | 1/3 ou 2/3                            | cor do oponente       |
-  | 3º estouro (W.O.)         | quem estoura | W.O.!                 | 3 tempos esgotados seguidos · Derrota | vermelho              |
-  | 3º estouro do oponente    | o outro      | VITÓRIA POR W.O.      | O oponente esgotou o tempo 3 vezes    | cor do seu personagem |
+  | Situação                  | Quem vê      | Título                | Subtítulo (sem filtro / com filtro)                                     | Cor                   |
+  | ------------------------- | ------------ | --------------------- | ----------------------------------------------------------------------- | --------------------- |
+  | 1º estouro                | quem estoura | TEMPO ESGOTADO!       | Tá dormindo na rede?! · 1/3 / É, cê perdeu a vez · 1/3                  | vermelho              |
+  | 2º estouro seguido        | quem estoura | TEMPO ESGOTADO!       | Acorda pra vida, mané! Mais um e é W.O. · 2/3 / Mais um e é W.O.! · 2/3 | vermelho              |
+  | 1º/2º estouro do oponente | o outro      | OPONENTE PERDEU A VEZ | 1/3 ou 2/3                                                              | cor do oponente       |
+  | 3º estouro (W.O.)         | quem estoura | DERROTA POR W.O.      | Assoprou a velhinha errada, hein… entendeu? / Que desperdício de tempo… | vermelho              |
+  | 3º estouro do oponente    | o outro      | VITÓRIA POR W.O.      | O oponente… arregou! / O oponente esgotou o tempo 3 vezes               | cor do seu personagem |
+
+  Os textos vêm da voz do jogo (FE-40, `src/constants/texts.ts`). O título do W.O. de quem estoura
+  passou de "W.O.!" para "DERROTA POR W.O.", igual ao Resultado: a piada tomou o lugar do
+  "Derrota" que ficava no subtítulo.
 
   No W.O., a Arena segura o banner por **2 segundos** e só então vai para o Resultado. Isso não
   atrasa nada no servidor: a partida e os Coins já foram resolvidos no `MATCH_END`, e a janela da
@@ -404,7 +408,7 @@ Abrir o jogo → [sem sessão] Acesso → Hub (Jogar; abas Loja / Perfil)
 
 - **Empate absoluto (decidido em 17/10):** se o round 3 termina com o placar igual, o fim do round
   já anuncia "EMPATE ABSOLUTO" (regra de exibição, como o "MATCH POINT" `[RN-ARN-06]`), com
-  "Ninguém venceu a Morte Súbita" ou o placar final (1×1). É **um banner só**: quando chega o
+  "É… ninguém levou." ou o placar final (1×1). É **um banner só**: quando chega o
   `MATCH_END`, a Arena segura **2 segundos**, como no W.O., e o subtítulo troca para "+20 Coins
   para cada" (Coins vindos do servidor); então vai para o Resultado.
 
@@ -455,9 +459,15 @@ Abrir o jogo → [sem sessão] Acesso → Hub (Jogar; abas Loja / Perfil)
   provisórias.
 - **Autorização:** o uso da imagem, das falas e da voz do Vitão num link público precisa do ok
   dele, registrado na FE-41. O Vitão autorizou tudo em 25/10: imagem, desenho, falas e voz.
-- **Voz do jogo:** além do Vitão, os textos da interface (anúncios gritados, banners, erros,
-  avisos, Resultado) seguem um guia de tom com humor de narrador estilo Mortal Kombat/Cuphead,
-  centralizados num arquivo (FE-40).
+- **Voz do jogo (FE-40, feita em 31/10):** além do Vitão, os textos da interface (anúncios
+  gritados, banners, erros, avisos, Resultado) seguem um guia de tom com humor de narrador estilo
+  Mortal Kombat/Cuphead (`docs/VOICE_GUIDE.md`) e ficam num arquivo só, `src/constants/texts.ts`.
+  As piadas são as falas que o Rafik gravou: sem filtro é a versão [E] e, com o filtro das
+  Configurações, a [C]; a piada sem versão limpa some. Elas entram como subtítulo, sem tirar a
+  informação (placar, 1/3, os segundos da Morte Súbita). Ficaram só para o áudio as explicações das 10
+  habilidades e a narração do Como Jogar, que não segue as 5 páginas. "Vitória implacável",
+  como o Rafik gravou, fica "Vitória impecável" no texto, como na ERS `[RF-POS-01]`. O áudio do
+  narrador ainda não está no jogo.
 
 ## 10. Stack técnica
 
