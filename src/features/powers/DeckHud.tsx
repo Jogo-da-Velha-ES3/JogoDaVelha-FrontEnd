@@ -2,6 +2,8 @@ import { useId, useState, type CSSProperties } from 'react'
 import { Button, Modal } from '../../components/ui'
 import { ABILITY_INFO } from '../../constants/abilities'
 import { DECK_SIZE } from '../../constants/game'
+import { ABILITY_TEXTS } from '../../constants/texts'
+import { useVoice } from '../../hooks/useLanguageFilter'
 import { sendCommand } from '../../sockets/gameClient'
 import { usePowersStore, type Aim } from '../../stores/powersStore'
 import { useRoomStore } from '../../stores/roomStore'
@@ -41,6 +43,7 @@ export function DeckHud({
   color,
 }: DeckHudProps) {
   const descriptionId = useId()
+  const voice = useVoice()
   const lastError = useRoomStore((s) => s.lastError)
   const startAim = usePowersStore((s) => s.startAim)
   const cancelAim = usePowersStore((s) => s.cancelAim)
@@ -166,17 +169,17 @@ export function DeckHud({
 
         {deck.length > 0 && !ready && (
           <p role="status" className="text-center text-xs text-text-muted">
-            Aguardando o deck do servidor…
+            {ABILITY_TEXTS.deck.waitingDeck}
           </p>
         )}
         {silenced && canUse && (
           <p role="status" className="text-center text-xs text-danger">
-            Silenciado: sem habilidades neste turno.
+            {voice(ABILITY_TEXTS.deck.silenced)}
           </p>
         )}
         {pending && (
           <p role="status" className="text-center text-xs text-text-muted">
-            Aguardando confirmação do servidor…
+            {ABILITY_TEXTS.deck.waitingConfirmation}
           </p>
         )}
         {aim && pending === null && (
@@ -189,7 +192,9 @@ export function DeckHud({
       <Modal
         open={confirmingNow !== null}
         onClose={() => setConfirming(undefined)}
-        title={`Usar ${confirmingNow ? ABILITY_INFO[confirmingNow].name : 'habilidade'}?`}
+        title={ABILITY_TEXTS.deck.confirmTitle(
+          confirmingNow ? ABILITY_INFO[confirmingNow].name : 'habilidade',
+        )}
         actions={
           <>
             <Button variant="ghost" onClick={() => setConfirming(undefined)}>

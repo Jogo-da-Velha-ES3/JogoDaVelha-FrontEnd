@@ -22,6 +22,18 @@ vi.mock('../../sockets/gameClient', async (importOriginal) => {
   return { ...actual, sendCommand: vi.fn<typeof actual.sendCommand>() }
 })
 
+// Filtro de linguagem das Configurações (FE-39 ainda não existe): desligado, como no app
+const languageFilter = vi.hoisted(() => ({ on: false }))
+vi.mock('../../hooks/useLanguageFilter', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../hooks/useLanguageFilter')>()
+  const { voiceText } = await import('../../constants/texts')
+  return {
+    ...actual,
+    useLanguageFilter: () => languageFilter.on,
+    useVoice: () => (line: Parameters<typeof voiceText>[0]) => voiceText(line, languageFilter.on),
+  }
+})
+
 function send<T extends ServerEvent['type']>(
   type: T,
   payload: Extract<ServerEvent, { type: T }>['payload'],
@@ -96,20 +108,20 @@ describe('aviso de turno perdido (TURN_TIMEOUT)', () => {
   it('vermelho para quem estourou, com os textos da tabela, e some sozinho', async () => {
     renderArena()
     send('TURN_TIMEOUT', { player: 'P1', consecutiveTimeouts: 1 })
-    expect(screen.getByText('Tempo Esgotado!')).toBeInTheDocument()
-    expect(screen.getByText('Você perdeu a vez · 1/3')).toBeInTheDocument()
+    expect(screen.getByText('Tempo esgotado!')).toBeInTheDocument()
+    expect(screen.getByText('Tá dormindo na rede?! · 1/3')).toBeInTheDocument()
 
     send('TURN_TIMEOUT', { player: 'P1', consecutiveTimeouts: 2 })
-    expect(screen.getByText('2/3 · Mais um e é W.O.!')).toBeInTheDocument()
+    expect(screen.getByText('Acorda pra vida, mané! Mais um e é W.O. · 2/3')).toBeInTheDocument()
 
     await tick(4000)
-    expect(screen.queryByText('Tempo Esgotado!')).not.toBeInTheDocument()
+    expect(screen.queryByText('Tempo esgotado!')).not.toBeInTheDocument()
   })
 
   it('estouro do oponente e nada quando só o timer do front chega a 0', async () => {
     renderArena()
     await tick(11_000) // o turno de 10s "acabou" no front, mas o servidor não mandou nada
-    expect(screen.queryByText('Tempo Esgotado!')).not.toBeInTheDocument()
+    expect(screen.queryByText('Tempo esgotado!')).not.toBeInTheDocument()
 
     send('TURN_TIMEOUT', { player: 'P2', consecutiveTimeouts: 1 })
     const toast = screen.getByText('Oponente perdeu a vez').parentElement!
@@ -278,10 +290,10 @@ describe('sorteio da 3ª habilidade (FE-10)', () => {
     expect(
       screen.getByRole('region', { name: 'Sorteio da terceira habilidade' }),
     ).toBeInTheDocument()
-    expect(screen.queryByText('5 segundos por jogada')).not.toBeInTheDocument()
+    expect(screen.queryByText('A cobra vai fumar… · 5 segundos por jogada')).not.toBeInTheDocument()
 
     endDraw()
-    expect(screen.getByText('5 segundos por jogada')).toBeInTheDocument()
+    expect(screen.getByText('A cobra vai fumar… · 5 segundos por jogada')).toBeInTheDocument()
   })
 })
 
@@ -413,6 +425,7 @@ describe('mira e efeitos das habilidades (FE-27)', () => {
 
     resolved({})
     expect(screen.getByText('Oponente usou Bomba')).toBeInTheDocument()
+    expect(screen.getByText('Bota o capacete que lá vem pedra!')).toBeInTheDocument()
     expect(impact()).not.toBeNull()
 
     await tick(ABILITY_IMPACT_SECONDS * 1000)
@@ -431,11 +444,13 @@ describe('mira e efeitos das habilidades (FE-27)', () => {
 
     resolved({ by: 'P1', absorbed: true })
     expect(screen.getByText('Anulada pelo Campo de Força!')).toBeInTheDocument()
-    expect(screen.getByText('Você usou Bomba')).toBeInTheDocument()
+    expect(screen.getByText('Você usou Bomba · Babaca!')).toBeInTheDocument()
 
     resolved({ ability: 'TORNADO', noEffect: true })
     expect(screen.getByText('Sem efeito!')).toBeInTheDocument()
-    expect(screen.getByText('Oponente usou Tornado')).toBeInTheDocument()
+    expect(
+      screen.getByText('Oponente usou Tornado · Cê tá cego ou tá se fazendo, hein?!'),
+    ).toBeInTheDocument()
   })
 
   it('habilidade minha com efeito não tem aviso, só o efeito na casa', () => {
@@ -456,11 +471,11 @@ describe('mira e efeitos das habilidades (FE-27)', () => {
     ).not.toBeNull()
 
     turnOf('P1')
-    expect(screen.getByText('Silenciado: sem habilidades neste turno.')).toBeInTheDocument()
+    expect(screen.getByText('Silenciado! Cala a boca e joga!')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /^Bomba,/ })).toBeDisabled()
 
     turnOf('P2')
-    expect(screen.queryByText('Silenciado: sem habilidades neste turno.')).not.toBeInTheDocument()
+    expect(screen.queryByText('Silenciado! Cala a boca e joga!')).not.toBeInTheDocument()
   })
 })
 
@@ -469,10 +484,10 @@ describe('Morte Súbita e empate absoluto (FE-13)', () => {
     renderArena()
     startRound(3, 'P1')
     endDraw()
-    expect(screen.getByText('5 segundos por jogada')).toBeInTheDocument()
+    expect(screen.getByText('A cobra vai fumar… · 5 segundos por jogada')).toBeInTheDocument()
 
     await tick(SUDDEN_DEATH_ENTRY_SECONDS * 1000 + 500)
-    expect(screen.queryByText('5 segundos por jogada')).not.toBeInTheDocument()
+    expect(screen.queryByText('A cobra vai fumar… · 5 segundos por jogada')).not.toBeInTheDocument()
   })
 
   it('round 3 empatado já anuncia o empate absoluto [RN-ARN-06]', () => {
@@ -481,7 +496,7 @@ describe('Morte Súbita e empate absoluto (FE-13)', () => {
     send('ROUND_END', { round: 3, winner: null, winningLine: null, score: { P1: 1, P2: 1 } })
     send('PHASE_CHANGE', { phase: 'ROUND_END' })
     expect(screen.getByText('Empate absoluto')).toBeInTheDocument()
-    expect(screen.getByText('Ninguém venceu a Morte Súbita')).toBeInTheDocument()
+    expect(screen.getByText('É… ninguém levou.')).toBeInTheDocument()
     expect(screen.queryByText('Round empatado')).not.toBeInTheDocument()
   })
 
@@ -520,7 +535,7 @@ describe('Morte Súbita e empate absoluto (FE-13)', () => {
     // Um banner só: o do fim do round 3 continua e só troca o subtítulo para os Coins
     expect(screen.getAllByText('Empate absoluto')).toHaveLength(1)
     expect(screen.getByText('+20 Coins para cada')).toBeInTheDocument()
-    expect(screen.queryByText('Ninguém venceu a Morte Súbita')).not.toBeInTheDocument()
+    expect(screen.queryByText('É… ninguém levou.')).not.toBeInTheDocument()
   })
 })
 
@@ -530,12 +545,38 @@ describe('oponente desconectado', () => {
     send('PLAYER_DISCONNECTED', { slot: 'P2' })
     send('TURN_TIMEOUT', { player: 'P2', consecutiveTimeouts: 1 })
     const notice = screen.getByText('Oponente desconectado').parentElement!
-    expect(notice).toHaveTextContent('Os turnos dele continuam correndo · 1/3')
+    expect(notice).toHaveTextContent('Será que roubaram o fio do poste dele? · 1/3')
     // O tabuleiro continua jogável para quem ficou
     expect(screen.getAllByRole('button', { name: /vazia/ }).length).toBeGreaterThan(0)
 
     send('PLAYER_RECONNECTED', { slot: 'P2' })
     expect(screen.queryByText('Oponente desconectado')).not.toBeInTheDocument()
+  })
+})
+
+describe('filtro de linguagem (FE-40)', () => {
+  afterEach(() => {
+    languageFilter.on = false
+  })
+
+  it('ligado, o narrador fala a versão filtrada e a fala sem versão limpa some', () => {
+    languageFilter.on = true
+    renderArena()
+
+    send('TURN_TIMEOUT', { player: 'P1', consecutiveTimeouts: 2 })
+    expect(screen.getByText('Mais um e é W.O.! · 2/3')).toBeInTheDocument()
+
+    send('ABILITY_RESOLVED', {
+      by: 'P1',
+      ability: 'BOMBA',
+      targetCell: 5,
+      destinationCell: null,
+      absorbed: true,
+      noEffect: false,
+    })
+    // O "Babaca!" não tem versão limpa: com o filtro, fica só quem usou
+    expect(screen.getByText('Você usou Bomba')).toBeInTheDocument()
+    expect(screen.queryByText(/Babaca/)).not.toBeInTheDocument()
   })
 })
 

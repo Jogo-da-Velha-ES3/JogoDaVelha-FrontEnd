@@ -1,3 +1,4 @@
+import { APP_TEXTS } from '../../constants/texts'
 import type { ClientCommand, ServerEnvelope } from '../../types/events'
 import type { ConnectionStatus, GameConnection, Unsubscribe } from '../types'
 import { MockGameServer } from './mockServer'
@@ -83,7 +84,7 @@ export class MockConnection implements GameConnection, MockControls {
         type: 'ERROR',
         payload: {
           code: 'NOT_CONNECTED',
-          message: 'Sem conexão com o servidor. Tentando reconectar…',
+          message: APP_TEXTS.errors.notConnected,
         },
         serverTime: Date.now(),
         local: true,

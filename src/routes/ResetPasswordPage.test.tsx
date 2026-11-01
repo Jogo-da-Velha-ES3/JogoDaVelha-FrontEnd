@@ -2,8 +2,8 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { INVALID_RESET_LINK_MESSAGE, MOCK_EXPIRED_RESET_TOKEN } from '../api/auth'
-import { PASSWORD_CHANGED_MESSAGE } from '../features/auth/ResetPasswordScreen'
+import { MOCK_EXPIRED_RESET_TOKEN } from '../api/auth'
+import { ACCESS_TEXTS } from '../constants/texts'
 import { useAuthStore } from '../stores/authStore'
 import { useToastStore } from '../stores/toastStore'
 import { routes } from './routes'
@@ -50,7 +50,7 @@ describe('Nova senha', () => {
 
   it('sem token ou com o token expirado, mostra link inválido com a saída para o Acesso', async () => {
     const withoutToken = renderAt('/redefinir-senha')
-    expect(screen.getByRole('alert')).toHaveTextContent(INVALID_RESET_LINK_MESSAGE)
+    expect(screen.getByRole('alert')).toHaveTextContent(ACCESS_TEXTS.invalidResetLink)
     expect(screen.queryByLabelText('Nova senha')).not.toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Voltar ao Acesso' }))
     expect(withoutToken.state.location.pathname).toBe('/entrar')
@@ -60,7 +60,7 @@ describe('Nova senha', () => {
     await fillAndSend('segredo1', 'segredo1')
     // O simulado responde "link inválido" depois de ~1s e o formulário dá lugar à mensagem
     expect(await screen.findByRole('alert', {}, { timeout: 3000 })).toHaveTextContent(
-      INVALID_RESET_LINK_MESSAGE,
+      ACCESS_TEXTS.invalidResetLink,
     )
     expect(screen.queryByLabelText('Nova senha')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Voltar ao Acesso' })).toBeInTheDocument()
@@ -79,7 +79,7 @@ describe('Nova senha', () => {
     await waitFor(() => expect(router.state.location.pathname).toBe('/entrar'), { timeout: 3000 })
     expect(await screen.findByRole('tab', { name: 'Entrar' })).toBeInTheDocument()
     expect(useToastStore.getState().toasts.map((toast) => toast.message)).toEqual([
-      PASSWORD_CHANGED_MESSAGE,
+      ACCESS_TEXTS.passwordChanged,
     ])
   })
 

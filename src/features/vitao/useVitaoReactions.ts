@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { VITAO_BUBBLE_SECONDS, VITAO_DECISION_WINDOW_MS } from '../../constants/game'
+import { useLanguageFilter } from '../../hooks/useLanguageFilter'
 import { decideVitaoReaction, type VitaoMoment, type VitaoReaction } from '../../lib/vitao'
 import { momentsFromChange, type VitaoSnapshot } from '../../lib/vitaoMoments'
 import { useBoardStore } from '../../stores/boardStore'
@@ -10,15 +11,6 @@ import { VITAO_LINES } from './vitaoLines'
 export interface ShownReaction extends VitaoReaction {
   /** Muda a cada fala nova, mesmo com o mesmo texto */
   id: number
-}
-
-/**
- * Lê o filtro de linguagem das Configurações.
- * TODO FE-39: ler do modal de Configurações (localStorage ou store de configurações).
- * Por enquanto, desligado: "sem filtro por padrão" (PROJECT_CONTEXT §9).
- */
-function useVitaoFilterPreference(): boolean {
-  return false
 }
 
 function readSnapshot(): VitaoSnapshot {
@@ -46,7 +38,7 @@ function readSnapshot(): VitaoSnapshot {
  */
 export function useVitaoReactions(): ShownReaction | null {
   const [reaction, setReaction] = useState<ShownReaction | null>(null)
-  const filterOn = useVitaoFilterPreference()
+  const filterOn = useLanguageFilter()
   const filterRef = useRef(filterOn)
   const lastSpeechAt = useRef<number | null>(null)
   const nextId = useRef(1)

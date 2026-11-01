@@ -44,7 +44,8 @@ Antes de dar uma tarefa como pronta: `npm run lint`, `npm run format:check`, `np
 - **Fora do MVP 1:** cosméticos, habilidades por personagem, login com Google,
   modo convidado. Questionar antes de implementar.
 - Regras puras ficam em `src/lib/`, sem React, com testes no Vitest.
-- Textos da interface em português do Brasil.
+- Textos da interface em português do Brasil, em `src/constants/texts.ts` (sem frase solta nas
+  telas) e no tom de `docs/VOICE_GUIDE.md`, com versão filtrada para toda fala com palavrão.
 - Citar os identificadores da ERS (ex: `[RF-ARN-03]`) e o card (`FE-XX`) em PRs e commits quando
   fizer sentido.
 

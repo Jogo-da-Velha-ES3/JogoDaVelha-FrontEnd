@@ -165,6 +165,11 @@ Todo valor fixo do jogo fica aqui, nunca espalhado pelo código. A fonte é o pr
 | `src/constants/game.ts`       | tabuleiro, tempos (10s/5s/20s/8s/15s), W.O., deck, habilidades e personagens iniciais, Coins, preço das habilidades, `VITAO_ENABLED` |
 | `src/constants/abilities.ts`  | as 10 habilidades: nome, tipo, alvo, se pede casa de destino, se o Campo de Força anula, descrição                                   |
 | `src/constants/characters.ts` | os 6 personagens: nome, cor oficial e preço                                                                                          |
+| `src/constants/texts.ts`      | as frases da interface por tela e as falas do narrador, sem filtro e com filtro (FE-40, guia em `docs/VOICE_GUIDE.md`)               |
+
+O filtro de linguagem é lido por um hook só, `useLanguageFilter` (`src/hooks/useLanguageFilter.ts`),
+que o Vitão também usa. Ele devolve `false` até as Configurações (FE-39) existirem. Nos
+componentes, `useVoice()` escolhe a versão de cada fala.
 
 Os identificadores de habilidade e personagem (`'BOMBA'`, `'CAMPO_DE_FORCA'`, `'TRIANGULO'`...) devem
 bater com os enums do back — confirmar na FE-17.

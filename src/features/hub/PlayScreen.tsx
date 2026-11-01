@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { createRoom } from '../../api/rooms'
 import { ApiError } from '../../api/client'
 import { Button } from '../../components/ui'
+import { ROOM_TEXTS } from '../../constants/texts'
 import { roomPath } from '../../routes/paths'
 import { showToast } from '../../stores/toastStore'
 import { Character } from '../characters'
@@ -28,7 +29,7 @@ export function PlayScreen() {
     } catch (error) {
       showToast({
         tone: 'danger',
-        message: error instanceof ApiError ? error.message : 'Não foi possível criar a sala agora.',
+        message: error instanceof ApiError ? error.message : ROOM_TEXTS.errors.createFailed,
       })
       setCreating(false)
     }

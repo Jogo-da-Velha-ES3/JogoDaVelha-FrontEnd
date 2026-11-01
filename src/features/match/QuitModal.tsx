@@ -1,4 +1,5 @@
 import { Button, Modal } from '../../components/ui'
+import { ARENA_TEXTS } from '../../constants/texts'
 
 interface QuitModalProps {
   open: boolean
@@ -18,7 +19,7 @@ export function QuitModal({ open, onContinue, onQuit }: QuitModalProps) {
   return (
     <Modal
       open={open}
-      title={<span className="text-danger">Desistir?</span>}
+      title={<span className="text-danger">{ARENA_TEXTS.quit.title}</span>}
       dismissible={false}
       size="sm"
       actions={
@@ -32,9 +33,7 @@ export function QuitModal({ open, onContinue, onQuit }: QuitModalProps) {
         </div>
       }
     >
-      <p className="py-2 text-sm text-text-muted">
-        A partida conta como derrota e o oponente vence por W.O.
-      </p>
+      <p className="py-2 text-sm text-text-muted">{ARENA_TEXTS.quit.body}</p>
     </Modal>
   )
 }

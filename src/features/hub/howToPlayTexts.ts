@@ -1,6 +1,6 @@
-// Textos do modal "Como Jogar" (FE-34). Ficam fora do componente para o grupo de Personalidade
-// (FE-40) revisar o tom depois. Fonte das regras: docs/PROJECT_CONTEXT.md. Todo número de regra
-// vem de constants/game.ts.
+// Textos do modal "Como Jogar" (FE-34), fora do constants/texts.ts por terem estrutura própria.
+// Seguem o guia de tom (docs/VOICE_GUIDE.md, FE-40). Fonte das regras: docs/PROJECT_CONTEXT.md.
+// Todo número de regra vem de constants/game.ts.
 //
 // Destaque: o trecho entre `**` aparece em negrito com um brilho leve (ver HowToPlayRichText).
 //
@@ -8,7 +8,7 @@
 // (PROJECT_CONTEXT §6), que AINDA É A VALIDAR COM O BACK. Se o back decidir diferente, só essa
 // página muda.
 //
-// ATENÇÃO (para quem revisar o tom, FE-40): as páginas cabem por pouco em 330px de altura (celular
+// ATENÇÃO (para quem revisar o tom): as páginas cabem por pouco em 330px de altura (celular
 // deitado), em especial "Habilidades". Confira o tamanho no celular deitado antes de alongar as
 // regras do deck ou as descrições de ABILITY_INFO, senão a página passa a rolar.
 //

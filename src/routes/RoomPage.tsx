@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { RESULT_HOLD_SECONDS } from '../constants/game'
+import { ROOM_TEXTS } from '../constants/texts'
 import { WaitingRoom } from '../features/lobby/WaitingRoom'
 import { Arena } from '../features/match'
 import { ResultScreen, useRoomExit } from '../features/results'
@@ -27,7 +28,7 @@ export function RoomPage() {
     setPendingRoomCode(null)
     joinRoom(codigo).catch((error: unknown) =>
       showToast({
-        message: error instanceof Error ? error.message : 'Não foi possível entrar na sala.',
+        message: error instanceof Error ? error.message : ROOM_TEXTS.errors.joinFailed,
         tone: 'danger',
       }),
     )
@@ -66,7 +67,7 @@ function ConnectionNotice() {
       role="status"
       className="fixed inset-x-0 top-0 z-40 bg-danger py-1 text-center font-display text-sm font-bold tracking-wide text-primary uppercase"
     >
-      Reconectando…
+      {ROOM_TEXTS.reconnecting}
     </p>
   )
 }
