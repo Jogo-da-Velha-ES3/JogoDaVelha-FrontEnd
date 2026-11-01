@@ -84,5 +84,17 @@ export const COINS_REWARD = {
 // O valor oficial vem do catálogo do back.
 export const ABILITY_PRICE = 350
 
-// O Vitão fica fora do MVP 1: só o espaço reservado na Arena.
-export const VITAO_ENABLED = false
+// O Vitão (FE-41 a FE-45) foi ligado em 31/10, com a FE-44. Com `false`, só o espaço dele fica na
+// Arena (PROJECT_CONTEXT §9).
+export const VITAO_ENABLED = true
+/** Vitão: no máximo 1 fala a cada tantos segundos, menos nos momentos grandes (FE-44) */
+export const VITAO_COOLDOWN_SECONDS = 6
+/**
+ * Vitão: chance de comentar uma jogada de peça (1 em 3). Habilidades, estouros e momentos grandes
+ * ele sempre comenta
+ */
+export const VITAO_MOVE_COMMENT_CHANCE = 1 / 3
+/** Vitão: quanto tempo o balão fica na tela */
+export const VITAO_BUBBLE_SECONDS = 4
+/** Vitão: janela para reunir eventos que chegam juntos e escolher o de maior prioridade */
+export const VITAO_DECISION_WINDOW_MS = 500

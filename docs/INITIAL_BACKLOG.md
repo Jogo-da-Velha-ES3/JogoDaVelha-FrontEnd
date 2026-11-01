@@ -50,7 +50,8 @@ Loja (FE-31) pode reusar o `AbilityEffect` e o cenário `abilityDemo`.
 ## Personalidade: som, voz e Vitão (terceiro grupo)
 
 Decidido com o GP em 15/10. Corre em paralelo e não depende da base, que já está pronta. O Vitão
-é feito atrás da flag `VITAO_ENABLED=false`, ligada quando a FE-44 for aprovada.
+é feito atrás da flag `VITAO_ENABLED`, ligada em 31/10 com a FE-44 (antes da FE-42 e da FE-43, para
+o time ver o Vitão enquanto faz as falas, a animação e a voz).
 
 | Card  | Entrega                                                      | Data     | Depende de          |
 | ----- | ------------------------------------------------------------ | -------- | ------------------- |

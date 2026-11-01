@@ -442,9 +442,17 @@ Abrir o jogo → [sem sessão] Acesso → Hub (Jogar; abas Loja / Perfil)
   `src/features/vitao/assets/`. Para casar com o neon, o contorno brilhante é feito no código
   (FE-42), sem mexer na arte. Em ~48px, normal, bravo e muito bravo ficam parecidos: na reação de
   raiva, usar o "muito bravo".
-- **Regras:** falas em arquivo editável, no máximo uma a cada 6s, balão que nunca cobre o
-  tabuleiro, linguagem sem filtro por padrão (com opção de filtrar nas Configurações). Tudo é
-  feito com `VITAO_ENABLED=false`; a flag é ligada quando o motor de reações (FE-44) for aprovado.
+- **Regras:** falas em arquivo editável, no máximo uma a cada 6s (menos nos momentos grandes, logo
+  abaixo), balão que nunca cobre o tabuleiro, linguagem sem filtro por padrão (com opção de filtrar
+  nas Configurações).
+- **Quando ele fala (decidido em 31/10, FE-44):** comenta só 1 em cada 3 jogadas de peça (sorteio);
+  habilidades, estouros de tempo e os momentos grandes (fim do round, entrada da Morte Súbita e
+  W.O.) ele sempre comenta. Os momentos grandes falam na hora, mesmo dentro da pausa de 6s: tomam o
+  lugar da fala atual (com a voz, cortam o áudio dela) e a pausa recomeça a partir deles. Esperar a
+  pausa acabar pareceria atraso. Na Morte Súbita ele fica Diabo o tempo todo, não só quando fala.
+- **Flag:** a `VITAO_ENABLED` foi ligada em 31/10, com a FE-44, para o time ver o Vitão enquanto
+  termina falas (FE-43), animação (FE-42) e voz (FE-45). Até lá, as falas e a cabeça parada são
+  provisórias.
 - **Autorização:** o uso da imagem, das falas e da voz do Vitão num link público precisa do ok
   dele, registrado na FE-41. O Vitão autorizou tudo em 25/10: imagem, desenho, falas e voz.
 - **Voz do jogo:** além do Vitão, os textos da interface (anúncios gritados, banners, erros,

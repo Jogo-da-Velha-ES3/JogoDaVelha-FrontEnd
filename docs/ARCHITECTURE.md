@@ -30,7 +30,9 @@ src/
 │   ├── winCheck.ts       # verificação de vitória N×N/K, ignorando peças congeladas
 │   ├── abilityTargets.ts # casas vizinhas e os alvos que a mira deixa tocar
 │   ├── timer.ts          # cálculo do tempo restante a partir do timestamp do servidor
-│   └── match.ts          # regras da MD3: fim da partida, quem começa, match point, Coins
+│   ├── match.ts          # regras da MD3: fim da partida, quem começa, match point, Coins
+│   ├── vitao.ts          # quando e o que o Vitão fala (6s, prioridade, 1 em 3 jogadas, Diabo)
+│   └── vitaoMoments.ts   # momentos do Vitão a partir da mudança das stores
 ├── constants/          # valores fixos do jogo (seção 4)
 ├── hooks/              # hooks customizados (useStomp, useServerTimer, useShouldRotateDevice...)
 ├── stores/             # Zustand — estado global (seção 3)
@@ -118,6 +120,14 @@ altera saldo nem armazenamento. O `useLiveResult` decide uma vez, quando o resul
 acabou de chegar (`outcomeReceivedAt`): só então tocam a comemoração e a contagem de Coins. Quem
 reconecta vê o estado final parado, e uma memória por partida (sala, início do último round,
 resultado e Coins) evita repetir a festa se a tela for desmontada e montada de novo.
+
+O motor de reações do Vitão (FE-44) fica em `src/features/vitao/` e `src/lib/`. As regras são puras
+(`lib/vitao.ts`: 1 fala a cada 6s, momentos grandes primeiro, 1 em 3 jogadas de peça, "Diabo" na
+Morte Súbita, filtro) e a detecção dos momentos também (`lib/vitaoMoments.ts`, pela diferença entre
+dois retratos das stores). O hook `useVitaoReactions` observa as stores, que só mudam por evento do
+servidor, e entrega a fala atual ao `VitaoSlot`. O momento grande fala na hora, mesmo dentro da
+pausa de 6s, no lugar da fala atual. As falas provisórias estão em `features/vitao/vitaoLines.ts` (a FE-43 as
+troca). A flag `VITAO_ENABLED` foi ligada em 31/10, com a FE-44.
 
 ## 3. Stores (Zustand)
 
