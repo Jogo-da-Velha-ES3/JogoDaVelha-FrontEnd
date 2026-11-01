@@ -7,6 +7,7 @@ import { CharacterShowcase } from './CharacterShowcase'
 import { ComponentsShowcase } from './ComponentsShowcase'
 import { MockMatchShowcase } from './MockMatchShowcase'
 import { ShowcasePanel } from './ShowcaseLayout'
+import { VitaoShowcase } from './VitaoShowcase'
 
 interface Tab {
   id: string
@@ -53,6 +54,12 @@ const TABS: Tab[] = [
     description:
       'As peças de interface que as telas usam: cores, botões, modal, avisos, banners e timer.',
     content: <ComponentsShowcase />,
+  },
+  {
+    id: 'vitao',
+    label: 'Vitão',
+    description: 'Demonstração do mascote animado, expressões em WebP e balão de fala (FE-42).',
+    content: <VitaoShowcase />,
   },
 ]
 

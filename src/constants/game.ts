@@ -85,4 +85,4 @@ export const COINS_REWARD = {
 export const ABILITY_PRICE = 350
 
 // O Vitão fica fora do MVP 1: só o espaço reservado na Arena.
-export const VITAO_ENABLED = false
+export const VITAO_ENABLED = true
