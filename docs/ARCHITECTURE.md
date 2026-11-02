@@ -26,7 +26,7 @@ src/
 │   ├── characters/      # os 6 personagens em SVG (estilo neon) + paleta
 │   └── vitao/           # Vitão: arte, animação, falas e reações, atrás da flag VITAO_ENABLED
 ├── sockets/            # cliente STOMP + servidor simulado (mock/) com a mesma interface
-├── pwa/                # convite de instalação (beforeinstallprompt) e registro do service worker
+├── pwa/                # convite de instalação (beforeinstallprompt); o service worker vem do vite-plugin-pwa
 ├── lib/                # lógica pura, sem React (testável isolado)
 │   ├── winCheck.ts       # verificação de vitória N×N/K, ignorando peças congeladas
 │   ├── timer.ts          # cálculo do tempo restante a partir do timestamp do servidor
@@ -299,17 +299,18 @@ as constantes, os tipos, o cliente REST (`src/api/`) e ligou o modo `strict` do 
 
 ### PWA (FE-16)
 
-O jogo é instalável sem plugin do Vite: os arquivos ficam em `public/` e vão para o build como estão.
+O jogo é instalável pelo **vite-plugin-pwa** (configurado em `vite.config.ts`), que gera o manifest
+e o service worker (Workbox) no `npm run build` e injeta o registro no `index.html`.
 
-- `public/manifest.webmanifest`: nome, `display: "fullscreen"`, `orientation: "landscape"`, cores
-  no `--color-bg-deep` (`#07060e`) e os ícones de `public/icons/` (192, 512 e um "maskable" para o
-  Android recortar). O iPhone usa o `apple-touch-icon` e as metas `apple-mobile-web-app-*` do
-  `index.html`.
-- `public/sw.js`: service worker básico. Páginas vêm da rede primeiro (sempre a versão nova) e, sem
-  rede, da última guardada; `/assets/` (nomes com hash) vem do cache. API, WebSocket e tudo que não
-  é GET passam direto. Mudou algo que invalida o cache antigo? Troque a versão em `CACHE`.
-- `src/pwa/registerServiceWorker.ts` registra o `sw.js` só no build de produção (no `npm run dev`
-  e nos testes ele atrapalharia). Para testar a instalação, use o preview da Vercel (HTTPS).
+- **Manifest** (no `vite.config.ts`): nome, `display: "fullscreen"`, `orientation: "landscape"`,
+  cores no `--color-bg-deep` (`#07060e`) e os ícones de `public/icons/` (192, 512 e um "maskable"
+  para o Android recortar). O iPhone usa o `apple-touch-icon` e as metas `apple-mobile-web-app-*`
+  do `index.html`.
+- **Service worker:** `registerType: "autoUpdate"` (versão nova entra sozinha). Guarda o app (JS,
+  CSS, HTML e imagens) para abrir sem rede; sons ficam de fora. Toda rota cai no `index.html`, e
+  `/api/` nunca passa pelo cache. Partida e sala vão por WebSocket, que o service worker não toca.
+- Só existe no build: no `npm run dev` e nos testes ele fica desligado. Para testar a instalação,
+  use o preview da Vercel (HTTPS).
 - `src/pwa/installPrompt.ts` guarda o `beforeinstallprompt` desde o `main.tsx`, porque o navegador
   manda o evento logo no carregamento, antes do Hub existir. O `useInstallPrompt` e o
   `InstallAppButton` do Hub decidem o botão pela regra pura de `src/lib/installPlatform.ts`: janela
