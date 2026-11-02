@@ -1,15 +1,20 @@
 # VOICE_GUIDE.md — Guia de tom da voz do jogo
 
-> Card FE-40. Vale para todo texto que o jogador lê: anúncios, banners, avisos, erros e o
-> Resultado. As falas do Vitão (FE-43) seguem o mesmo tom.
+> Card FE-40. Vale para todo texto que o jogador lê: anúncios, banners, avisos, erros, o
+> Resultado e as falas do Vitão.
 
 ## Quem fala
 
-- **O narrador**: locutor de luta, no estilo Mortal Kombat/Cuphead. Grita os anúncios, provoca
-  quem errou e comemora com exagero. Fala nos banners, nos avisos e no Resultado. As falas dele
-  foram gravadas pelo Rafik (pasta `Jogo da Velha_Audios`); o áudio entra num card próprio.
-- **O Vitão** (FE-41 a FE-45): o comentarista, no balão da Arena. Pode comentar o mesmo momento
-  que o narrador, mas sem repetir a piada dele.
+Desde 02/11, uma voz só: **o Vitão** (PROJECT_CONTEXT §9).
+
+- Ele é o locutor de luta, no estilo Mortal Kombat/Cuphead: provoca quem errou e comemora com
+  exagero. As piadas são as falas que o Rafik escreveu e gravou (pasta `Jogo da Velha_Audios`), e
+  a voz do Vitão é a do Rafik (FE-48).
+- Na Arena, a piada fica no **balão do Vitão** e o banner fica só com a informação (FE-43). Até a
+  FE-43, as piadas ainda aparecem como subtítulo dos banners.
+- Jogadas de peça e a minha habilidade não têm gravação: o Vitão comenta só por escrito, no mesmo
+  tom.
+- No Resultado, que não tem o Vitão, a piada continua como subtítulo.
 
 ## Regras
 

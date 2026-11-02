@@ -234,7 +234,8 @@ A ERS não define a regra; o back decidiu usar a mesma do W.O. por tempo `[RN-AR
 - **Sem contagem especial:** os turnos de quem caiu continuam correndo; cada turno perdido é um
   estouro e **3 seguidos dão W.O.** O contador não zera na troca de round.
 - **Quem ficou** vê "Oponente desconectado" com os estouros dele (x/3), a partir de
-  `PLAYER_DISCONNECTED` / `PLAYER_RECONNECTED` (pedido ao back em 15/10).
+  `PLAYER_DISCONNECTED` / `PLAYER_RECONNECTED` (pedido ao back em 15/10). O aviso fica só com a
+  informação, numa linha; a piada da queda é do Vitão, no balão (02/11).
 - **Quem caiu** vê "Reconectando…", não consegue jogar até voltar e volta para o mesmo ponto da
   partida pelo `ROOM_SNAPSHOT` completo (o estado está no servidor).
 - **No Resultado,** cair conta como sair da sala e cancela a revanche **[A VALIDAR COM O BACK]**.
@@ -341,8 +342,9 @@ A ERS não define a regra; o back decidiu usar a mesma do W.O. por tempo `[RN-AR
 7. **Arena** — a partida inteira numa tela só, que muda de estado
 8. **Resultado** — vencedor, placar, Coins, revanche
 
-Modais globais: Entrar com Código, Como Jogar, Comprar Coins, Configurações (som, vibração), Sair
-da partida, Conexão perdida, Gire o celular.
+Modais globais: Entrar com Código, Como Jogar, Comprar Coins, Configurações (música, efeitos,
+vibração, Vitão, volume da voz e filtro de palavrões), Sair da partida, Conexão perdida, Gire o
+celular.
 
 ### Fluxo
 
@@ -400,7 +402,13 @@ Abrir o jogo → [sem sessão] Acesso → Hub (Jogar; abas Loja / Perfil)
 
   Os textos vêm da voz do jogo (FE-40, `src/constants/texts.ts`). O título do W.O. de quem estoura
   passou de "W.O.!" para "DERROTA POR W.O.", igual ao Resultado: a piada tomou o lugar do
-  "Derrota" que ficava no subtítulo.
+  "Derrota" que ficava no subtítulo. Com a FE-43 (decidido em 02/11), a piada sai do banner e vai
+  para o balão do Vitão; o banner fica com o título e o x/3 (ver "O Vitão é a voz do jogo", abaixo).
+
+  **Onde fica (corrigido em 02/11):** o aviso dos estouros 1/3 e 2/3 fica na coluna direita, sem
+  cobrir o tabuleiro (antes ficava no topo, por cima da primeira fileira e da faixa do oponente).
+  Ele divide o lugar com o aviso de habilidade: aparece só o mais novo, porque os dois juntos
+  empurram o deck para fora da tela no celular deitado. O x/3 continua na faixa do jogador.
 
   No W.O., a Arena segura o banner por **2 segundos** e só então vai para o Resultado. Isso não
   atrasa nada no servidor: a partida e os Coins já foram resolvidos no `MATCH_END`, e a janela da
@@ -435,11 +443,26 @@ Abrir o jogo → [sem sessão] Acesso → Hub (Jogar; abas Loja / Perfil)
 
 - A ERS prevê o Vitão reagindo à partida, inclusive numa versão "Diabo" na Morte Súbita.
 - **Decisão (15/10, com o GP):** com um terceiro grupo ajudando no front, o Vitão **entra no MVP 1**,
-  junto com a sonoplastia e a voz do jogo (cards FE-37 a FE-45, grupo WBS-11 — Personalidade).
+  junto com a sonoplastia e a voz do jogo (cards FE-37 a FE-48, grupo WBS-11 — Personalidade).
   Antes disso (até 14/10), o front só reservava o espaço dele.
-- **Como ele é:** um bonequinho com a **cabeça do Vitão em caricatura** (desenho colorido com
-  expressões), que anda e reage no espaço reservado da Arena, fala besteiras num balão e **com a
-  voz gravada dele**. Na Morte Súbita vira a versão "Diabo".
+- **Como ele é:** a **cabeça do Vitão em caricatura** (desenho colorido com expressões), parada no
+  espaço reservado da Arena: respira, reage a cada fala e fala besteiras num balão, **com a voz do
+  Rafik**. Na Morte Súbita vira a versão "Diabo".
+- **Só a cabeça (decidido em 02/11):** sem corpo e sem andar no MVP 1. O corpo de bonequinho feito
+  na FE-41 fica na branch `feat/vitao-corpo`, para depois, se sobrar tempo.
+- **O Vitão é a voz do jogo (decidido em 02/11):** o narrador e o Vitão comentavam os mesmos
+  momentos com piadas diferentes. Agora são um só, e o humor fica no Vitão:
+  - Os banners e avisos ficam só com a informação ("TEMPO ESGOTADO! · 1/3"); as piadas do Rafik
+    (FE-40) vão para o balão do Vitão (FE-43).
+  - **A única voz do jogo é a do Rafik.** Nos momentos com gravação (habilidade do oponente,
+    estouros, fim do round, Morte Súbita, W.O., match point, desconexão), o Vitão mostra a frase
+    no balão e fala com o áudio dela (FE-48). Jogadas de peça e a minha habilidade não têm
+    gravação: ele comenta só por escrito. Os anúncios gravados ("Round 1", "Confronto", "Empate
+    absoluto") tocam só a voz, porque o banner já mostra o título.
+  - O Resultado não tem o Vitão: a piada continua como subtítulo e a voz do Rafik toca ali.
+  - **Vitão desligado nas Configurações:** some o balão e a voz; os banners continuam só com a
+    informação.
+  - Até a FE-43, as piadas ainda aparecem nos banners e o Vitão usa falas provisórias.
 - **Caricatura em vez de foto (decidido em 25/10, FE-41):** lê melhor em tamanho pequeno e combina
   com o tom do jogo. Expressões: normal, rindo, debochado, bravo, muito bravo, surpreso, dormindo e
   Diabo, todas no mesmo ângulo e enquadramento, em WebP de 256px (~15 KB cada), em
@@ -455,19 +478,24 @@ Abrir o jogo → [sem sessão] Acesso → Hub (Jogar; abas Loja / Perfil)
   lugar da fala atual (com a voz, cortam o áudio dela) e a pausa recomeça a partir deles. Esperar a
   pausa acabar pareceria atraso. Na Morte Súbita ele fica Diabo o tempo todo, não só quando fala.
 - **Flag:** a `VITAO_ENABLED` foi ligada em 31/10, com a FE-44, para o time ver o Vitão enquanto
-  termina falas (FE-43), animação (FE-42) e voz (FE-45). Até lá, as falas e a cabeça parada são
-  provisórias.
+  termina falas (FE-43), animação (FE-42) e voz (FE-48). A FE-45 (gravar a voz do Vitão) foi
+  substituída pela FE-48 em 02/11.
 - **Autorização:** o uso da imagem, das falas e da voz do Vitão num link público precisa do ok
-  dele, registrado na FE-41. O Vitão autorizou tudo em 25/10: imagem, desenho, falas e voz.
+  dele, registrado na FE-41. O Vitão autorizou tudo em 25/10: imagem, desenho, falas e voz. A voz
+  que vai ao ar é a do Rafik (02/11).
 - **Voz do jogo (FE-40, feita em 31/10):** além do Vitão, os textos da interface (anúncios
   gritados, banners, erros, avisos, Resultado) seguem um guia de tom com humor de narrador estilo
   Mortal Kombat/Cuphead (`docs/VOICE_GUIDE.md`) e ficam num arquivo só, `src/constants/texts.ts`.
   As piadas são as falas que o Rafik gravou: sem filtro é a versão [E] e, com o filtro das
-  Configurações, a [C]; a piada sem versão limpa some. Elas entram como subtítulo, sem tirar a
-  informação (placar, 1/3, os segundos da Morte Súbita). Ficaram só para o áudio as explicações das 10
+  Configurações, a [C]; a piada sem versão limpa some. Hoje elas entram como subtítulo, sem tirar a
+  informação (placar, 1/3, os segundos da Morte Súbita); com a FE-43, passam para o balão do Vitão
+  (acima). Ficaram só para o áudio as explicações das 10
   habilidades e a narração do Como Jogar, que não segue as 5 páginas. "Vitória implacável",
   como o Rafik gravou, fica "Vitória impecável" no texto, como na ERS `[RF-POS-01]`. O áudio do
   narrador ainda não está no jogo.
+- **Trilhas (decidido em 02/11, FE-38):** uma trilha por momento: Hub, Sala de Espera e
+  Preparação, Arena, Morte Súbita (acelerada) e Resultado (vitória e derrota), além da batida de
+  coração e do tique-taque da Morte Súbita. Hoje toca uma trilha só, do começo ao fim.
 
 ## 10. Stack técnica
 
@@ -528,7 +556,7 @@ dela. Ordem e responsáveis em `docs/INITIAL_BACKLOG.md`.
 10. PWA (instalável, paisagem, "Gire o celular") e polimento (personagens neon, pacote da Morte
     Súbita, sons)
 11. **Personalidade (terceiro grupo, em paralelo desde 15/10):** sonoplastia, Configurações, voz
-    do jogo e o Vitão com voz (FE-37 a FE-45)
+    do jogo e o Vitão com a voz do Rafik (FE-37 a FE-48)
 12. **Pós-MVP:** cosméticos, habilidades por personagem, login com Google
 
 Qualquer item pós-MVP proposto antes do item 10 estar pronto deve ser questionado — é desvio de
