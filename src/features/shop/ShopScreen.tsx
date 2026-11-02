@@ -5,7 +5,7 @@ import { useId, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { ApiError } from '../../api/client'
 import type { ShopCategory, ShopItem } from '../../api/shop'
-import { Button, Modal } from '../../components/ui'
+import { Button, HeartIcon, Modal } from '../../components/ui'
 import { ABILITY_INFO } from '../../constants/abilities'
 import { ABILITIES, CHARACTERS } from '../../constants/game'
 import { SHOP_TEXTS } from '../../constants/texts'
@@ -37,6 +37,8 @@ export function ShopScreen() {
   const { status, balance, loadProfile } = useProfileStore(
     useShallow((s) => ({ status: s.status, balance: s.coinsBalance, loadProfile: s.loadProfile })),
   )
+  const equip = useProfileStore((s) => s.equip)
+  const [equippingId, setEquippingId] = useState<string | null>(null)
   const characters = useProfileStore((s) => s.characters)
   const skills = useProfileStore((s) => s.skills)
   const characterItems = knownItems(characters, CHARACTERS)
@@ -49,6 +51,19 @@ export function ShopScreen() {
       ? characterItems.find((c) => c.id === item.id)
       : skillItems.find((s) => s.id === item.id)) ??
       item)
+
+  // O coração só enche com a resposta do servidor; até lá, pulsa (nada otimista)
+  async function handleFavorite(item: CharacterItem) {
+    setEquippingId(item.id)
+    try {
+      await equip(item.id)
+      showToast({ message: SHOP_TEXTS.equipped(item.name) })
+    } catch (error) {
+      showToast({ tone: 'danger', message: shopErrorMessage(error) })
+    } finally {
+      setEquippingId(null)
+    }
+  }
 
   const empty =
     tab !== 'cosmetics' && (tab === 'characters' ? characterItems : skillItems).length === 0
@@ -143,6 +158,15 @@ export function ShopScreen() {
                   state={shopItemState(item, balance)}
                   onDetails={() => setDetails(item)}
                   onBuy={() => setConfirming(item)}
+                  favorite={
+                    isCharacter(item) && item.owned
+                      ? {
+                          pending: equippingId === item.id,
+                          disabled: equippingId !== null,
+                          onToggle: () => void handleFavorite(item),
+                        }
+                      : null
+                  }
                 />
               </li>
             ))}
@@ -170,22 +194,33 @@ function ItemVisual({ item, className }: { item: AnyItem; className: string }) {
 }
 
 /** Card com os 3 estados: Seu, À venda (preço) e Sem saldo (botão travado com o que falta) */
+/** Coração do card de personagem comprado. `null` nos outros cards */
+interface FavoriteControl {
+  /** Esperando o servidor confirmar este personagem */
+  pending: boolean
+  /** Alguma troca de favorito em andamento */
+  disabled: boolean
+  onToggle: () => void
+}
+
 function ItemCard({
   item,
   state,
   onDetails,
   onBuy,
+  favorite,
 }: {
   item: AnyItem
   state: ShopItemState
   onDetails: () => void
   onBuy: () => void
+  favorite: FavoriteControl | null
 }) {
   const subtitle = isCharacter(item) ? null : SHOP_TEXTS.kinds[ABILITY_INFO[item.code].kind]
   return (
     <div
       className={[
-        'flex min-h-0 w-full flex-col overflow-hidden rounded-2xl border-2 bg-bg-panel transition',
+        'relative flex min-h-0 w-full flex-col overflow-hidden rounded-2xl border-2 bg-bg-panel transition',
         item.equipped
           ? 'border-primary/70'
           : state.kind === 'OWNED'
@@ -209,10 +244,37 @@ function ItemCard({
         </span>
       </button>
 
+      {/* Fora do botão do card: um botão dentro de outro não é HTML válido */}
+      {favorite && (
+        <button
+          type="button"
+          aria-pressed={item.equipped}
+          aria-label={
+            item.equipped ? SHOP_TEXTS.isFavorite(item.name) : SHOP_TEXTS.useAsFavorite(item.name)
+          }
+          title={
+            item.equipped ? SHOP_TEXTS.isFavorite(item.name) : SHOP_TEXTS.useAsFavorite(item.name)
+          }
+          // O favorito não se desmarca: o jogador sempre tem um, e trocar é marcar outro
+          disabled={item.equipped || favorite.disabled}
+          onClick={favorite.onToggle}
+          className={[
+            'absolute top-1 right-1 grid size-9 place-items-center rounded-full transition',
+            'focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-default',
+            item.equipped
+              ? 'text-primary drop-shadow-[0_0_6px_var(--color-primary)]'
+              : 'text-text-muted hover:text-primary',
+            favorite.pending ? 'animate-pulse text-primary' : '',
+          ].join(' ')}
+        >
+          <HeartIcon filled={item.equipped} className="size-5" />
+        </button>
+      )}
+
       <div className="shrink-0 px-2 pb-2 short:px-1.5 short:pb-1.5">
         {state.kind === 'OWNED' ? (
           <p className="flex min-h-8 items-center justify-center rounded-lg bg-bg-raised font-display text-xs font-bold tracking-wide text-text-muted uppercase">
-            {item.equipped ? SHOP_TEXTS.favorite : SHOP_TEXTS.owned}
+            {SHOP_TEXTS.owned}
           </p>
         ) : (
           <Button
@@ -257,37 +319,22 @@ function ItemModal({
   onClose: () => void
   onBuy: (item: AnyItem) => void
 }) {
-  const equip = useProfileStore((s) => s.equip)
-  const [equipping, setEquipping] = useState(false)
   const state = item ? shopItemState(item, balance) : null
-
-  async function handleEquip(target: CharacterItem) {
-    setEquipping(true)
-    try {
-      await equip(target.id)
-      showToast({ message: SHOP_TEXTS.equipped(target.name) })
-    } catch (error) {
-      showToast({ tone: 'danger', message: shopErrorMessage(error) })
-    } finally {
-      setEquipping(false)
-    }
-  }
 
   return (
     <Modal
       open={item !== null}
-      onClose={equipping ? undefined : onClose}
-      dismissible={!equipping}
+      onClose={onClose}
       title={item?.name ?? ''}
       size="md"
       actions={
         item &&
         state && (
           <>
-            <Button variant="ghost" onClick={onClose} disabled={equipping}>
+            <Button variant="ghost" onClick={onClose}>
               {SHOP_TEXTS.close}
             </Button>
-            {state.kind !== 'OWNED' ? (
+            {state.kind !== 'OWNED' && (
               <Button
                 className="normal-case"
                 disabled={state.kind === 'MISSING'}
@@ -297,19 +344,6 @@ function ItemModal({
                   ? SHOP_TEXTS.missing(state.missing)
                   : SHOP_TEXTS.buy(item.priceCoins)}
               </Button>
-            ) : (
-              isCharacter(item) && (
-                <Button
-                  disabled={item.equipped || equipping}
-                  onClick={() => void handleEquip(item)}
-                >
-                  {item.equipped
-                    ? SHOP_TEXTS.isFavorite
-                    : equipping
-                      ? SHOP_TEXTS.equipping
-                      : SHOP_TEXTS.useAsFavorite}
-                </Button>
-              )
             )}
           </>
         )

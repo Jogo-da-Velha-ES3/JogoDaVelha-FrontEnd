@@ -127,7 +127,6 @@ export const SHOP_TEXTS = {
   loadError: 'Não foi possível abrir a Loja agora.',
   retry: 'Tentar de novo',
   owned: 'Seu',
-  favorite: 'Favorito',
   price: (coins: number) => `${coins.toLocaleString('pt-BR')} Coins`,
   missing: (coins: number) => `Faltam ${coins.toLocaleString('pt-BR')} Coins`,
   buy: (coins: number) => `Comprar · ${coins.toLocaleString('pt-BR')} Coins`,
@@ -148,9 +147,9 @@ export const SHOP_TEXTS = {
   confirm: 'Comprar',
   buying: 'Comprando…',
   bought: (name: string) => `${name} é seu!`,
-  useAsFavorite: 'Usar como favorito',
-  equipping: 'Trocando…',
-  isFavorite: 'Seu favorito',
+  /** Coração no canto do card do personagem: o que o leitor de tela anuncia */
+  useAsFavorite: (name: string) => `Usar ${name} como favorito`,
+  isFavorite: (name: string) => `${name} é o seu favorito`,
   equipped: (name: string) => `${name} agora é o seu favorito.`,
   errors: {
     insufficientCoins: 'Coins insuficientes para essa compra.',

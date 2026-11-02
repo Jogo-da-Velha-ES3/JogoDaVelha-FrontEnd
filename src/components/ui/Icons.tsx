@@ -50,3 +50,15 @@ export function PauseIcon({ className }: { className?: string }) {
     </LineIcon>
   )
 }
+
+/** Coração: favorito. Vazado quando não é; preenchido quando é */
+export function HeartIcon({ className, filled = false }: { className?: string; filled?: boolean }) {
+  return (
+    <LineIcon className={className}>
+      <path
+        d="M12 20.5 C6 16.4 3 13.2 3 9.4 A4.4 4.4 0 0 1 12 7.2 A4.4 4.4 0 0 1 21 9.4 C21 13.2 18 16.4 12 20.5 Z"
+        fill={filled ? 'currentColor' : 'none'}
+      />
+    </LineIcon>
+  )
+}

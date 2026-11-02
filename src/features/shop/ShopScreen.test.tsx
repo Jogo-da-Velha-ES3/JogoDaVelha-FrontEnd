@@ -132,14 +132,27 @@ describe('Loja (FE-31)', () => {
     expect(within(dialog).getByRole('group', { name: 'Tabuleiro' })).toBeInTheDocument()
   })
 
-  it('personagem comprado vira o favorito pelo botão "Usar como favorito"', async () => {
+  it('coração: marcar um personagem comprado o torna favorito e desmarca o anterior', async () => {
+    await renderShop()
+    const heart = (name: string) => screen.getByRole('button', { name: new RegExp(name) })
+
+    await userEvent.click(heart('Usar X como favorito'))
+    await waitFor(() => expect(heart('X é o seu favorito')).toHaveAttribute('aria-pressed', 'true'))
+
+    await userEvent.click(heart('Usar O como favorito'))
+    await waitFor(() => expect(heart('O é o seu favorito')).toHaveAttribute('aria-pressed', 'true'))
+    // Só um favorito: o X voltou a ficar vazio
+    expect(heart('Usar X como favorito')).toHaveAttribute('aria-pressed', 'false')
+    const equipped = useProfileStore.getState().characters.filter((item) => item.equipped)
+    expect(equipped.map((item) => item.code)).toEqual(['O'])
+  })
+
+  it('coração só aparece nos personagens que são do jogador', async () => {
     await renderShop()
 
-    await userEvent.click(screen.getByRole('button', { name: 'Ver O' }))
-    await userEvent.click(screen.getByRole('button', { name: 'Usar como favorito' }))
-
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Seu favorito' })).toBeDisabled())
-    const equipped = useProfileStore.getState().characters.find((item) => item.equipped)
-    expect(equipped?.code).toBe('O')
+    expect(screen.getAllByRole('button', { name: /como favorito$/ })).toHaveLength(2)
+    expect(
+      screen.queryByRole('button', { name: 'Usar Estrela como favorito' }),
+    ).not.toBeInTheDocument()
   })
 })
