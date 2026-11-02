@@ -1,9 +1,12 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, useReducedMotion } from 'framer-motion'
-import { Banner } from '../../components/ui'
-import { ABILITY_INFO } from '../../constants/abilities'
+import { Banner, PauseIcon } from '../../components/ui'
 import { CHARACTER_INFO } from '../../constants/characters'
+import { ABILITY_IMPACT_SECONDS } from '../../constants/game'
+import { ABILITY_TEXTS, ARENA_TEXTS as T, joinParts, RESULT_TEXTS } from '../../constants/texts'
+import { useIsBefore } from '../../hooks/useIsBefore'
+import { useVoice } from '../../hooks/useLanguageFilter'
 import { useServerTimer } from '../../hooks/useServerTimer'
 import { otherSlot } from '../../lib/match'
 import { PATHS } from '../../routes/paths'
@@ -16,7 +19,11 @@ import { useTimerStore } from '../../stores/timerStore'
 import type { CharacterId, PlayerSlot } from '../../types/game'
 import { Board } from '../board'
 import { HowToPlayModal } from '../hub/HowToPlayModal'
+import { AbilityNotice } from '../powers/AbilityNotice'
 import { DrawPicker } from '../powers/DrawPicker'
+import { DeckHud } from '../powers/DeckHud'
+import { SettingsModal } from '../settings/SettingsModal'
+import { useAbilityAim } from '../powers/useAbilityAim'
 import { VitaoSlot } from '../vitao/VitaoSlot'
 import { OpponentDisconnectedNotice } from './OpponentDisconnectedNotice'
 import { PauseOverlay } from './PauseOverlay'
@@ -28,7 +35,7 @@ import { useSuddenDeathEntrance } from './useSuddenDeathEntrance'
 import { TurnTimeoutToast } from './TurnTimeoutToast'
 import { VsBanner } from './VsBanner'
 
-type ModalKind = 'howToPlay' | 'quit' | null
+type ModalKind = 'howToPlay' | 'settings' | 'quit' | null
 
 const colorOf = (character: CharacterId | null | undefined) =>
   character ? CHARACTER_INFO[character].color : undefined
@@ -45,6 +52,7 @@ export interface ArenaProps {
  */
 export function Arena({ onQuit }: ArenaProps) {
   const navigate = useNavigate()
+  const voice = useVoice()
   const [pauseOpen, setPauseOpen] = useState(false)
   const [activeModal, setActiveModal] = useState<ModalKind>(null)
 
@@ -61,18 +69,30 @@ export function Arena({ onQuit }: ArenaProps) {
   const roundEnd = useMatchStore((s) => s.roundEnd)
   const outcome = useMatchStore((s) => s.outcome)
   const coins = useMatchStore((s) => s.coins)
+  const lastTimeoutAt = useMatchStore((s) => s.lastTimeout?.receivedAt ?? null)
   const enteringSuddenDeath = useSuddenDeathEntrance()
   const cells = useBoardStore((s) => s.cells)
   const winningLine = useBoardStore((s) => s.winningLine)
+  const lastAbility = useBoardStore((s) => s.lastAbility)
   const deck = usePowersStore((s) => s.deck)
   const drawOptions = usePowersStore((s) => s.drawOptions)
   const turn = useTimerStore((s) => s.turn)
+  const turnKey = turn?.startedAt ?? null
 
   const player = (slot: PlayerSlot) => players.find((p) => p.slot === slot)
   const characters = { P1: player('P1')?.character, P2: player('P2')?.character }
   const myTurn = phase === 'PLAYING' && turn?.player === me
   const turnColor = colorOf(turn ? characters[turn.player] : null)
   const empty = cells.filter((c) => c.owner === null).map((c) => c.index)
+  const { aim, targets, selected, pending, withoutTarget, hint, selectTarget } = useAbilityAim({
+    me,
+    canAct: myTurn && !reconnecting,
+    turnKey,
+  })
+  // O efeito na casa dura ABILITY_IMPACT_SECONDS a partir da chegada do ABILITY_RESOLVED
+  const impactVisible = useIsBefore(
+    lastAbility ? lastAbility.receivedAt + ABILITY_IMPACT_SECONDS * 1000 : null,
+  )
 
   // Fim do round 3 com o placar igual (1×1 ou 0×0) é empate absoluto [RN-ARN-06] (regra de 18/10).
   // Só muda o banner: o resultado oficial chega no MATCH_END
@@ -83,12 +103,21 @@ export function Arena({ onQuit }: ArenaProps) {
 
   const roundLabel =
     phase === 'VERSUS'
-      ? 'Confronto'
+      ? T.roundLabel.versus
       : phase === 'ROUND_END'
-        ? `Fim do round ${round}`
+        ? T.roundLabel.roundEnd(round)
         : suddenDeath
-          ? `Round ${round} · Morte Súbita`
-          : `Round ${round} · MD3`
+          ? T.roundLabel.suddenDeath(round)
+          : T.roundLabel.normal(round)
+
+  // Banner do fim do round: a fala do narrador (some com o filtro) antes do placar
+  const roundEndLine =
+    roundEnd?.winner === me
+      ? voice(T.roundEnd.mineLine)
+      : roundEnd?.winner === opp
+        ? voice(T.roundEnd.opponentsLine)
+        : null
+  const woWon = outcome?.kind === 'WO' && outcome.winner === me
 
   const openModal = (kind: Exclude<ModalKind, null>) => {
     setPauseOpen(false)
@@ -127,7 +156,7 @@ export function Arena({ onQuit }: ArenaProps) {
                 onClick={() => setPauseOpen(true)}
                 className="relative z-[5] grid size-8 shrink-0 place-items-center rounded-lg border border-line font-mono text-sm text-text-muted transition hover:border-line hover:text-primary focus-visible:outline-2 focus-visible:outline-primary"
               >
-                ⏸
+                <PauseIcon className="size-4" />
               </button>
             )}
             <p
@@ -168,9 +197,14 @@ export function Arena({ onQuit }: ArenaProps) {
             cells={cells}
             characters={characters}
             winningLine={winningLine}
-            selectable={myTurn ? empty : []}
+            aim={aim ? { targets, selected } : null}
+            impact={impactVisible ? lastAbility : null}
+            // Com a mira aberta, só os alvos da etapa atual (nenhum enquanto espera o servidor)
+            selectable={!myTurn ? [] : aim ? targets : empty}
             disabled={reconnecting}
-            onCellSelect={(cell) => sendCommand({ type: 'MOVE', payload: { cell } })}
+            onCellSelect={(cell) =>
+              aim ? selectTarget(cell) : sendCommand({ type: 'MOVE', payload: { cell } })
+            }
           />
         </div>
 
@@ -200,16 +234,16 @@ export function Arena({ onQuit }: ArenaProps) {
               {myTurn ? (
                 <>
                   {/* "SUA VEZ" em display + subtítulo instrucional
-                      Na Morte Súbita: só "SUA VEZ" em vermelho, sem subtítulo */}
+                      Na Morte Súbita: só "SUA VEZ" em vermelho, sem subtítulo (menos a mira) */}
                   <p
                     className={`font-display text-xl leading-tight font-extrabold uppercase short:text-lg ${suddenDeath ? 'text-danger' : ''}`}
                     style={suddenDeath ? undefined : { color: turnColor }}
                   >
-                    Sua vez
+                    {T.turn.yours}
                   </p>
-                  {!suddenDeath && (
+                  {(hint || !suddenDeath) && (
                     <p className="mt-0.5 font-body text-xs text-text-muted">
-                      Toque numa casa ou use uma habilidade
+                      {hint ?? T.turn.hint}
                     </p>
                   )}
                 </>
@@ -221,29 +255,37 @@ export function Arena({ onQuit }: ArenaProps) {
                   style={suddenDeath ? undefined : { color: turnColor }}
                   title={player(opp)?.nickname}
                 >
-                  {`Vez de ${player(opp)?.nickname ?? 'Oponente'}…`}
+                  {T.turn.opponents(player(opp)?.nickname ?? T.opponent)}
                 </p>
               )}
             </div>
           )}
           {phase === 'ROUND_DRAW' && (
             <p role="status" className="font-display text-lg leading-tight font-bold uppercase">
-              Sorteio da 3ª habilidade
+              {ABILITY_TEXTS.draw.title}
             </p>
           )}
 
-          {/* Deck só para exibição: o deck clicável é a FE-11 e a mira, a FE-27 */}
-          <ul aria-label="Seu deck" className="mt-auto flex flex-col gap-1.5">
-            {deck.map((slot) => (
-              <li
-                key={slot.ability}
-                className={`rounded-lg border border-line px-2 py-1.5 text-sm ${slot.usedThisRound ? 'opacity-40' : ''}`}
-              >
-                {ABILITY_INFO[slot.ability].name}
-                {slot.usedThisRound && <span className="text-xs text-text-muted"> · usada</span>}
-              </li>
-            ))}
-          </ul>
+          {/* Turno perdido (TURN_TIMEOUT) ou habilidade do oponente, anulada ou sem efeito: aqui,
+              para não cobrir o tabuleiro. Um de cada vez, o mais novo: no celular deitado, os
+              dois juntos empurram o deck para fora da tela (o x/3 continua na faixa) */}
+          {lastTimeoutAt !== null &&
+          (lastAbility === null || lastTimeoutAt > lastAbility.receivedAt) ? (
+            <TurnTimeoutToast />
+          ) : (
+            <AbilityNotice />
+          )}
+
+          <DeckHud
+            deck={deck}
+            canUse={myTurn && !reconnecting}
+            silenced={player(me)?.silenced ?? false}
+            aim={aim}
+            aimPending={pending}
+            withoutTarget={withoutTarget}
+            turnKey={turnKey}
+            color={colorOf(characters[me])}
+          />
         </aside>
 
         {/* ── Camada de overlays ──
@@ -262,29 +304,23 @@ export function Arena({ onQuit }: ArenaProps) {
             show={phase === 'ROUND_END' && roundEnd !== null && !absoluteDraw}
             title={
               roundEnd?.winner === me
-                ? 'Round seu!'
+                ? T.roundEnd.mine
                 : roundEnd?.winner === opp
-                  ? 'Round do oponente'
-                  : 'Round empatado'
+                  ? T.roundEnd.opponents
+                  : T.roundEnd.draw
             }
-            subtitle={`Placar ${score[me]} × ${score[opp]}`}
+            subtitle={joinParts(roundEndLine, T.roundEnd.score(score[me], score[opp]))}
             color={roundEnd?.winner ? colorOf(characters[roundEnd.winner]) : undefined}
           />
 
-          {/* W.O. — largura total */}
+          {/* W.O. — largura total, com o mesmo título e a mesma fala do Resultado */}
           <Banner
             className="absolute inset-x-0 top-1/2 w-full -translate-y-1/2"
             show={outcome?.kind === 'WO'}
-            title={outcome?.kind === 'WO' && outcome.winner === me ? 'Vitória por W.O.' : 'W.O.!'}
-            subtitle={
-              outcome?.kind === 'WO' && outcome.winner === me
-                ? 'O oponente esgotou o tempo 3 vezes'
-                : '3 tempos esgotados seguidos · Derrota'
-            }
+            title={woWon ? RESULT_TEXTS.titles.WO_WIN : RESULT_TEXTS.titles.WO_LOSS}
+            subtitle={voice(woWon ? RESULT_TEXTS.lines.WO_WIN : RESULT_TEXTS.lines.WO_LOSS)}
             tone="danger"
-            color={
-              outcome?.kind === 'WO' && outcome.winner === me ? colorOf(characters[me]) : undefined
-            }
+            color={woWon ? colorOf(characters[me]) : undefined}
           />
 
           {/* Empate absoluto: um banner só, do fim do round 3 até o Resultado. Quando o MATCH_END
@@ -292,19 +328,16 @@ export function Arena({ onQuit }: ArenaProps) {
           <Banner
             className="absolute inset-x-0 top-1/2 w-full -translate-y-1/2"
             show={absoluteDraw || outcome?.kind === 'ABSOLUTE_DRAW'}
-            title="Empate absoluto"
+            title={T.absoluteDraw.title}
             subtitle={
               coins
-                ? `+${coins[me]} Coins para cada`
+                ? T.absoluteDraw.coinsEach(coins[me])
                 : roundEnd?.winner
-                  ? `Placar final ${score[me]} × ${score[opp]}`
-                  : 'Ninguém venceu a Morte Súbita'
+                  ? T.absoluteDraw.finalScore(score[me], score[opp])
+                  : T.absoluteDraw.nobody
             }
             tone="coin"
           />
-
-          {/* Toast de turno perdido (TURN_TIMEOUT) */}
-          <TurnTimeoutToast />
 
           {/* Morte Súbita: entrada (flash, fitas, banner), bordas pulsando, vibração e sons (FE-13) */}
           <SuddenDeathLayer />
@@ -325,6 +358,7 @@ export function Arena({ onQuit }: ArenaProps) {
           open={pauseOpen}
           onClose={() => setPauseOpen(false)}
           onHowToPlay={() => openModal('howToPlay')}
+          onSettings={() => openModal('settings')}
           onQuit={() => openModal('quit')}
         />
       </div>
@@ -335,6 +369,7 @@ export function Arena({ onQuit }: ArenaProps) {
         onClose={closeModalToPause}
         closeLabel="Voltar ao menu"
       />
+      <SettingsModal open={activeModal === 'settings'} onClose={closeModalToPause} />
       <QuitModal open={activeModal === 'quit'} onContinue={closeModalToPause} onQuit={quit} />
     </>
   )

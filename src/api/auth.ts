@@ -1,5 +1,6 @@
 // Cadastro e login pelo REST do back (FE-25). Rotas: POST /api/auth/register e /api/auth/login.
 // O prefixo /api já vem no VITE_API_URL.
+import { ACCESS_TEXTS } from '../constants/texts'
 import type { FieldErrors, LoginField, RegisterField } from '../lib/authValidation'
 import { isMockServerEnabled } from '../sockets/mode'
 import { ApiError, apiRequest } from './client'
@@ -78,15 +79,14 @@ export interface AuthFormError<F extends string> {
   form: string | null
 }
 
-const GENERIC = 'Não foi possível concluir agora. Tente de novo em instantes.'
-const INVALID_DATA = 'Confira os dados e tente de novo.'
+const { generic: GENERIC, invalidData: INVALID_DATA } = ACCESS_TEXTS.errors
 
 /** Traduz o erro do back para a tela de Entrar */
 export function loginErrorFor(error: unknown): AuthFormError<LoginField> {
   if (!(error instanceof ApiError)) return { fields: {}, form: GENERIC }
   // Mensagem única e neutra: não revela se o usuário existe
   if (error.code === 'INVALID_CREDENTIALS' || error.status === 401) {
-    return { fields: {}, form: 'E-mail, usuário ou senha incorretos.' }
+    return { fields: {}, form: ACCESS_TEXTS.errors.invalidCredentials }
   }
   if (error.code === 'VALIDATION_ERROR') {
     return validationError(error, ['identifier', 'password'])
@@ -98,10 +98,10 @@ export function loginErrorFor(error: unknown): AuthFormError<LoginField> {
 export function registerErrorFor(error: unknown): AuthFormError<RegisterField> {
   if (!(error instanceof ApiError)) return { fields: {}, form: GENERIC }
   if (error.code === 'USERNAME_ALREADY_EXISTS') {
-    return { fields: { username: 'Esse nome de usuário já está em uso.' }, form: null }
+    return { fields: { username: ACCESS_TEXTS.errors.usernameTaken }, form: null }
   }
   if (error.code === 'EMAIL_ALREADY_EXISTS') {
-    return { fields: { email: 'Esse e-mail já tem uma conta. Tente entrar.' }, form: null }
+    return { fields: { email: ACCESS_TEXTS.errors.emailTaken }, form: null }
   }
   if (error.code === 'VALIDATION_ERROR') {
     return validationError(error, ['username', 'email', 'password'])
@@ -144,10 +144,8 @@ export const MOCK_EXPIRED_RESET_TOKEN = 'expirado'
 /** Espera do simulado, para a tela mostrar o estado "enviando" como com o back de verdade */
 const MOCK_DELAY_MS = 1000
 
-/** Link sem token, inválido, expirado ou já usado: a tela "Nova senha" mostra este texto */
-export const INVALID_RESET_LINK_MESSAGE = 'Esse link expirou ou não é válido. Peça um novo.'
-const RESET_GENERIC = 'Não foi possível redefinir a senha agora. Tente novamente mais tarde.'
-const FORGOT_GENERIC = 'Não foi possível enviar o pedido agora. Tente novamente mais tarde.'
+const INVALID_RESET_LINK_MESSAGE = ACCESS_TEXTS.invalidResetLink
+const { resetFailed: RESET_GENERIC, forgotFailed: FORGOT_GENERIC } = ACCESS_TEXTS.errors
 
 const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
 

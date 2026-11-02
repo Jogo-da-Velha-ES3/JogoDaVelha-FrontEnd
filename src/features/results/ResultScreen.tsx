@@ -2,6 +2,8 @@ import { motion, useReducedMotion } from 'framer-motion'
 import type { CSSProperties } from 'react'
 import { CHARACTER_INFO } from '../../constants/characters'
 import { ROUNDS_TO_WIN_MATCH } from '../../constants/game'
+import { RESULT_TEXTS } from '../../constants/texts'
+import { useVoice } from '../../hooks/useLanguageFilter'
 import { otherSlot } from '../../lib/match'
 import { classifyResult, type ResultKind } from '../../lib/result'
 import { useMatchStore } from '../../stores/matchStore'
@@ -12,7 +14,6 @@ import { celebrationFlavor } from './celebration'
 import { CoinsReward } from './CoinsReward'
 import { CelebrationBurst, CelebrationHalo } from './ResultCelebration'
 import { RematchPanel } from './RematchPanel'
-import { RESULT_TITLES, resultSubtitle } from './resultTexts'
 import { useLiveResult } from './useLiveResult'
 
 export interface ResultScreenProps {
@@ -90,6 +91,7 @@ export function ResultScreen({ onLeave }: ResultScreenProps) {
   // Um só ponto decide se o resultado acabou de chegar (ao vivo) ou se é o estado final (reconexão)
   const live = useLiveResult()
   const reduceMotion = useReducedMotion()
+  const voice = useVoice()
 
   if (!result) {
     // O servidor ainda não mandou o resultado: nada de "Derrota" por engano
@@ -103,7 +105,7 @@ export function ResultScreen({ onLeave }: ResultScreenProps) {
             role="status"
             className="font-display text-2xl font-bold tracking-wide text-text-muted uppercase short:text-xl"
           >
-            Apurando o resultado…
+            {RESULT_TEXTS.pending}
           </p>
         </div>
         <div className="flex min-w-0 flex-1 flex-col items-center justify-center">
@@ -115,7 +117,9 @@ export function ResultScreen({ onLeave }: ResultScreenProps) {
 
   const { kind, mine, theirs } = result
   const tone = TONE[kind]
-  const subtitle = resultSubtitle(result)
+  const title = RESULT_TEXTS.titles[kind]
+  const line = RESULT_TEXTS.lines[kind]
+  const subtitle = line && voice(line)
   const isWo = kind === 'WO_WIN' || kind === 'WO_LOSS'
   // Festa só para quem venceu, ao vivo e sem "reduzir movimento"; fora disso, o estado final parado
   const flavor = celebrationFlavor(kind)
@@ -176,10 +180,10 @@ export function ResultScreen({ onLeave }: ResultScreenProps) {
               className="motion-safe:animate-neon-flicker"
               style={{ animationDelay: '0.7s', animationIterationCount: 2 }}
             >
-              {RESULT_TITLES[kind]}
+              {title}
             </span>
           ) : (
-            RESULT_TITLES[kind]
+            title
           )}
         </motion.h1>
         {subtitle && (

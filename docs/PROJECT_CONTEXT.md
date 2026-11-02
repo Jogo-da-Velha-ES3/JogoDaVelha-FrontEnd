@@ -152,6 +152,10 @@ estratégico e competitivo, **sem pay-to-win**.
   mesmo turno, nem usar 2 habilidades `[RN-ARN-02]`.
 - **O deck do oponente é oculto:** você só descobre uma habilidade dele quando ela é usada
   (decisão de interface).
+- **Mira só com alvo que tem efeito (decidido em 29/10, FE-27):** a peça com Reforço não é alvo de
+  Bomba, Tornado nem Buraco Negro, e a peça sem casa vizinha livre não é alvo de Tornado nem de
+  Troca Rápida. A carta que fica sem nenhum alvo aparece desabilitada, com "Sem alvo". O
+  servidor continua aceitando esses alvos (`[RN-ARN-05]`: executa sem efeito).
 
 ### Duração dos efeitos `[RN-ARN-07]`
 
@@ -230,7 +234,8 @@ A ERS não define a regra; o back decidiu usar a mesma do W.O. por tempo `[RN-AR
 - **Sem contagem especial:** os turnos de quem caiu continuam correndo; cada turno perdido é um
   estouro e **3 seguidos dão W.O.** O contador não zera na troca de round.
 - **Quem ficou** vê "Oponente desconectado" com os estouros dele (x/3), a partir de
-  `PLAYER_DISCONNECTED` / `PLAYER_RECONNECTED` (pedido ao back em 15/10).
+  `PLAYER_DISCONNECTED` / `PLAYER_RECONNECTED` (pedido ao back em 15/10). O aviso fica só com a
+  informação, numa linha; a piada da queda é do Vitão, no balão (02/11).
 - **Quem caiu** vê "Reconectando…", não consegue jogar até voltar e volta para o mesmo ponto da
   partida pelo `ROOM_SNAPSHOT` completo (o estado está no servidor).
 - **No Resultado,** cair conta como sair da sala e cancela a revanche **[A VALIDAR COM O BACK]**.
@@ -337,8 +342,9 @@ A ERS não define a regra; o back decidiu usar a mesma do W.O. por tempo `[RN-AR
 7. **Arena** — a partida inteira numa tela só, que muda de estado
 8. **Resultado** — vencedor, placar, Coins, revanche
 
-Modais globais: Entrar com Código, Como Jogar, Comprar Coins, Configurações (som, vibração), Sair
-da partida, Conexão perdida, Gire o celular.
+Modais globais: Entrar com Código, Como Jogar, Comprar Coins, Configurações (música, efeitos,
+vibração, Vitão, volume da voz e filtro de palavrões), Sair da partida, Conexão perdida, Gire o
+celular.
 
 ### Fluxo
 
@@ -386,13 +392,23 @@ Abrir o jogo → [sem sessão] Acesso → Hub (Jogar; abas Loja / Perfil)
   `MATCH_END` do servidor, nunca quando o timer do front chega a 0. Vermelho só para quem está em
   perigo; para o outro jogador, a cor do personagem de quem é o aviso.
 
-  | Situação                  | Quem vê      | Título                | Subtítulo                             | Cor                   |
-  | ------------------------- | ------------ | --------------------- | ------------------------------------- | --------------------- |
-  | 1º estouro                | quem estoura | TEMPO ESGOTADO!       | Você perdeu a vez · 1/3               | vermelho              |
-  | 2º estouro seguido        | quem estoura | TEMPO ESGOTADO!       | 2/3 · Mais um e é W.O.!               | vermelho              |
-  | 1º/2º estouro do oponente | o outro      | OPONENTE PERDEU A VEZ | 1/3 ou 2/3                            | cor do oponente       |
-  | 3º estouro (W.O.)         | quem estoura | W.O.!                 | 3 tempos esgotados seguidos · Derrota | vermelho              |
-  | 3º estouro do oponente    | o outro      | VITÓRIA POR W.O.      | O oponente esgotou o tempo 3 vezes    | cor do seu personagem |
+  | Situação                  | Quem vê      | Título                | Subtítulo (sem filtro / com filtro)                                     | Cor                   |
+  | ------------------------- | ------------ | --------------------- | ----------------------------------------------------------------------- | --------------------- |
+  | 1º estouro                | quem estoura | TEMPO ESGOTADO!       | Tá dormindo na rede?! · 1/3 / É, cê perdeu a vez · 1/3                  | vermelho              |
+  | 2º estouro seguido        | quem estoura | TEMPO ESGOTADO!       | Acorda pra vida, mané! Mais um e é W.O. · 2/3 / Mais um e é W.O.! · 2/3 | vermelho              |
+  | 1º/2º estouro do oponente | o outro      | OPONENTE PERDEU A VEZ | 1/3 ou 2/3                                                              | cor do oponente       |
+  | 3º estouro (W.O.)         | quem estoura | DERROTA POR W.O.      | Assoprou a velhinha errada, hein… entendeu? / Que desperdício de tempo… | vermelho              |
+  | 3º estouro do oponente    | o outro      | VITÓRIA POR W.O.      | O oponente… arregou! / O oponente esgotou o tempo 3 vezes               | cor do seu personagem |
+
+  Os textos vêm da voz do jogo (FE-40, `src/constants/texts.ts`). O título do W.O. de quem estoura
+  passou de "W.O.!" para "DERROTA POR W.O.", igual ao Resultado: a piada tomou o lugar do
+  "Derrota" que ficava no subtítulo. Com a FE-43 (decidido em 02/11), a piada sai do banner e vai
+  para o balão do Vitão; o banner fica com o título e o x/3 (ver "O Vitão é a voz do jogo", abaixo).
+
+  **Onde fica (corrigido em 02/11):** o aviso dos estouros 1/3 e 2/3 fica na coluna direita, sem
+  cobrir o tabuleiro (antes ficava no topo, por cima da primeira fileira e da faixa do oponente).
+  Ele divide o lugar com o aviso de habilidade: aparece só o mais novo, porque os dois juntos
+  empurram o deck para fora da tela no celular deitado. O x/3 continua na faixa do jogador.
 
   No W.O., a Arena segura o banner por **2 segundos** e só então vai para o Resultado. Isso não
   atrasa nada no servidor: a partida e os Coins já foram resolvidos no `MATCH_END`, e a janela da
@@ -400,9 +416,17 @@ Abrir o jogo → [sem sessão] Acesso → Hub (Jogar; abas Loja / Perfil)
 
 - **Empate absoluto (decidido em 17/10):** se o round 3 termina com o placar igual, o fim do round
   já anuncia "EMPATE ABSOLUTO" (regra de exibição, como o "MATCH POINT" `[RN-ARN-06]`), com
-  "Ninguém venceu a Morte Súbita" ou o placar final (1×1). É **um banner só**: quando chega o
+  "É… ninguém levou." ou o placar final (1×1). É **um banner só**: quando chega o
   `MATCH_END`, a Arena segura **2 segundos**, como no W.O., e o subtítulo troca para "+20 Coins
   para cada" (Coins vindos do servidor); então vai para o Resultado.
+
+- **Habilidade resolvida (decidido em 29/10, FE-27):** o efeito aparece na casa (ou no centro do
+  tabuleiro, nas habilidades sem casa) por 1s, na **cor de quem usou**; anulada, com o ícone do
+  Campo de Força na cor de quem tinha o campo; sem efeito, neutro. O aviso fica 2,5s na coluna
+  direita, sem cobrir o tabuleiro: toda habilidade do oponente ("Oponente usou Bomba") e as minhas
+  só quando anuladas ou sem efeito ("Anulada pelo Campo de Força!", "Sem efeito!").
+  Cada habilidade tem a sua animação (FE-47); no Congelar, o anel fica na cor de quem usou e os
+  cristais em azul-gelo, a cor da peça congelada (decidido em 30/10).
 
 ### Morte Súbita: pacote de pressão
 
@@ -419,25 +443,59 @@ Abrir o jogo → [sem sessão] Acesso → Hub (Jogar; abas Loja / Perfil)
 
 - A ERS prevê o Vitão reagindo à partida, inclusive numa versão "Diabo" na Morte Súbita.
 - **Decisão (15/10, com o GP):** com um terceiro grupo ajudando no front, o Vitão **entra no MVP 1**,
-  junto com a sonoplastia e a voz do jogo (cards FE-37 a FE-45, grupo WBS-11 — Personalidade).
+  junto com a sonoplastia e a voz do jogo (cards FE-37 a FE-48, grupo WBS-11 — Personalidade).
   Antes disso (até 14/10), o front só reservava o espaço dele.
-- **Como ele é:** um bonequinho com a **cabeça do Vitão em caricatura** (desenho colorido com
-  expressões), que anda e reage no espaço reservado da Arena, fala besteiras num balão e **com a
-  voz gravada dele**. Na Morte Súbita vira a versão "Diabo".
+- **Como ele é:** a **cabeça do Vitão em caricatura** (desenho colorido com expressões), parada no
+  espaço reservado da Arena: respira, reage a cada fala e fala besteiras num balão, **com a voz do
+  Rafik**. Na Morte Súbita vira a versão "Diabo".
+- **Só a cabeça (decidido em 02/11):** sem corpo e sem andar no MVP 1. O corpo de bonequinho feito
+  na FE-41 fica na branch `feat/vitao-corpo`, para depois, se sobrar tempo.
+- **O Vitão é a voz do jogo (decidido em 02/11):** o narrador e o Vitão comentavam os mesmos
+  momentos com piadas diferentes. Agora são um só, e o humor fica no Vitão:
+  - Os banners e avisos ficam só com a informação ("TEMPO ESGOTADO! · 1/3"); as piadas do Rafik
+    (FE-40) vão para o balão do Vitão (FE-43).
+  - **A única voz do jogo é a do Rafik.** Nos momentos com gravação (habilidade do oponente,
+    estouros, fim do round, Morte Súbita, W.O., match point, desconexão), o Vitão mostra a frase
+    no balão e fala com o áudio dela (FE-48). Jogadas de peça e a minha habilidade não têm
+    gravação: ele comenta só por escrito. Os anúncios gravados ("Round 1", "Confronto", "Empate
+    absoluto") tocam só a voz, porque o banner já mostra o título.
+  - O Resultado não tem o Vitão: a piada continua como subtítulo e a voz do Rafik toca ali.
+  - **Vitão desligado nas Configurações:** some o balão e a voz; os banners continuam só com a
+    informação.
+  - Até a FE-43, as piadas ainda aparecem nos banners e o Vitão usa falas provisórias.
 - **Caricatura em vez de foto (decidido em 25/10, FE-41):** lê melhor em tamanho pequeno e combina
   com o tom do jogo. Expressões: normal, rindo, debochado, bravo, muito bravo, surpreso, dormindo e
   Diabo, todas no mesmo ângulo e enquadramento, em WebP de 256px (~15 KB cada), em
   `src/features/vitao/assets/`. Para casar com o neon, o contorno brilhante é feito no código
   (FE-42), sem mexer na arte. Em ~48px, normal, bravo e muito bravo ficam parecidos: na reação de
   raiva, usar o "muito bravo".
-- **Regras:** falas em arquivo editável, no máximo uma a cada 6s, balão que nunca cobre o
-  tabuleiro, linguagem sem filtro por padrão (com opção de filtrar nas Configurações). Tudo é
-  feito com `VITAO_ENABLED=false`; a flag é ligada quando o motor de reações (FE-44) for aprovado.
+- **Regras:** falas em arquivo editável, no máximo uma a cada 6s (menos nos momentos grandes, logo
+  abaixo), balão que nunca cobre o tabuleiro, linguagem sem filtro por padrão (com opção de filtrar
+  nas Configurações).
+- **Quando ele fala (decidido em 31/10, FE-44):** comenta só 1 em cada 3 jogadas de peça (sorteio);
+  habilidades, estouros de tempo e os momentos grandes (fim do round, entrada da Morte Súbita e
+  W.O.) ele sempre comenta. Os momentos grandes falam na hora, mesmo dentro da pausa de 6s: tomam o
+  lugar da fala atual (com a voz, cortam o áudio dela) e a pausa recomeça a partir deles. Esperar a
+  pausa acabar pareceria atraso. Na Morte Súbita ele fica Diabo o tempo todo, não só quando fala.
+- **Flag:** a `VITAO_ENABLED` foi ligada em 31/10, com a FE-44, para o time ver o Vitão enquanto
+  termina falas (FE-43), animação (FE-42) e voz (FE-48). A FE-45 (gravar a voz do Vitão) foi
+  substituída pela FE-48 em 02/11.
 - **Autorização:** o uso da imagem, das falas e da voz do Vitão num link público precisa do ok
-  dele, registrado na FE-41. O Vitão autorizou tudo em 25/10: imagem, desenho, falas e voz.
-- **Voz do jogo:** além do Vitão, os textos da interface (anúncios gritados, banners, erros,
-  avisos, Resultado) seguem um guia de tom com humor de narrador estilo Mortal Kombat/Cuphead,
-  centralizados num arquivo (FE-40).
+  dele, registrado na FE-41. O Vitão autorizou tudo em 25/10: imagem, desenho, falas e voz. A voz
+  que vai ao ar é a do Rafik (02/11).
+- **Voz do jogo (FE-40, feita em 31/10):** além do Vitão, os textos da interface (anúncios
+  gritados, banners, erros, avisos, Resultado) seguem um guia de tom com humor de narrador estilo
+  Mortal Kombat/Cuphead (`docs/VOICE_GUIDE.md`) e ficam num arquivo só, `src/constants/texts.ts`.
+  As piadas são as falas que o Rafik gravou: sem filtro é a versão [E] e, com o filtro das
+  Configurações, a [C]; a piada sem versão limpa some. Hoje elas entram como subtítulo, sem tirar a
+  informação (placar, 1/3, os segundos da Morte Súbita); com a FE-43, passam para o balão do Vitão
+  (acima). Ficaram só para o áudio as explicações das 10
+  habilidades e a narração do Como Jogar, que não segue as 5 páginas. "Vitória implacável",
+  como o Rafik gravou, fica "Vitória impecável" no texto, como na ERS `[RF-POS-01]`. O áudio do
+  narrador ainda não está no jogo.
+- **Trilhas (decidido em 02/11, FE-38):** uma trilha por momento: Hub, Sala de Espera e
+  Preparação, Arena, Morte Súbita (acelerada) e Resultado (vitória e derrota), além da batida de
+  coração e do tique-taque da Morte Súbita. Hoje toca uma trilha só, do começo ao fim.
 
 ## 10. Stack técnica
 
@@ -475,6 +533,8 @@ Abrir o jogo → [sem sessão] Acesso → Hub (Jogar; abas Loja / Perfil)
 - Regra nova da MD3 (18/10): até 3 rounds, só acaba antes em 2×0, empate absoluto com placar
   igual no fim do round 3 (§6)
 - Apresentação do round (24/10): 2,5s entre o fim do sorteio e o primeiro `TURN_START` (§9)
+- Silêncio (29/10): mandar quem está silenciado no `TURN_START`; até lá o front deduz do
+  `ABILITY_RESOLVED` (ARCHITECTURE §6)
 
 ## 12. Prioridade de implementação (MVP 1)
 
@@ -496,7 +556,7 @@ dela. Ordem e responsáveis em `docs/INITIAL_BACKLOG.md`.
 10. PWA (instalável, paisagem, "Gire o celular") e polimento (personagens neon, pacote da Morte
     Súbita, sons)
 11. **Personalidade (terceiro grupo, em paralelo desde 15/10):** sonoplastia, Configurações, voz
-    do jogo e o Vitão com voz (FE-37 a FE-45)
+    do jogo e o Vitão com a voz do Rafik (FE-37 a FE-48)
 12. **Pós-MVP:** cosméticos, habilidades por personagem, login com Google
 
 Qualquer item pós-MVP proposto antes do item 10 estar pronto deve ser questionado — é desvio de

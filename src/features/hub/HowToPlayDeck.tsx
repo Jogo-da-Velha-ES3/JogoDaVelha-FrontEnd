@@ -2,7 +2,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useState, type KeyboardEvent } from 'react'
 import { ABILITY_INFO } from '../../constants/abilities'
 import type { AbilityId } from '../../types/game'
-import { ABILITY_ICONS } from './abilityIcons'
+import { AbilityIcon } from '../powers/AbilityIcon'
 import { HowToPlayRichText } from './HowToPlayRichText'
 import { HOW_TO_PLAY_ABILITY_ORDER, HOW_TO_PLAY_TEXTS as TEXTS } from './howToPlayTexts'
 
@@ -19,12 +19,7 @@ const LAST_ABILITY = HOW_TO_PLAY_ABILITY_ORDER.length - 1
 const SLIDE_OFFSET_PX = 24
 const SLIDE_SECONDS = 0.15
 
-/**
- * Tamanho do espaço de cada indicador do carrossel. Hoje cada um é um círculo (igual às bolinhas
- * do modal). PRONTO PARA OS ÍCONES: quando houver ícone em ABILITY_ICONS, o indicador da habilidade
- * passa a mostrar o ícone nesse mesmo espaço, com brilho quando selecionado (ver `IndicatorDot`).
- * Ao entrar os ícones, revise este tamanho e a largura da linha de controles (10 indicadores).
- */
+/** Espaço de cada indicador do carrossel (o ícone da habilidade, em 16px, com folga em volta) */
 const INDICATOR_SLOT = 'size-5'
 
 /**
@@ -139,12 +134,7 @@ export function HowToPlayDeck({ points, onLeave }: HowToPlayDeckProps) {
   )
 }
 
-/**
- * Indicador de uma habilidade no carrossel: as mesmas bolinhas do modal (a selecionada com brilho).
- *
- * ÍCONES: se `ABILITY_ICONS[id]` existir, o círculo dá lugar ao ícone, no mesmo espaço
- * (INDICATOR_SLOT), com brilho quando selecionado e esmaecido quando não. Nada mais precisa mudar.
- */
+/** Indicador de uma habilidade no carrossel: o ícone dela, aceso quando selecionado (FE-46) */
 function IndicatorDot({
   id,
   label,
@@ -156,32 +146,21 @@ function IndicatorDot({
   selected: boolean
   onClick: () => void
 }) {
-  const icon = ABILITY_ICONS[id]
   return (
     <button
       type="button"
       aria-label={label}
       aria-current={selected ? 'step' : undefined}
       onClick={onClick}
-      className={`grid ${INDICATOR_SLOT} place-items-center rounded-full focus-visible:outline-2 focus-visible:outline-primary`}
+      className={`grid ${INDICATOR_SLOT} place-items-center rounded-md focus-visible:outline-2 focus-visible:outline-primary`}
     >
-      {icon ? (
-        <span
-          className={[
-            'block size-full transition [&>*]:size-full',
-            selected ? 'drop-shadow-[0_0_6px_var(--color-primary)]' : 'opacity-50',
-          ].join(' ')}
-        >
-          {icon}
-        </span>
-      ) : (
-        <span
-          className={[
-            'size-2.5 rounded-full transition-colors',
-            selected ? 'bg-primary shadow-glow shadow-primary/50' : 'bg-text-muted/40',
-          ].join(' ')}
-        />
-      )}
+      <AbilityIcon
+        ability={id}
+        className={[
+          'size-4 transition',
+          selected ? 'text-primary' : 'text-text-muted opacity-60 hover:opacity-100',
+        ].join(' ')}
+      />
     </button>
   )
 }
@@ -216,16 +195,11 @@ function StepButton({
   )
 }
 
-/** Marcador neutro (o círculo vazio dos tiles de habilidade do esboço) */
-function NeutralMarker({ className = 'size-4' }: { className?: string }) {
-  return <span className={`block rounded-full border-2 border-line ${className}`} />
-}
-
 function AbilityItem({ id }: { id: AbilityId }) {
   const info = ABILITY_INFO[id]
   return (
     <div className="flex min-w-0 items-start gap-3">
-      <AbilityIconSlot id={id} />
+      <AbilityIcon ability={id} className="size-10 text-primary short:size-9" />
       <div className="min-w-0">
         <p className="flex flex-wrap items-center gap-x-2">
           <span className="font-display text-[22px] leading-tight font-bold tracking-wide text-text uppercase [text-shadow:0_0_12px_color-mix(in_srgb,var(--color-primary)_65%,transparent)] short:text-xl">
@@ -238,22 +212,5 @@ function AbilityItem({ id }: { id: AbilityId }) {
         <p className="mt-0.5 text-sm leading-snug font-medium text-text">{info.description}</p>
       </div>
     </div>
-  )
-}
-
-/**
- * Espaço fixo do ícone da habilidade (mesmo tamanho com ou sem ícone). Sem entrada em
- * ABILITY_ICONS, mostra o marcador neutro. Decorativo: o nome já está ao lado.
- */
-function AbilityIconSlot({ id }: { id: AbilityId }) {
-  const icon = ABILITY_ICONS[id]
-  return (
-    <span aria-hidden="true" className="grid size-10 shrink-0 place-items-center short:size-9">
-      {icon ? (
-        <span className="block size-full [&>*]:size-full">{icon}</span>
-      ) : (
-        <NeutralMarker className="size-6" />
-      )}
-    </span>
   )
 }

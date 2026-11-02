@@ -1,4 +1,5 @@
 // Cliente REST fino: conta, perfil, loja, Coins e salas. Partida e sala em tempo real vão por STOMP.
+import { APP_TEXTS } from '../constants/texts'
 import { clearAuthToken, getAuthToken } from './session'
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? ''
@@ -62,11 +63,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     })
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') throw error
-    throw new ApiError(
-      0,
-      'Não foi possível falar com o servidor. Verifique sua conexão.',
-      'NETWORK',
-    )
+    throw new ApiError(0, APP_TEXTS.errors.network, 'NETWORK')
   }
 
   const data = parseJson(await response.text())
@@ -79,7 +76,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     const error = readBackError(data)
     throw new ApiError(
       response.status,
-      error.message ?? `Erro ${response.status} ao falar com o servidor.`,
+      error.message ?? APP_TEXTS.errors.httpStatus(response.status),
       error.code,
       error.fields,
     )

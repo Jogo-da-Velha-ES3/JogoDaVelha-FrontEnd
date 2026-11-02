@@ -1,11 +1,14 @@
 import type { ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { AbilityEffectShowcase } from './AbilityEffectShowcase'
+import { AbilityIconShowcase } from './AbilityIconShowcase'
 import { BoardShowcase } from './BoardShowcase'
 import { CellShowcase } from './CellShowcase'
 import { CharacterShowcase } from './CharacterShowcase'
 import { ComponentsShowcase } from './ComponentsShowcase'
 import { MockMatchShowcase } from './MockMatchShowcase'
 import { ShowcasePanel } from './ShowcaseLayout'
+import { VitaoShowcase } from './VitaoShowcase'
 
 interface Tab {
   id: string
@@ -29,6 +32,18 @@ const TABS: Tab[] = [
     content: <CharacterShowcase />,
   },
   {
+    id: 'habilidades',
+    label: 'Habilidades',
+    description:
+      'As animações das 10 habilidades num tabuleiro de exemplo e os ícones no estilo letreiro neon, nos tamanhos e cores do jogo.',
+    content: (
+      <div className="flex flex-col gap-4">
+        <AbilityEffectShowcase />
+        <AbilityIconShowcase />
+      </div>
+    ),
+  },
+  {
     id: 'tabuleiro',
     label: 'Tabuleiro',
     description: 'As casas com todos os estados da ERS e um tabuleiro para brincar sem o robô.',
@@ -45,6 +60,13 @@ const TABS: Tab[] = [
     description:
       'As peças de interface que as telas usam: cores, botões, modal, avisos, banners e timer.',
     content: <ComponentsShowcase />,
+  },
+  {
+    id: 'vitao',
+    label: 'Vitão',
+    description:
+      'O Vitão parado, as 8 expressões com a reação de cada uma e o balão de fala, no tamanho do espaço da Arena no celular deitado e no desktop.',
+    content: <VitaoShowcase />,
   },
 ]
 

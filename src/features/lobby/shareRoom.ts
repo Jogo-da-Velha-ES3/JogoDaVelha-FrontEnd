@@ -1,4 +1,5 @@
 // Copiar código e copiar/compartilhar o link da sala (FE-26) [RF-SAL-02].
+import { ROOM_TEXTS } from '../../constants/texts'
 import { roomPath } from '../../routes/paths'
 
 /** Link direto da sala, ex: https://…/sala/4821 [RF-SAL-03]. Abre a sala (ou o Acesso e depois ela). */
@@ -31,7 +32,7 @@ export async function shareRoomLink(code: string): Promise<ShareResult> {
     try {
       await navigator.share({
         title: 'Jogo do Velho',
-        text: `Bora jogar? Entra na minha sala do Jogo do Velho (código ${code}):`,
+        text: ROOM_TEXTS.shareText(code),
         url,
       })
       return 'shared'

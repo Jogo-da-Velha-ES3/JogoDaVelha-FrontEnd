@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
-import { Button, Modal } from '../components/ui'
+import { Button, GearIcon, Modal } from '../components/ui'
+import { HUB_TEXTS, SETTINGS_TEXTS } from '../constants/texts'
 import { Character } from '../features/characters'
 import { HUB_PLACEHOLDER_PROFILE } from '../features/hub/placeholderProfile'
+import { SettingsModal } from '../features/settings/SettingsModal'
 import { useAuthStore } from '../stores/authStore'
 import { PATHS } from './paths'
 
@@ -31,6 +33,7 @@ export function HubLayout() {
 function HubNav() {
   const logout = useAuthStore((s) => s.logout)
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   return (
     <nav aria-label="Hub" className="flex w-24 shrink-0 flex-col gap-2 short:w-20 short:gap-1.5">
@@ -51,14 +54,27 @@ function HubNav() {
           {tab.label}
         </NavLink>
       ))}
-      <Button variant="ghost" size="sm" className="mt-auto" onClick={() => setConfirmOpen(true)}>
+      {/* Configurações (FE-39): em todas as abas do Hub. Só o ícone, porque o nome não cabe */}
+      <Button
+        variant="ghost"
+        size="sm"
+        className="mt-auto"
+        aria-label={SETTINGS_TEXTS.title}
+        title={SETTINGS_TEXTS.title}
+        onClick={() => setSettingsOpen(true)}
+      >
+        <GearIcon className="size-5" />
+      </Button>
+      <Button variant="ghost" size="sm" onClick={() => setConfirmOpen(true)}>
         Sair
       </Button>
+
+      <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
 
       <Modal
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
-        title="Quer mesmo sair?"
+        title={HUB_TEXTS.logoutTitle}
         size="sm"
         actions={
           <>
@@ -72,7 +88,7 @@ function HubNav() {
           </>
         }
       >
-        Você vai precisar entrar de novo com seu e-mail ou usuário e senha.
+        {HUB_TEXTS.logoutBody}
       </Modal>
     </nav>
   )

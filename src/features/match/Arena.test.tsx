@@ -1,8 +1,10 @@
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { MotionGlobalConfig } from 'framer-motion'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  ABILITY_IMPACT_SECONDS,
+  ABILITY_NOTICE_SECONDS,
   ROUND_BANNER_SECONDS,
   ROUND_COIN_FLIP_SECONDS,
   SUDDEN_DEATH_ENTRY_SECONDS,
@@ -18,6 +20,18 @@ import { usePowersStore } from '../../stores/powersStore'
 vi.mock('../../sockets/gameClient', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../sockets/gameClient')>()
   return { ...actual, sendCommand: vi.fn<typeof actual.sendCommand>() }
+})
+
+// Filtro de linguagem das Configurações (FE-39 ainda não existe): desligado, como no app
+const languageFilter = vi.hoisted(() => ({ on: false }))
+vi.mock('../../hooks/useLanguageFilter', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../hooks/useLanguageFilter')>()
+  const { voiceText } = await import('../../constants/texts')
+  return {
+    ...actual,
+    useLanguageFilter: () => languageFilter.on,
+    useVoice: () => (line: Parameters<typeof voiceText>[0]) => voiceText(line, languageFilter.on),
+  }
 })
 
 function send<T extends ServerEvent['type']>(
@@ -94,24 +108,44 @@ describe('aviso de turno perdido (TURN_TIMEOUT)', () => {
   it('vermelho para quem estourou, com os textos da tabela, e some sozinho', async () => {
     renderArena()
     send('TURN_TIMEOUT', { player: 'P1', consecutiveTimeouts: 1 })
-    expect(screen.getByText('Tempo Esgotado!')).toBeInTheDocument()
-    expect(screen.getByText('Você perdeu a vez · 1/3')).toBeInTheDocument()
+    expect(screen.getByText('Tempo esgotado!')).toBeInTheDocument()
+    expect(screen.getByText('Tá dormindo na rede?! · 1/3')).toBeInTheDocument()
 
     send('TURN_TIMEOUT', { player: 'P1', consecutiveTimeouts: 2 })
-    expect(screen.getByText('2/3 · Mais um e é W.O.!')).toBeInTheDocument()
+    expect(screen.getByText('Acorda pra vida, mané! Mais um e é W.O. · 2/3')).toBeInTheDocument()
 
     await tick(4000)
-    expect(screen.queryByText('Tempo Esgotado!')).not.toBeInTheDocument()
+    expect(screen.queryByText('Tempo esgotado!')).not.toBeInTheDocument()
   })
 
   it('estouro do oponente e nada quando só o timer do front chega a 0', async () => {
     renderArena()
     await tick(11_000) // o turno de 10s "acabou" no front, mas o servidor não mandou nada
-    expect(screen.queryByText('Tempo Esgotado!')).not.toBeInTheDocument()
+    expect(screen.queryByText('Tempo esgotado!')).not.toBeInTheDocument()
 
     send('TURN_TIMEOUT', { player: 'P2', consecutiveTimeouts: 1 })
     const toast = screen.getByText('Oponente perdeu a vez').parentElement!
     expect(toast).toHaveTextContent('1/3')
+  })
+
+  it('fica na coluna direita, sem cobrir o tabuleiro, e a habilidade seguinte toma o lugar', async () => {
+    renderArena()
+    send('TURN_TIMEOUT', { player: 'P1', consecutiveTimeouts: 1 })
+    const column = screen.getByRole('complementary', { name: 'Turno e habilidades' })
+    expect(within(column).getByText('Tempo esgotado!')).toBeInTheDocument()
+
+    await tick(500)
+    send('ABILITY_RESOLVED', {
+      by: 'P2',
+      ability: 'BOMBA',
+      targetCell: 5,
+      destinationCell: null,
+      absorbed: false,
+      noEffect: false,
+    })
+    // Um aviso de cada vez: no celular deitado, os dois juntos empurram o deck para fora da tela
+    expect(within(column).getByText('Oponente usou Bomba')).toBeInTheDocument()
+    expect(screen.queryByText('Tempo esgotado!')).not.toBeInTheDocument()
   })
 })
 
@@ -222,7 +256,7 @@ describe('sorteio da 3ª habilidade (FE-10)', () => {
     expect(region).toHaveTextContent('Tornado')
     expect(screen.getByText('Aguardando o oponente…')).toBeInTheDocument()
     expect(screen.queryByText('Aguardando as cartas do servidor…')).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /Tornado/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Tornado, ofensiva, sorteada/i })).toBeInTheDocument()
   })
 
   it('se a escolha volta com erro, as cartas destravam para tentar de novo', () => {
@@ -276,10 +310,192 @@ describe('sorteio da 3ª habilidade (FE-10)', () => {
     expect(
       screen.getByRole('region', { name: 'Sorteio da terceira habilidade' }),
     ).toBeInTheDocument()
-    expect(screen.queryByText('5 segundos por jogada')).not.toBeInTheDocument()
+    expect(screen.queryByText('A cobra vai fumar… · 5 segundos por jogada')).not.toBeInTheDocument()
 
     endDraw()
-    expect(screen.getByText('5 segundos por jogada')).toBeInTheDocument()
+    expect(screen.getByText('A cobra vai fumar… · 5 segundos por jogada')).toBeInTheDocument()
+  })
+})
+
+describe('mira e efeitos das habilidades (FE-27)', () => {
+  const deck = () =>
+    send('DECK_UPDATE', {
+      deck: [
+        { ability: 'BOMBA', source: 'INITIAL', usedThisRound: false },
+        { ability: 'TORNADO', source: 'INITIAL', usedThisRound: false },
+        { ability: 'ESCUDO', source: 'DRAWN', usedThisRound: false },
+      ],
+    })
+
+  /** Tabuleiro com peças do oponente (Vini, O) nas casas indicadas */
+  const opponentAt = (...indexes: number[]) =>
+    send('BOARD_UPDATE', {
+      board: Array.from({ length: 16 }, (_, index) => ({
+        index,
+        owner: indexes.includes(index) ? ('P2' as const) : null,
+        effects: [],
+      })),
+    })
+
+  const resolved = (
+    patch: Partial<Extract<ServerEvent, { type: 'ABILITY_RESOLVED' }>['payload']>,
+  ) =>
+    send('ABILITY_RESOLVED', {
+      by: 'P2',
+      ability: 'BOMBA',
+      targetCell: 5,
+      destinationCell: null,
+      absorbed: false,
+      noEffect: false,
+      ...patch,
+    })
+
+  const turnOf = (slot: PlayerSlot) =>
+    send('TURN_START', {
+      player: slot,
+      startedAt: Date.now(),
+      durationSeconds: 10,
+      consecutiveTimeouts: { P1: 0, P2: 0 },
+    })
+
+  const impact = () => document.querySelector('[data-layer="ability-effect"]')
+
+  it('Bomba: só a peça do oponente é alvo; depois do envio, nada é clicável até o servidor', () => {
+    renderArena()
+    deck()
+    opponentAt(5)
+
+    fireEvent.click(screen.getByRole('button', { name: /^Bomba,/ }))
+    expect(screen.getByText('Bomba: escolha uma peça do oponente')).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: /alvo possível/ })).toHaveLength(1)
+
+    fireEvent.click(screen.getByRole('button', { name: /Linha 2, coluna 2: O/ }))
+    expect(sendCommand).toHaveBeenCalledWith({
+      type: 'USE_ABILITY',
+      payload: { ability: 'BOMBA', targetCell: 5 },
+    })
+    // Esperando o servidor: o alvo não aceita outro toque e a mira não pode ser cancelada
+    expect(screen.queryByRole('button', { name: /Linha 2, coluna 2/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Cancelar mira' })).not.toBeInTheDocument()
+    expect(screen.getByText('Enviando…')).toBeInTheDocument()
+
+    resolved({ by: 'P1' })
+    expect(usePowersStore.getState().aim).toBeNull()
+    expect(impact()).not.toBeNull()
+    expect(sendCommand).toHaveBeenCalledTimes(1)
+  })
+
+  it('um erro do servidor destrava a mira para escolher outro alvo', () => {
+    renderArena()
+    deck()
+    opponentAt(5, 6)
+
+    fireEvent.click(screen.getByRole('button', { name: /^Bomba,/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Linha 2, coluna 2: O/ }))
+    send('ERROR', { code: 'INVALID_TARGET', message: 'Escolha uma peça do oponente.' })
+
+    fireEvent.click(screen.getByRole('button', { name: /Linha 2, coluna 3: O/ }))
+    expect(sendCommand).toHaveBeenLastCalledWith({
+      type: 'USE_ABILITY',
+      payload: { ability: 'BOMBA', targetCell: 6 },
+    })
+  })
+
+  it('Tornado: primeiro a peça, depois a casa vizinha de destino', () => {
+    renderArena()
+    deck()
+    opponentAt(1)
+
+    fireEvent.click(screen.getByRole('button', { name: /^Tornado,/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Linha 1, coluna 2: O/ }))
+    expect(screen.getByText('Tornado: agora escolha a casa de destino')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Linha 1, coluna 3: vazia, alvo possível' }))
+    expect(sendCommand).toHaveBeenCalledWith({
+      type: 'USE_ABILITY',
+      payload: { ability: 'TORNADO', targetCell: 1, destinationCell: 2 },
+    })
+  })
+
+  it('Esc cancela a mira e volta para "Sua vez"', () => {
+    renderArena()
+    deck()
+    opponentAt(1)
+
+    fireEvent.click(screen.getByRole('button', { name: /^Bomba,/ }))
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(usePowersStore.getState().aim).toBeNull()
+    expect(screen.getByText('Toque numa casa ou use uma habilidade')).toBeInTheDocument()
+  })
+
+  it('carta sem nenhum alvo fica desabilitada, com "Sem alvo"', () => {
+    renderArena()
+    deck() // tabuleiro vazio: Bomba e Tornado não têm peça do oponente para mirar
+
+    expect(screen.getByRole('button', { name: /^Bomba, ofensiva, sem alvo/ })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /^Escudo,/ })).toBeEnabled()
+
+    opponentAt(5)
+    expect(screen.getByRole('button', { name: /^Bomba,/ })).toBeEnabled()
+  })
+
+  it('habilidade do oponente: efeito na casa por 1s e aviso por 2,5s, sem voltar depois', async () => {
+    renderArena()
+    opponentAt(5)
+
+    resolved({})
+    expect(screen.getByText('Oponente usou Bomba')).toBeInTheDocument()
+    expect(screen.getByText('Bota o capacete que lá vem pedra!')).toBeInTheDocument()
+    expect(impact()).not.toBeNull()
+
+    await tick(ABILITY_IMPACT_SECONDS * 1000)
+    expect(impact()).toBeNull()
+    expect(screen.getByText('Oponente usou Bomba')).toBeInTheDocument()
+
+    await tick((ABILITY_NOTICE_SECONDS - ABILITY_IMPACT_SECONDS) * 1000)
+    expect(screen.queryByText('Oponente usou Bomba')).not.toBeInTheDocument()
+
+    opponentAt(5)
+    expect(impact()).toBeNull()
+  })
+
+  it('anulada pelo Campo de Força ou sem efeito: avisa também quando a habilidade é minha', () => {
+    renderArena()
+
+    resolved({ by: 'P1', absorbed: true })
+    expect(screen.getByText('Anulada pelo Campo de Força!')).toBeInTheDocument()
+    expect(screen.getByText('Você usou Bomba · Babaca!')).toBeInTheDocument()
+
+    resolved({ ability: 'TORNADO', noEffect: true })
+    expect(screen.getByText('Sem efeito!')).toBeInTheDocument()
+    expect(
+      screen.getByText('Oponente usou Tornado · Cê tá cego ou tá se fazendo, hein?!'),
+    ).toBeInTheDocument()
+  })
+
+  it('habilidade minha com efeito não tem aviso, só o efeito na casa', () => {
+    renderArena()
+    resolved({ by: 'P1' })
+    expect(impact()).not.toBeNull()
+    expect(screen.queryByText(/usou Bomba/)).not.toBeInTheDocument()
+  })
+
+  it('Silêncio do oponente: efeito no centro e minhas habilidades travadas só no meu turno', () => {
+    renderArena()
+    deck()
+    opponentAt(5)
+
+    resolved({ ability: 'SILENCIO', targetCell: null })
+    expect(
+      document.querySelector('[data-layer="ability-effect"][data-ability="SILENCIO"]'),
+    ).not.toBeNull()
+
+    turnOf('P1')
+    expect(screen.getByText('Silenciado! Cala a boca e joga!')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^Bomba,/ })).toBeDisabled()
+
+    turnOf('P2')
+    expect(screen.queryByText('Silenciado! Cala a boca e joga!')).not.toBeInTheDocument()
   })
 })
 
@@ -288,10 +504,10 @@ describe('Morte Súbita e empate absoluto (FE-13)', () => {
     renderArena()
     startRound(3, 'P1')
     endDraw()
-    expect(screen.getByText('5 segundos por jogada')).toBeInTheDocument()
+    expect(screen.getByText('A cobra vai fumar… · 5 segundos por jogada')).toBeInTheDocument()
 
     await tick(SUDDEN_DEATH_ENTRY_SECONDS * 1000 + 500)
-    expect(screen.queryByText('5 segundos por jogada')).not.toBeInTheDocument()
+    expect(screen.queryByText('A cobra vai fumar… · 5 segundos por jogada')).not.toBeInTheDocument()
   })
 
   it('round 3 empatado já anuncia o empate absoluto [RN-ARN-06]', () => {
@@ -300,7 +516,7 @@ describe('Morte Súbita e empate absoluto (FE-13)', () => {
     send('ROUND_END', { round: 3, winner: null, winningLine: null, score: { P1: 1, P2: 1 } })
     send('PHASE_CHANGE', { phase: 'ROUND_END' })
     expect(screen.getByText('Empate absoluto')).toBeInTheDocument()
-    expect(screen.getByText('Ninguém venceu a Morte Súbita')).toBeInTheDocument()
+    expect(screen.getByText('É… ninguém levou.')).toBeInTheDocument()
     expect(screen.queryByText('Round empatado')).not.toBeInTheDocument()
   })
 
@@ -339,22 +555,79 @@ describe('Morte Súbita e empate absoluto (FE-13)', () => {
     // Um banner só: o do fim do round 3 continua e só troca o subtítulo para os Coins
     expect(screen.getAllByText('Empate absoluto')).toHaveLength(1)
     expect(screen.getByText('+20 Coins para cada')).toBeInTheDocument()
-    expect(screen.queryByText('Ninguém venceu a Morte Súbita')).not.toBeInTheDocument()
+    expect(screen.queryByText('É… ninguém levou.')).not.toBeInTheDocument()
   })
 })
 
 describe('oponente desconectado', () => {
-  it('aviso fora do tabuleiro com os estouros dele, e some quando ele volta', () => {
+  it('aviso fora do tabuleiro só com os estouros dele (a piada é do Vitão), e some quando ele volta', () => {
     renderArena()
     send('PLAYER_DISCONNECTED', { slot: 'P2' })
     send('TURN_TIMEOUT', { player: 'P2', consecutiveTimeouts: 1 })
     const notice = screen.getByText('Oponente desconectado').parentElement!
-    expect(notice).toHaveTextContent('Os turnos dele continuam correndo · 1/3')
+    expect(notice).toHaveTextContent('Oponente desconectado1/3')
+    expect(notice).not.toHaveTextContent('roubaram')
     // O tabuleiro continua jogável para quem ficou
     expect(screen.getAllByRole('button', { name: /vazia/ }).length).toBeGreaterThan(0)
 
     send('PLAYER_RECONNECTED', { slot: 'P2' })
     expect(screen.queryByText('Oponente desconectado')).not.toBeInTheDocument()
+  })
+})
+
+describe('filtro de linguagem (FE-40)', () => {
+  afterEach(() => {
+    languageFilter.on = false
+  })
+
+  it('ligado, o narrador fala a versão filtrada e a fala sem versão limpa some', () => {
+    languageFilter.on = true
+    renderArena()
+
+    send('TURN_TIMEOUT', { player: 'P1', consecutiveTimeouts: 2 })
+    expect(screen.getByText('Mais um e é W.O.! · 2/3')).toBeInTheDocument()
+
+    send('ABILITY_RESOLVED', {
+      by: 'P1',
+      ability: 'BOMBA',
+      targetCell: 5,
+      destinationCell: null,
+      absorbed: true,
+      noEffect: false,
+    })
+    // O "Babaca!" não tem versão limpa: com o filtro, fica só quem usou
+    expect(screen.getByText('Você usou Bomba')).toBeInTheDocument()
+    expect(screen.queryByText(/Babaca/)).not.toBeInTheDocument()
+  })
+})
+
+describe('deck na Arena (FE-11)', () => {
+  it('com a mira aberta, tocar numa casa vazia não vira jogada', () => {
+    renderArena()
+    send('DECK_UPDATE', {
+      deck: [
+        { ability: 'BOMBA', source: 'INITIAL', usedThisRound: false },
+        { ability: 'ESCUDO', source: 'INITIAL', usedThisRound: false },
+        { ability: 'TORNADO', source: 'DRAWN', usedThisRound: false },
+      ],
+    })
+    // Uma peça do oponente, para a Bomba ter alvo
+    send('BOARD_UPDATE', {
+      board: Array.from({ length: 16 }, (_, index) => ({
+        index,
+        owner: index === 15 ? ('P2' as const) : null,
+        effects: [],
+      })),
+    })
+    expect(screen.getAllByRole('button', { name: /vazia/ }).length).toBeGreaterThan(0)
+
+    fireEvent.click(screen.getByRole('button', { name: /^Bomba/ }))
+    expect(screen.queryAllByRole('button', { name: /vazia/ })).toHaveLength(0)
+    expect(sendCommand).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar mira' }))
+    fireEvent.click(screen.getAllByRole('button', { name: /vazia/ })[0])
+    expect(sendCommand).toHaveBeenCalledWith({ type: 'MOVE', payload: { cell: 0 } })
   })
 })
 
@@ -366,10 +639,19 @@ describe('menu de pausa', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Pausa' }))
     expect(screen.getByRole('dialog', { name: 'Menu de pausa' })).toBeInTheDocument()
     expect(useTimerStore.getState().turn).toBe(turnBefore) // nada foi mandado ao servidor
-    expect(screen.getByRole('button', { name: 'Configurações · em breve' })).toBeDisabled()
 
     fireEvent.click(screen.getByRole('button', { name: 'Desistir' }))
     fireEvent.click(screen.getAllByRole('button', { name: 'Desistir' }).at(-1)!)
     expect(onQuit).toHaveBeenCalledOnce()
+  })
+
+  it('abre as Configurações (FE-39) e volta para o menu ao fechar', () => {
+    renderArena()
+    fireEvent.click(screen.getByRole('button', { name: 'Pausa' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Configurações' }))
+    expect(screen.getByRole('dialog', { name: 'Configurações' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Fechar' }))
+    expect(screen.getByRole('dialog', { name: 'Menu de pausa' })).toBeInTheDocument()
   })
 })

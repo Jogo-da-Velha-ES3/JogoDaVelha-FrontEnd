@@ -1,5 +1,7 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { Banner } from '../../components/ui/Banner'
+import { ARENA_TEXTS, joinParts } from '../../constants/texts'
+import { useVoice } from '../../hooks/useLanguageFilter'
 import { useServerTimer } from '../../hooks/useServerTimer'
 import { useSuddenDeathSounds } from '../../hooks/useSuddenDeathSounds'
 import { useSuddenDeathVibration } from '../../hooks/useVibration'
@@ -31,6 +33,7 @@ export function SuddenDeathLayer() {
   const turn = useTimerStore((s) => s.turn)
   const entering = useSuddenDeathEntrance()
   const reduceMotion = useReducedMotion()
+  const voice = useVoice()
 
   const timer = useServerTimer(suddenDeath ? turn : null)
   const seconds = timer?.remainingSeconds ?? null
@@ -92,8 +95,8 @@ export function SuddenDeathLayer() {
       <Banner
         className="absolute inset-x-0 top-1/2 z-[22] w-full -translate-y-1/2"
         show={entering}
-        title="Morte Súbita"
-        subtitle="5 segundos por jogada"
+        title={ARENA_TEXTS.suddenDeath.title}
+        subtitle={joinParts(voice(ARENA_TEXTS.suddenDeath.line), ARENA_TEXTS.suddenDeath.perMove)}
         tone="danger"
         flicker
       />

@@ -103,7 +103,7 @@ describe('RematchPanel', () => {
   it('oponente saiu: a revanche fica desabilitada na hora [RN-POS-02]', () => {
     renderResult()
     send('PLAYER_LEFT', { slot: 'P2' })
-    expect(screen.getByRole('status')).toHaveTextContent('O oponente saiu da sala.')
+    expect(screen.getByRole('status')).toHaveTextContent('O oponente sentiu a pressão, neném!')
     expect(button('Revanche')).toBeDisabled()
     expect(button('Voltar ao Lobby')).toBeEnabled()
   })

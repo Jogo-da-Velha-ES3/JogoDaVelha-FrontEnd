@@ -1,7 +1,9 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { CHARACTER_INFO } from '../../constants/characters'
 import { MAX_CONSECUTIVE_TIMEOUTS } from '../../constants/game'
+import { ARENA_TEXTS, joinParts } from '../../constants/texts'
 import { useIsBefore } from '../../hooks/useIsBefore'
+import { useVoice } from '../../hooks/useLanguageFilter'
 import { useMatchStore } from '../../stores/matchStore'
 import { useRoomStore } from '../../stores/roomStore'
 
@@ -17,8 +19,12 @@ const TOAST_MS = 3000
  *
  * Cor: vermelho para quem estoura; cor do personagem do oponente para quem vê o estouro alheio.
  * Some automaticamente após 3s.
+ *
+ * Fica na coluna direita da Arena, como o aviso de habilidade: no topo, cobria o tabuleiro, o
+ * rótulo do round e a faixa do oponente (corrigido em 02/11).
  */
 export function TurnTimeoutToast() {
+  const voice = useVoice()
   const mySlot = useRoomStore((s) => s.mySlot) ?? 'P1'
   const players = useRoomStore((s) => s.players)
   const lastTimeout = useMatchStore((s) => s.lastTimeout)
@@ -42,15 +48,9 @@ export function TurnTimeoutToast() {
   const borderColor = isMyTimeout ? 'var(--color-danger)' : toasterColor
 
   // Texto conforme a tabela do PROJECT_CONTEXT §9 (só para 1/3 e 2/3; W.O. fica no Banner)
-  let title: string
-  let subtitle: string
-  if (isMyTimeout) {
-    title = 'Tempo Esgotado!'
-    subtitle = count === 1 ? 'Você perdeu a vez · 1/3' : '2/3 · Mais um e é W.O.!'
-  } else {
-    title = 'Oponente perdeu a vez'
-    subtitle = `${count}/3`
-  }
+  const T = ARENA_TEXTS.timeout
+  const title = isMyTimeout ? T.title : T.opponentTitle
+  const subtitle = isMyTimeout ? joinParts(voice(T.mine(count)), T.count(count)) : T.count(count)
 
   return (
     <AnimatePresence>
@@ -63,7 +63,7 @@ export function TurnTimeoutToast() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -6 }}
           transition={{ duration: 0.18, ease: 'easeOut' }}
-          className="pointer-events-none absolute top-2 left-[26%] right-[22%] z-20 flex items-center gap-2.5 rounded-xl border bg-bg-panel px-3 py-2 shadow-glow short:left-[18%] short:right-[16%]"
+          className="pointer-events-none flex items-center gap-2 rounded-xl border bg-bg-panel px-2.5 py-1.5 shadow-glow short:py-1"
           style={{ borderColor }}
         >
           {/* Ícone de aviso */}
@@ -77,12 +77,14 @@ export function TurnTimeoutToast() {
 
           <div className="min-w-0 flex-1">
             <p
-              className="font-display text-sm font-bold uppercase leading-tight tracking-wide"
+              className="font-display text-sm font-bold uppercase leading-tight tracking-wide short:text-xs"
               style={{ color: borderColor }}
             >
               {title}
             </p>
-            <p className="font-body text-xs text-text-muted">{subtitle}</p>
+            <p className="font-body text-xs text-text-muted short:text-[11px] short:leading-tight">
+              {subtitle}
+            </p>
           </div>
         </motion.div>
       )}

@@ -1,9 +1,10 @@
 import { useBoardStore } from '../../stores/boardStore'
 import { useMatchStore } from '../../stores/matchStore'
 import { useRoomStore } from '../../stores/roomStore'
+import { type Settings, useSettingsStore } from '../../stores/settingsStore'
 import type { ServerEvent } from '../../types/events'
 import type { Cell } from '../../types/game'
-import { loadSounds, playSound, setupAudioUnlock, stopSound } from './soundManager'
+import { loadSounds, playSound, setupAudioUnlock, soundSettings, stopSound } from './soundManager'
 import { abilitySoundKey, COINS_DELAY_MS } from './soundMap'
 
 export { playSound, stopSound, soundSettings } from './soundManager'
@@ -31,10 +32,21 @@ function setupButtonSounds() {
   )
 }
 
+/** Volume e mudo das Configurações (FE-39) no motor de som */
+export function applySoundSettings({ musicOn, musicVolume, sfxOn, sfxVolume }: Settings) {
+  soundSettings.setMusicVolume(musicVolume)
+  soundSettings.setMusicMuted(!musicOn)
+  soundSettings.setSfxVolume(sfxVolume)
+  soundSettings.setSfxMuted(!sfxOn)
+}
+
 /** Chamar uma vez ao abrir o app */
 export function initSound() {
   if (started) return
   started = true
+  // Antes de carregar, para cada som já nascer com o volume escolhido
+  applySoundSettings(useSettingsStore.getState())
+  useSettingsStore.subscribe(applySoundSettings)
   loadSounds()
   setupAudioUnlock()
   setupButtonSounds()

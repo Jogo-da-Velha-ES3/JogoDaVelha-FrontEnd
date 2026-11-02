@@ -33,6 +33,11 @@
 Depois: FE-18 (sala e jogada via STOMP, 21–22/10), FE-19 (habilidades e timer, 23–24/10), FE-20
 (reconexão, 25–26/10) e FE-29 (revanche, 27–28/10). Homologação de todos em 29–30/10.
 
+Fora da sequência: FE-46 (ícones neon das 10 habilidades e fim dos emojis na interface, 28/10 ✓),
+aberta na revisão da FE-11. A Loja (FE-31) usa o mesmo `AbilityIcon`. FE-47 (animação própria de
+cada uma das 10 habilidades, 29/10–02/11), aberta na revisão da FE-27; a demonstração em loop da
+Loja (FE-31) pode reusar o `AbilityEffect` e o cenário `abilityDemo`.
+
 ## Quando cada pessoa entra
 
 | Pessoa  | Cards (em ordem, com datas)                                                          | Começa quando estiver pronto |
@@ -45,19 +50,26 @@ Depois: FE-18 (sala e jogada via STOMP, 21–22/10), FE-19 (habilidades e timer,
 ## Personalidade: som, voz e Vitão (terceiro grupo)
 
 Decidido com o GP em 15/10. Corre em paralelo e não depende da base, que já está pronta. O Vitão
-é feito atrás da flag `VITAO_ENABLED=false`, ligada quando a FE-44 for aprovada.
+é feito atrás da flag `VITAO_ENABLED`, ligada em 31/10 com a FE-44 (antes da FE-42 e da FE-43, para
+o time ver o Vitão enquanto faz as falas, a animação e a voz).
 
-| Card  | Entrega                                                      | Data     | Depende de          |
-| ----- | ------------------------------------------------------------ | -------- | ------------------- |
-| FE-37 | Motor de som (Howler, um som por evento do servidor)         | 16–18/10 | —                   |
-| FE-38 | Banco de sons e trilhas (licença livre)                      | 16–20/10 | —                   |
-| FE-39 | Modal de Configurações (som, música, vibração, filtro)       | 19–20/10 | —                   |
-| FE-40 | Voz do jogo: textos e humor num arquivo único                | 16–20/10 | —                   |
-| FE-41 | Arte do Vitão (cabeça real + corpo de bonequinho)            | 16–21/10 | ok do Vitão         |
-| FE-42 | Bonequinho animado (andar, reações, balão)                   | 22–24/10 | FE-41               |
-| FE-43 | Falas do Vitão por momento da partida                        | 21–22/10 | FE-40               |
-| FE-44 | Motor de reações (1 fala a cada 6s, "Diabo" na Morte Súbita) | 25–26/10 | FE-42, FE-43        |
-| FE-45 | Voz gravada do Vitão                                         | 27–28/10 | FE-37, FE-43, FE-44 |
+**Reorganização (02/11):** o narrador e o Vitão comentavam os mesmos momentos com piadas e vozes
+diferentes. Agora o Vitão é a voz do jogo: as piadas do Rafik (FE-40) saem dos banners e vão para o
+balão dele (FE-43), a voz é a gravação do Rafik (FE-48, que substitui a FE-45) e ele fica só com a
+cabeça, parado (FE-42, sem andar). Detalhes no PROJECT_CONTEXT §9.
+
+| Card  | Entrega                                                                    | Data     | Depende de                 |
+| ----- | -------------------------------------------------------------------------- | -------- | -------------------------- |
+| FE-37 | Motor de som (Howler, um som por evento do servidor)                       | 16–18/10 | —                          |
+| FE-38 | Banco de sons e uma trilha por momento (Hub, Sala, Arena, Morte Súbita...) | 16–20/10 | —                          |
+| FE-39 | Modal de Configurações (música, efeitos, vibração, Vitão, voz, filtro)     | 19–20/10 | —                          |
+| FE-40 | Voz do jogo: textos e humor num arquivo único                              | 16–20/10 | —                          |
+| FE-41 | Arte do Vitão (8 cabeças em caricatura; o corpo ficou para depois)         | 16–21/10 | ok do Vitão                |
+| FE-42 | Vitão animado (parado, reações e balão; sem andar)                         | 22–24/10 | FE-41                      |
+| FE-43 | Vitão fala as frases do Rafik; piadas saem dos banners                     | 21–22/10 | FE-40                      |
+| FE-44 | Motor de reações (1 fala a cada 6s, "Diabo" na Morte Súbita)               | 25–26/10 | FE-42, FE-43               |
+| FE-45 | ~~Voz gravada do Vitão~~: substituída pela FE-48 em 02/11                  | —        | —                          |
+| FE-48 | Voz do Vitão: as falas gravadas do Rafik, junto com o balão                | 03–07/11 | FE-37, FE-39, FE-40, FE-43 |
 
 ## O que mudou da v1 para a v2
 
@@ -68,4 +80,4 @@ Decidido com o GP em 15/10. Corre em paralelo e não depende da base, que já es
   absoluto); revanche com 15s e reinício completo.
 - **Entrou:** base da ERS V2, tokens neon e paisagem, personagens neon, servidor simulado, Acesso
   (e-mail ou usuário + senha), recuperação de senha, Sala de Espera, Arena, mira e efeitos das 10 habilidades, revanche, REST de
-  conta, Loja, Coins simbólicos, Perfil e Como Jogar.
+  conta, Loja, Coins simbólicos, Perfil, Como Jogar e os ícones neon das habilidades.

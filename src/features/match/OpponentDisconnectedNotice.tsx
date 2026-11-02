@@ -1,5 +1,6 @@
 import { CHARACTER_INFO } from '../../constants/characters'
 import { MAX_CONSECUTIVE_TIMEOUTS } from '../../constants/game'
+import { ARENA_TEXTS } from '../../constants/texts'
 import { otherSlot } from '../../lib/match'
 import { useRoomStore } from '../../stores/roomStore'
 import { useOpponentDisconnect } from './useOpponentDisconnect'
@@ -10,6 +11,9 @@ import { useOpponentDisconnect } from './useOpponentDisconnect'
  *
  * Sem contagem regressiva — os turnos do oponente continuam correndo normalmente:
  * 3 estouros seguidos resultam em W.O., como no tempo esgotado (regra fechada com o back).
+ *
+ * Só a informação, numa linha, para sobrar espaço para o Vitão logo abaixo: a piada da queda é
+ * dele, no balão (decidido em 02/11).
  *
  * Cor: do personagem do oponente. Sem vermelho — para quem ficou isso não é perigo.
  */
@@ -26,20 +30,14 @@ export function OpponentDisconnectedNotice() {
     <div
       role="status"
       aria-live="polite"
-      className="flex flex-col gap-0.5 rounded-xl border-2 border-dashed bg-bg-raised px-2 py-1.5"
-      style={{ borderColor: oppColor }}
+      className="flex items-baseline justify-between gap-2 rounded-xl border-2 border-dashed bg-bg-raised px-2 py-1"
+      style={{ borderColor: oppColor, color: oppColor }}
     >
-      <p
-        className="font-display text-xs leading-tight font-bold tracking-wide uppercase"
-        style={{ color: oppColor }}
-      >
-        Oponente desconectado
+      <p className="min-w-0 font-display text-xs leading-tight font-bold tracking-wide uppercase">
+        {ARENA_TEXTS.opponentDisconnected.title}
       </p>
-      <p className="font-mono text-[10px] text-text-muted">
-        Os turnos dele continuam correndo ·{' '}
-        <span style={{ color: oppColor }}>
-          {consecutiveTimeouts}/{MAX_CONSECUTIVE_TIMEOUTS}
-        </span>
+      <p className="shrink-0 font-mono text-[10px]">
+        {consecutiveTimeouts}/{MAX_CONSECUTIVE_TIMEOUTS}
       </p>
     </div>
   )

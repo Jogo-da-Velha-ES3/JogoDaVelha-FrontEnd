@@ -5,6 +5,7 @@ import { MAX_CONSECUTIVE_TIMEOUTS, ROUNDS_TO_WIN_MATCH } from '../../constants/g
 import { useTimerStore } from '../../stores/timerStore'
 import type { PlayerState } from '../../types/game'
 import { Character } from '../characters'
+import { AbilityIcon } from '../powers/AbilityIcon'
 
 interface PlayerStripProps {
   player: PlayerState | undefined
@@ -18,7 +19,7 @@ interface PlayerStripProps {
 /**
  * Faixa do jogador na Arena (esboço Tela 7, `.pl` + `.tmr`).
  * - Avatar, apelido, pips de rounds e estouros x/3.
- * - Badges de Campo de Força (🛡) e Silêncio (🔇) na cor do personagem.
+ * - Badges de Campo de Força e Silêncio (os ícones das habilidades) na cor do personagem.
  * - Timer do turno abaixo, só na vez deste jogador — a faixa encolhe sem espaço vazio.
  */
 export function PlayerStrip({ player, isMe, active, roundsWon, timeouts }: PlayerStripProps) {
@@ -62,27 +63,28 @@ export function PlayerStrip({ player, isMe, active, roundsWon, timeouts }: Playe
               )}
             </p>
 
-            {/* Campo de Força: escudo na cor do personagem + contador de turnos restantes */}
+            {/* Campo de Força: ícone na cor do personagem + contador de turnos restantes */}
             {forceFieldTurns > 0 && (
               <span
                 aria-hidden="true"
                 title={`Campo de Força ativo (${forceFieldTurns} turno${forceFieldTurns > 1 ? 's' : ''})`}
-                className="shrink-0 font-mono text-[10px] font-semibold leading-none"
+                className="flex shrink-0 items-center gap-0.5 font-mono text-[10px] font-semibold leading-none"
                 style={{ color }}
               >
-                🛡{forceFieldTurns}
+                <AbilityIcon ability="CAMPO_DE_FORCA" className="size-3.5" />
+                {forceFieldTurns}
               </span>
             )}
 
-            {/* Silêncio: símbolo na cor do personagem silenciado */}
+            {/* Silêncio: ícone na cor do personagem silenciado */}
             {silenced && (
               <span
                 aria-hidden="true"
                 title="Silenciado neste turno"
-                className="shrink-0 font-mono text-[10px] leading-none"
+                className="shrink-0"
                 style={{ color }}
               >
-                🔇
+                <AbilityIcon ability="SILENCIO" className="size-3.5" />
               </span>
             )}
           </div>

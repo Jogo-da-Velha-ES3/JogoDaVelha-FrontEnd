@@ -38,12 +38,14 @@ Antes de dar uma tarefa como pronta: `npm run lint`, `npm run format:check`, `np
 - **Paisagem:** toda tela precisa funcionar no celular deitado (~330–390px de altura) e no
   desktop, sem overflow horizontal.
 - **Vitão atrás da flag:** desde 15/10 o Vitão entra no MVP 1 pelos cards FE-41 a FE-45 (grupo de
-  Personalidade). Arte, animação, falas, reações e voz são feitas com `VITAO_ENABLED=false`; a flag
-  só é ligada quando a FE-44 for aprovada. O balão nunca cobre o tabuleiro.
+  Personalidade). A flag `VITAO_ENABLED` foi ligada em 31/10, com a FE-44, para o time ver o Vitão
+  enquanto faz falas, animação e voz; com `false`, ele sai da Arena. O balão nunca cobre o
+  tabuleiro.
 - **Fora do MVP 1:** cosméticos, habilidades por personagem, login com Google,
   modo convidado. Questionar antes de implementar.
 - Regras puras ficam em `src/lib/`, sem React, com testes no Vitest.
-- Textos da interface em português do Brasil.
+- Textos da interface em português do Brasil, em `src/constants/texts.ts` (sem frase solta nas
+  telas) e no tom de `docs/VOICE_GUIDE.md`, com versão filtrada para toda fala com palavrão.
 - Citar os identificadores da ERS (ex: `[RF-ARN-03]`) e o card (`FE-XX`) em PRs e commits quando
   fizer sentido.
 

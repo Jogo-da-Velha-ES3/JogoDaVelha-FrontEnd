@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Button, TimerBar } from '../../components/ui'
+import { Button, LockIcon, TimerBar } from '../../components/ui'
 import { ABILITY_INFO } from '../../constants/abilities'
 import { CHARACTER_INFO } from '../../constants/characters'
 import {
@@ -10,8 +10,10 @@ import {
   PREPARATION_SECONDS,
   PREPARATION_WARN_SECONDS,
 } from '../../constants/game'
+import { DRAFT_TEXTS } from '../../constants/texts'
 import { useServerTimer } from '../../hooks/useServerTimer'
 import { Character } from '../characters'
+import { AbilityIcon } from '../powers/AbilityIcon'
 import { otherSlot } from '../../lib/match'
 import { sendCommand } from '../../sockets/gameClient'
 import { useDraftStore } from '../../stores/draftStore'
@@ -80,8 +82,8 @@ export function Preparation({
   const myStatus = isReady
     ? 'Pronto'
     : !myCharacter
-      ? 'Falta: personagem'
-      : `Falta: habilidades (${pickedAbilities.length}/${INITIAL_ABILITIES_TO_PICK})`
+      ? DRAFT_TEXTS.missingCharacter
+      : DRAFT_TEXTS.missingAbilities(pickedAbilities.length, INITIAL_ABILITIES_TO_PICK)
 
   const toggleAbility = (ability: AbilityId) => {
     if (!unlockedAbilities.includes(ability) || isReady) return
@@ -165,14 +167,15 @@ export function Preparation({
               id="character-title"
               className="font-display text-lg font-black tracking-wide text-primary uppercase sm:text-xl"
             >
-              Escolha seu personagem
+              {DRAFT_TEXTS.chooseCharacter}
             </h2>
             {warning ? (
-              <TimeWarning seconds={timer.remainingSeconds} missing="seu personagem" />
+              <TimeWarning
+                seconds={timer.remainingSeconds}
+                missing={DRAFT_TEXTS.missingCharacterWarning}
+              />
             ) : (
-              <p className="text-xs text-text-muted">
-                O personagem altera apenas a aparência do seu lado.
-              </p>
+              <p className="text-xs text-text-muted">{DRAFT_TEXTS.characterHint}</p>
             )}
           </div>
           {/* Linhas fixas (metade da altura cada): o tamanho do cartão não depende do personagem.
@@ -185,7 +188,7 @@ export function Preparation({
               const selected = character === myCharacter
               // Reservado pelo oponente vem antes do preço: mostra o nome de quem reservou [RF-DRAFT-02]
               const label = reservedByOpponent
-                ? `Reservado por ${opponent?.nickname ?? 'oponente'}`
+                ? DRAFT_TEXTS.reservedBy(opponent?.nickname ?? 'oponente')
                 : locked
                   ? `Bloqueado · ${info.name}`
                   : selected
@@ -213,10 +216,13 @@ export function Preparation({
                       {info.name}
                     </span>
                     <span className="text-center text-[10px] leading-tight text-text-muted short:text-left sm:text-xs">
+                      {(reservedByOpponent || locked) && (
+                        <LockIcon className="mr-0.5 size-3 align-[-2px]" />
+                      )}
                       {reservedByOpponent
-                        ? `🔒 Reservado por ${opponent?.nickname ?? 'oponente'}`
+                        ? DRAFT_TEXTS.reservedBy(opponent?.nickname ?? 'oponente')
                         : locked
-                          ? `🔒 ${info.price} Coins · Loja`
+                          ? `${info.price} Coins · Loja`
                           : selected
                             ? 'Selecionado'
                             : 'Disponível'}
@@ -242,11 +248,13 @@ export function Preparation({
               Habilidades iniciais
             </h2>
             {warning ? (
-              <TimeWarning seconds={timer.remainingSeconds} missing="suas 2 habilidades" />
+              <TimeWarning
+                seconds={timer.remainingSeconds}
+                missing={DRAFT_TEXTS.missingAbilitiesWarning(INITIAL_ABILITIES_TO_PICK)}
+              />
             ) : (
               <p className="text-xs text-text-muted">
-                Selecione exatamente {INITIAL_ABILITIES_TO_PICK}. {pickedAbilities.length}/
-                {INITIAL_ABILITIES_TO_PICK} escolhidas.
+                {DRAFT_TEXTS.abilitiesHint(pickedAbilities.length, INITIAL_ABILITIES_TO_PICK)}
               </p>
             )}
           </div>
@@ -267,9 +275,7 @@ export function Preparation({
                   aria-label={`${info.name}. ${info.description}`}
                   className={`relative flex min-h-0 flex-col items-center justify-center gap-1 rounded-xl border-2 bg-bg-panel px-2 py-1 text-center transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${selected ? 'border-primary shadow-glow shadow-primary/30' : 'border-line'} hover:border-primary/60`}
                 >
-                  <span className="text-xl leading-none sm:text-2xl" aria-hidden="true">
-                    {ABILITY_GLYPHS[ability]}
-                  </span>
+                  <AbilityIcon ability={ability} className="size-6 text-primary" />
                   <span className="font-display text-xs font-bold text-primary sm:text-sm">
                     {info.name}
                   </span>
@@ -290,7 +296,7 @@ export function Preparation({
           </div>
           <div className="mt-2 flex shrink-0 flex-col items-center gap-1">
             <p className="text-center text-[10px] text-text-muted sm:text-xs">
-              Quer mais opções de habilidades? Desbloqueie novas habilidades na Loja.
+              {DRAFT_TEXTS.shopHint}
             </p>
             <div className="flex items-center gap-2">
               <Button
@@ -306,14 +312,14 @@ export function Preparation({
                 onClick={confirmAbilities}
                 disabled={pickedAbilities.length !== INITIAL_ABILITIES_TO_PICK || isReady}
               >
-                {isReady ? 'Aguardando oponente…' : 'Confirmar habilidades'}
+                {isReady ? DRAFT_TEXTS.waitingOpponent : 'Confirmar habilidades'}
               </Button>
             </div>
           </div>
         </section>
       )}
       <p role="status" className="sr-only">
-        {ready[opponentSlot] ? 'Oponente pronto.' : 'Oponente escolhendo.'}
+        {ready[opponentSlot] ? DRAFT_TEXTS.opponentReady : DRAFT_TEXTS.opponentChoosing}
       </p>
     </main>
   )
@@ -323,7 +329,7 @@ export function Preparation({
 function TimeWarning({ seconds, missing }: { seconds: number; missing: string }) {
   return (
     <p role="alert" className="text-xs font-bold text-danger">
-      Faltam {seconds}s! Escolha {missing}, senão o jogo escolhe por você.
+      {DRAFT_TEXTS.timeWarning(seconds, missing)}
     </p>
   )
 }
@@ -352,17 +358,4 @@ function StepButton({
       {done ? ' ✓' : ''}
     </button>
   )
-}
-
-const ABILITY_GLYPHS: Record<AbilityId, string> = {
-  BOMBA: '💣',
-  ESCUDO: '🛡️',
-  AMPULHETA: '⏳',
-  TORNADO: '🌪️',
-  BURACO_NEGRO: '🕳️',
-  CONGELAR: '❄️',
-  CAMPO_DE_FORCA: '🔰',
-  SILENCIO: '🤫',
-  TROCA_RAPIDA: '⚡',
-  REFORCO: '💪',
 }

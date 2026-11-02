@@ -10,7 +10,7 @@ src/
 ├── api/                # cliente REST fino (fetch): auth, perfil, inventário, loja, salas
 ├── assets/             # sons (Howler), imagens, ícones, fontes
 ├── components/         # componentes reutilizáveis e "burros" (sem lógica de negócio)
-│   ├── ui/              # botões, modais, inputs, toast, banner — puramente visuais
+│   ├── ui/              # botões, modais, inputs, toast, banner, ícones (cadeado, pausa) — puramente visuais
 │   └── layout/          # LandscapeShell (safe-area, sem overflow) e o aviso "Gire o celular"
 ├── features/           # lógica de domínio, isolada por área do jogo
 │   ├── auth/            # login, cadastro, sessão
@@ -20,17 +20,21 @@ src/
 │   ├── lobby/           # criar/entrar em sala, código numérico de 4 dígitos, Sala de Espera
 │   ├── draft/           # Preparação: personagem (com bloqueio) e 2 habilidades iniciais
 │   ├── board/           # tabuleiro 4×4, células e seus estados
-│   ├── powers/          # sorteio da 3ª, deck, mira e efeitos visuais das 10 habilidades
+│   ├── powers/          # sorteio da 3ª, deck, mira, ícones neon (`AbilityIcon`) e, em `effects/`, a animação de cada uma das 10 habilidades
 │   ├── match/           # Arena: turnos, timer, placar MD3, Morte Súbita, banners
 │   ├── results/         # Resultado, Coins, revanche
 │   ├── characters/      # os 6 personagens em SVG (estilo neon) + paleta
+│   ├── settings/        # modal de Configurações (som, música, voz, Vitão, filtro, vibração)
 │   └── vitao/           # Vitão: arte, animação, falas e reações, atrás da flag VITAO_ENABLED
 ├── sockets/            # cliente STOMP + servidor simulado (mock/) com a mesma interface
 ├── pwa/                # convite de instalação (beforeinstallprompt); o service worker vem do vite-plugin-pwa
 ├── lib/                # lógica pura, sem React (testável isolado)
 │   ├── winCheck.ts       # verificação de vitória N×N/K, ignorando peças congeladas
+│   ├── abilityTargets.ts # casas vizinhas e os alvos que a mira deixa tocar
 │   ├── timer.ts          # cálculo do tempo restante a partir do timestamp do servidor
-│   └── match.ts          # regras da MD3: fim da partida, quem começa, match point, Coins
+│   ├── match.ts          # regras da MD3: fim da partida, quem começa, match point, Coins
+│   ├── vitao.ts          # quando e o que o Vitão fala (6s, prioridade, 1 em 3 jogadas, Diabo)
+│   └── vitaoMoments.ts   # momentos do Vitão a partir da mudança das stores
 ├── constants/          # valores fixos do jogo (seção 4)
 ├── hooks/              # hooks customizados (useStomp, useServerTimer, useShouldRotateDevice...)
 ├── stores/             # Zustand — estado global (seção 3)
@@ -93,6 +97,21 @@ Arena segura o banner por `RESULT_HOLD_SECONDS` antes do Resultado; no empate ab
 A Arena fica em `src/features/match/Arena.tsx`, com as regiões prontas para as faixas e banners
 (FE-05), o deck (FE-11) e a mira (FE-27).
 
+A mira (FE-27) fica em `src/features/powers/useAbilityAim.ts`: alvos da etapa atual (com
+`getAimTargets`, de `src/lib/abilityTargets.ts`), o envio da intenção e a espera pelo servidor,
+com o tabuleiro travado até o `ABILITY_RESOLVED` ou um erro. O resultado aparece em duas peças: a
+animação da habilidade no tabuleiro, por `ABILITY_IMPACT_SECONDS`, e o `AbilityNotice`, o aviso na
+coluna direita por `ABILITY_NOTICE_SECONDS`.
+
+As animações (FE-47) ficam em `src/features/powers/effects/`, uma por arquivo (`BombEffect`,
+`TornadoEffect`...), mais a anulada, a sem efeito e a versão parada para "reduzir movimento". O
+`AbilityEffect` escolhe qual tocar e é desenhado **dentro do grid do tabuleiro**: cada camada se
+posiciona pela linha e coluna da casa (por isso as casas também têm posição explícita no `Board`).
+O tabuleiro já chega com o estado final, então a peça que a habilidade levou fica escondida no
+destino (`pieceHidden`) até a animação terminar de levá-la, e a peça que a Bomba removeu é
+desenhada por cima só para explodir. O `AbilityEffect` não lê store: a vitrine (aba Habilidades)
+mostra cada animação com o cenário de `abilityDemo.ts`, que a Loja (FE-31) também pode usar.
+
 Revanche e saída (FE-29) ficam em `src/features/results/`: o `RematchPanel` (Revanche, Aceitar /
 Recusar com a barra dos 15s e Voltar ao Lobby) entra na tela de Resultado da FE-15, e o
 `useRoomExit` (usado pelo `RoomPage`) avisa e leva ao Hub quem teve o pedido cancelado ou viu a
@@ -104,20 +123,35 @@ acabou de chegar (`outcomeReceivedAt`): só então tocam a comemoração e a con
 reconecta vê o estado final parado, e uma memória por partida (sala, início do último round,
 resultado e Coins) evita repetir a festa se a tela for desmontada e montada de novo.
 
+O motor de reações do Vitão (FE-44) fica em `src/features/vitao/` e `src/lib/`. As regras são puras
+(`lib/vitao.ts`: 1 fala a cada 6s, momentos grandes primeiro, 1 em 3 jogadas de peça, "Diabo" na
+Morte Súbita, filtro) e a detecção dos momentos também (`lib/vitaoMoments.ts`, pela diferença entre
+dois retratos das stores). O hook `useVitaoReactions` observa as stores, que só mudam por evento do
+servidor, e entrega a fala atual ao `VitaoSlot`. O momento grande fala na hora, mesmo dentro da
+pausa de 6s, no lugar da fala atual. As falas provisórias estão em `features/vitao/vitaoLines.ts` (a
+FE-43 troca pelas frases do Rafik de `constants/texts.ts` e tira as piadas dos banners). A flag
+`VITAO_ENABLED` foi ligada em 31/10, com a FE-44.
+
+O desenho do Vitão (FE-42) é o `VitaoView`, que não lê store: recebe a expressão, a fala e o `id` da
+fala, respira parado, toca a reação de cada expressão a cada fala nova e encolhe a cabeça para o
+balão caber no espaço sem cobrir as faixas. O `VitaoSlot` liga o motor ao `VitaoView`, e a vitrine
+(aba Vitão) usa o `VitaoView` direto.
+
 ## 3. Stores (Zustand)
 
-| Store          | Guarda                                                                                                 |
-| -------------- | ------------------------------------------------------------------------------------------------------ |
-| `authStore`    | token, usuário logado, status da sessão                                                                |
-| `profileStore` | apelido, personagem favorito, Coins, inventário (personagens e habilidades), stats                     |
-| `roomStore`    | código da sala, `phase`, jogadores, meu lado (`mySlot`), conexão, queda do oponente, link pendente     |
-| `draftStore`   | personagens reservados por lado, quem está pronto, prazo dos 20s                                       |
-| `matchStore`   | round, placar MD3, Morte Súbita, quem começa, estouros (0–3), fim do round, resultado, Coins, revanche |
-| `boardStore`   | as 16 casas com efeitos e contadores, linha vencedora, última habilidade resolvida                     |
-| `powersStore`  | opções do sorteio, meu deck da rodada, mira em andamento                                               |
-| `timerStore`   | de quem é o turno, prazo do turno (timestamp do servidor), duração (10s/5s)                            |
-| `clockStore`   | diferença entre o relógio do servidor e o do aparelho (`syncWithServer` a cada msg)                    |
-| `toastStore`   | fila de toasts na tela (só interface, não reflete o servidor)                                          |
+| Store           | Guarda                                                                                                 |
+| --------------- | ------------------------------------------------------------------------------------------------------ |
+| `authStore`     | token, usuário logado, status da sessão                                                                |
+| `profileStore`  | apelido, personagem favorito, Coins, inventário (personagens e habilidades), stats                     |
+| `roomStore`     | código da sala, `phase`, jogadores, meu lado (`mySlot`), conexão, queda do oponente, link pendente     |
+| `draftStore`    | personagens reservados por lado, quem está pronto, prazo dos 20s                                       |
+| `matchStore`    | round, placar MD3, Morte Súbita, quem começa, estouros (0–3), fim do round, resultado, Coins, revanche |
+| `boardStore`    | as 16 casas com efeitos e contadores, linha vencedora, última habilidade resolvida                     |
+| `powersStore`   | opções do sorteio, meu deck da rodada, mira em andamento                                               |
+| `timerStore`    | de quem é o turno, prazo do turno (timestamp do servidor), duração (10s/5s)                            |
+| `clockStore`    | diferença entre o relógio do servidor e o do aparelho (`syncWithServer` a cada msg)                    |
+| `toastStore`    | fila de toasts na tela (só interface, não reflete o servidor)                                          |
+| `settingsStore` | preferências das Configurações, guardadas no aparelho (só interface, FE-39)                            |
 
 Regras:
 
@@ -140,6 +174,18 @@ Todo valor fixo do jogo fica aqui, nunca espalhado pelo código. A fonte é o pr
 | `src/constants/game.ts`       | tabuleiro, tempos (10s/5s/20s/8s/15s), W.O., deck, habilidades e personagens iniciais, Coins, preço das habilidades, `VITAO_ENABLED` |
 | `src/constants/abilities.ts`  | as 10 habilidades: nome, tipo, alvo, se pede casa de destino, se o Campo de Força anula, descrição                                   |
 | `src/constants/characters.ts` | os 6 personagens: nome, cor oficial e preço                                                                                          |
+| `src/constants/texts.ts`      | as frases da interface por tela e as falas do narrador, sem filtro e com filtro (FE-40, guia em `docs/VOICE_GUIDE.md`)               |
+
+O filtro de linguagem é lido por um hook só, `useLanguageFilter` (`src/hooks/useLanguageFilter.ts`),
+que o Vitão também usa. Ele lê o filtro de palavrões das Configurações (`settingsStore`, FE-39),
+desligado por padrão. Nos componentes, `useVoice()` escolhe a versão de cada fala.
+
+As Configurações (FE-39) ficam em `src/features/settings/SettingsModal.tsx` e abrem pelo Hub
+(engrenagem na barra lateral) e pela pausa da Arena. O `settingsStore` guarda as preferências no
+aparelho e funciona sem armazenamento (aba anônima). Quem lê: o motor de som (volume e mudo de
+música e efeitos, em `initSound`), `useLanguageFilter`, a vibração da Morte Súbita
+(`useVibration`) e o `VitaoSlot` (Vitão desligado some, mesmo com a flag `VITAO_ENABLED` ligada). O
+volume da voz fica guardado para a FE-48.
 
 Os identificadores de habilidade e personagem (`'BOMBA'`, `'CAMPO_DE_FORCA'`, `'TRIANGULO'`...) devem
 bater com os enums do back — confirmar na FE-17.
@@ -209,7 +255,9 @@ implementados no back (revisão de telas, 06/10), então usar as rotas e payload
     MATCH POINT ou a entrada da Morte Súbita), que assim não come o tempo do primeiro turno
   - `BOARD_UPDATE` — casas e efeitos depois de uma ação
   - `ABILITY_RESOLVED` — quem usou, qual, alvo, se foi anulada pelo Campo de Força, se ficou sem
-    efeito
+    efeito. **[A VALIDAR COM O BACK]** (29/10) Só o `ROOM_SNAPSHOT` traz o `silenced`: o front
+    deduz o Silêncio daqui (quando não foi anulado) e o desfaz no `TURN_START` do outro jogador e
+    no `ROUND_START`. Pedir o `silenced` de cada lado no `TURN_START`, como os estouros
   - `TURN_TIMEOUT` — jogador e estouros consecutivos (x/3)
   - `ROUND_END` — vencedor ou empate, linha vencedora, placar
   - `MATCH_END` — resultado (vitória, empate absoluto, W.O.) e Coins de cada um

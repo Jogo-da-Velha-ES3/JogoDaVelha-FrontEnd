@@ -4,12 +4,9 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { forgotPassword, forgotPasswordErrorFor } from '../../api/auth'
 import { Button, Modal } from '../../components/ui'
+import { ACCESS_TEXTS } from '../../constants/texts'
 import { EMAIL_MAX, validateEmail } from '../../lib/authValidation'
 import { FormError, TextField } from './FormFields'
-
-/** Sempre este texto, exista o e-mail ou não: o pedido nunca revela se a conta existe */
-export const FORGOT_PASSWORD_SENT_MESSAGE =
-  'Se esse e-mail estiver cadastrado, você vai receber um link para criar uma senha nova.'
 
 interface ForgotPasswordModalProps {
   open: boolean
@@ -64,7 +61,7 @@ function ForgotPasswordForm({ onClose }: { onClose: () => void }) {
     return (
       <div ref={sentRef} className="flex flex-col gap-3 pb-1 short:gap-2">
         <p role="status" className="text-base text-text">
-          {FORGOT_PASSWORD_SENT_MESSAGE}
+          {ACCESS_TEXTS.forgotPasswordSent}
         </p>
         <Button block onClick={onClose} className="short:w-auto short:self-end">
           Fechar

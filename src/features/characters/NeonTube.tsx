@@ -68,14 +68,33 @@ export function NeonDot({
 /**
  * Brilho do neon. Em coordenadas do desenho (userSpaceOnUse): com a caixa do próprio traço,
  * uma linha reta (visor do O, olhos do Quadrado) teria altura 0 e sumiria.
+ *
+ * `soft`: brilho com metade da força, para os ícones. No tubo branco, o brilho cheio tem a mesma
+ * cor do filamento e o traço parece desfocado.
  */
-export function GlowFilter({ id, blur }: { id: string; blur: number }) {
+export function GlowFilter({
+  id,
+  blur,
+  soft = false,
+}: {
+  id: string
+  blur: number
+  soft?: boolean
+}) {
   return (
     <filter id={id} filterUnits="userSpaceOnUse" x="-20" y="-20" width="200" height="210">
       <feGaussianBlur stdDeviation={blur} result="blur" />
+      {soft && (
+        <feColorMatrix
+          in="blur"
+          type="matrix"
+          values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 0.5 0"
+          result="blur"
+        />
+      )}
       <feMerge>
         <feMergeNode in="blur" />
-        <feMergeNode in="blur" />
+        {!soft && <feMergeNode in="blur" />}
         <feMergeNode in="SourceGraphic" />
       </feMerge>
     </filter>

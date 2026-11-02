@@ -139,7 +139,7 @@ describe('revanche (FE-29)', () => {
     const router = await toResult('sai')
     await tick(MOCK_TIMINGS.botRematch + NET)
     expect(router.state.location.pathname).toBe('/sala/4821')
-    expect(screen.getByText('O oponente saiu da sala.')).toBeInTheDocument()
+    expect(screen.getByText('O oponente sentiu a pressão, neném!')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Revanche' })).toBeDisabled()
   })
 })
@@ -165,7 +165,7 @@ describe('Arena', () => {
     expect(screen.queryByRole('progressbar', { name: 'Seu tempo' })).not.toBeInTheDocument()
   })
 
-  it('faixas mostram os dois jogadores e o espaço do Vitão fica vazio com a flag desligada', async () => {
+  it('faixas mostram os dois jogadores e o Vitão fica no espaço entre elas', async () => {
     renderRoom('normal')
     await toPlaying()
     // O banner do Confronto já saiu (só aparece na fase VERSUS)
@@ -173,9 +173,9 @@ describe('Arena', () => {
     expect(screen.getByRole('region', { name: /^Oponente Simulado:/ })).toBeInTheDocument()
     expect(screen.getByRole('region', { name: /\(você\):/ })).toBeInTheDocument()
 
-    const vitao = document.querySelector('[data-region="vitao"]')
-    expect(vitao).toBeEmptyDOMElement()
-    expect(screen.queryByText(/Vitão/)).not.toBeInTheDocument()
+    const vitao = document.querySelector<HTMLElement>('[data-region="vitao"]')
+    expect(vitao).not.toBeNull()
+    expect(within(vitao!).getByAltText('Vitão')).toBeInTheDocument()
   })
 
   it('W.O.: a Arena segura o banner por 2s antes do Resultado', async () => {

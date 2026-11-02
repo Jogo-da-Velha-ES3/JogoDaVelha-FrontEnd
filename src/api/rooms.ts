@@ -1,6 +1,7 @@
 // Criar e entrar em sala pelo REST [RF-HUB-04] [RF-HUB-05]. O jogador vem do token.
 // ⚠️ Hoje o back ainda pede `?playerId=`; a BE-009.1 troca pelo usuário do JWT (contrato do back).
 import { ROOM_CODE_LENGTH } from '../constants/game'
+import { ROOM_TEXTS } from '../constants/texts'
 import { isMockServerEnabled } from '../sockets/mode'
 import { ApiError, apiRequest } from './client'
 
@@ -8,22 +9,24 @@ export interface RoomInfo {
   code: string
 }
 
+const E = ROOM_TEXTS.errors
+
 const ROOM_ERRORS: Record<string, (code: string) => string> = {
-  ROOM_NOT_FOUND: (code) => `Sala ${code} não encontrada.`,
-  ROOM_FULL: (code) => `A sala ${code} já está cheia.`,
-  ROOM_ALREADY_STARTED: (code) => `A partida da sala ${code} já começou.`,
+  ROOM_NOT_FOUND: E.notFound,
+  ROOM_FULL: E.full,
+  ROOM_ALREADY_STARTED: E.alreadyStarted,
   // ⚠️ Códigos temporários do back até a BE-009.1 (contrato-integracao.md do back): sala
   // inexistente chega como 400 ROOM_BAD_REQUEST, e cheia/começada como 409 ROOM_CONFLICT
-  ROOM_BAD_REQUEST: (code) => `Sala ${code} não encontrada.`,
-  ROOM_CONFLICT: (code) => `A sala ${code} está cheia ou a partida já começou.`,
+  ROOM_BAD_REQUEST: E.notFound,
+  ROOM_CONFLICT: E.fullOrStarted,
 }
 
 /** Mensagem para a tela: pelo `code` do back quando houver, senão pelo status HTTP */
 export function roomErrorMessage(error: ApiError, code: string): string {
   const byCode = error.code ? ROOM_ERRORS[error.code] : undefined
   if (byCode) return byCode(code)
-  if (error.status === 404) return ROOM_ERRORS.ROOM_NOT_FOUND(code)
-  if (error.status === 409) return `A sala ${code} está cheia ou a partida já começou.`
+  if (error.status === 404) return E.notFound(code)
+  if (error.status === 409) return E.fullOrStarted(code)
   return error.message
 }
 

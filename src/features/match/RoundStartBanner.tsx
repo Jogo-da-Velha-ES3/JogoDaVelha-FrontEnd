@@ -1,13 +1,17 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { CHARACTER_INFO } from '../../constants/characters'
 import { ROUND_COIN_FLIP_SECONDS } from '../../constants/game'
+import { ARENA_TEXTS } from '../../constants/texts'
 import { useIsBefore } from '../../hooks/useIsBefore'
+import { useVoice } from '../../hooks/useLanguageFilter'
 import { isMatchPoint, otherSlot } from '../../lib/match'
 import { useMatchStore } from '../../stores/matchStore'
 import { useRoomStore } from '../../stores/roomStore'
 import type { CharacterId, PlayerSlot } from '../../types/game'
 import { Character } from '../characters'
 import { useRoundStartBannerVisible } from './useRoundStartBannerVisible'
+
+const T = ARENA_TEXTS.roundIntro
 
 const colorOf = (char: CharacterId | null | undefined) =>
   char ? CHARACTER_INFO[char].color : 'var(--color-line)'
@@ -50,6 +54,7 @@ function Avatar({
  */
 export function RoundStartBanner() {
   const reduceMotion = useReducedMotion()
+  const voice = useVoice()
   const players = useRoomStore((s) => s.players)
   const mySlot = useRoomStore((s) => s.mySlot) ?? 'P1'
   const round = useMatchStore((s) => s.round)
@@ -70,12 +75,14 @@ export function RoundStartBanner() {
   const starterIsMe = starter === mySlot
   const starterPlayer = starterIsMe ? me : opp
   const starterColor = colorOf(starterPlayer?.character)
-  const starterName = starterPlayer?.nickname ?? (starterIsMe ? 'Você' : 'Oponente')
+  const starterName =
+    starterPlayer?.nickname ?? (starterIsMe ? ARENA_TEXTS.you : ARENA_TEXTS.opponent)
 
   const leadSlot: PlayerSlot | null =
     score[mySlot] > score[oppSlot] ? mySlot : score[oppSlot] > score[mySlot] ? oppSlot : null
   const leadPlayer = leadSlot ? players.find((p) => p.slot === leadSlot) : null
-  const leadName = leadPlayer?.nickname ?? (leadSlot === mySlot ? 'Você' : 'Oponente')
+  const leadName =
+    leadPlayer?.nickname ?? (leadSlot === mySlot ? ARENA_TEXTS.you : ARENA_TEXTS.opponent)
   const leadColor = colorOf(leadPlayer?.character)
 
   const myColor = colorOf(me?.character)
@@ -95,19 +102,27 @@ export function RoundStartBanner() {
           className="pointer-events-none absolute inset-0 z-[5] flex flex-col items-center justify-center gap-3 bg-bg-deep/75 px-3.5 py-3.5 text-center short:gap-[7px]"
         >
           <p className="font-mono text-sm tracking-[0.06em] text-text-muted uppercase short:text-[9.5px]">
-            Melhor de 3
+            {T.bestOf}
           </p>
 
           {matchPoint ? (
-            <p
-              className="font-display text-6xl leading-none font-bold tracking-[0.08em] uppercase short:text-[30px]"
-              style={{ color: leadColor, textShadow: `0 0 18px ${leadColor}` }}
-            >
-              Match Point · {leadName}
-            </p>
+            <>
+              <p
+                className="font-display text-6xl leading-none font-bold tracking-[0.08em] uppercase short:text-[30px]"
+                style={{ color: leadColor, textShadow: `0 0 18px ${leadColor}` }}
+              >
+                {T.matchPoint(leadName)}
+              </p>
+              <p
+                className="font-display text-xl font-bold tracking-[0.04em] short:text-[13px]"
+                style={{ color: leadColor }}
+              >
+                {voice(T.matchPointLine(leadSlot === mySlot))}
+              </p>
+            </>
           ) : (
             <p className="font-display text-6xl leading-none font-bold tracking-[0.08em] text-text uppercase short:text-[30px]">
-              Round {round}
+              {T.title(round)}
             </p>
           )}
 
@@ -141,13 +156,13 @@ export function RoundStartBanner() {
           {/* Round 1: primeiro a moeda gira, depois revela quem começa */}
           {round === 1 && flipping ? (
             <p className="font-mono text-sm tracking-[0.06em] text-text-muted short:text-[9.5px]">
-              sorteando quem começa…
+              {T.flipping}
             </p>
           ) : (
             <>
               {round > 1 && (
                 <p className="font-mono text-sm tracking-[0.06em] text-text-muted short:text-[9.5px]">
-                  alterna a cada round
+                  {T.alternates}
                 </p>
               )}
               {starter && (
@@ -155,7 +170,7 @@ export function RoundStartBanner() {
                   className="font-display text-2xl font-bold tracking-[0.06em] uppercase short:text-sm"
                   style={{ color: starterColor }}
                 >
-                  {starterIsMe ? 'Você começa' : `${starterName} começa`}
+                  {starterIsMe ? T.youStart : T.starts(starterName)}
                 </p>
               )}
             </>
