@@ -1,7 +1,8 @@
 // Falas PROVISÓRIAS do Vitão, só para o motor funcionar e ser testado.
-// A FE-43 troca pelas falas de verdade, no tom de docs/VOICE_GUIDE.md (FE-40).
+// A FE-43 troca pelas frases do Rafik (constants/texts.ts), como já é a da desconexão.
 // `explicit: true` = fala sem filtro, que some quando o filtro das Configurações está ligado.
 // Raiva é sempre MUITO_BRAVO: na cabeça pequena, o BRAVO fica igual ao NORMAL (FE-41).
+import { ARENA_TEXTS, type VoiceLine } from '../../constants/texts'
 import type { VitaoExpression, VitaoLine, VitaoLines } from '../../lib/vitao'
 
 const say = (text: string, expression: VitaoExpression, explicit = false): VitaoLine => ({
@@ -10,7 +11,27 @@ const say = (text: string, expression: VitaoExpression, explicit = false): Vitao
   explicit,
 })
 
+/**
+ * Frase do Rafik (FE-40) como fala do Vitão: sem filtro, a versão [E]; com o filtro, a [C]. Se as
+ * duas forem iguais, vale nos dois modos; sem versão limpa, com o filtro ele fica quieto.
+ */
+export function fromVoice(
+  line: VoiceLine<string | null>,
+  expression: VitaoExpression,
+): VitaoLine[] {
+  if (line.unfiltered === line.filtered) return [say(line.unfiltered, expression)]
+  const clean = line.filtered
+  return [
+    say(line.unfiltered, expression, true),
+    ...(clean ? [{ text: clean, expression, filteredOnly: true }] : []),
+  ]
+}
+
 export const VITAO_LINES: VitaoLines = {
+  OPPONENT_DISCONNECTED: {
+    normal: fromVoice(ARENA_TEXTS.opponentDisconnected.line, 'DEBOCHADO'),
+    devil: [],
+  },
   MOVE_ME: {
     normal: [
       say('Boa, hein? Até eu fiquei surpreso.', 'SURPRESO'),

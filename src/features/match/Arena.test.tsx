@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { MotionGlobalConfig } from 'framer-motion'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -126,6 +126,26 @@ describe('aviso de turno perdido (TURN_TIMEOUT)', () => {
     send('TURN_TIMEOUT', { player: 'P2', consecutiveTimeouts: 1 })
     const toast = screen.getByText('Oponente perdeu a vez').parentElement!
     expect(toast).toHaveTextContent('1/3')
+  })
+
+  it('fica na coluna direita, sem cobrir o tabuleiro, e a habilidade seguinte toma o lugar', async () => {
+    renderArena()
+    send('TURN_TIMEOUT', { player: 'P1', consecutiveTimeouts: 1 })
+    const column = screen.getByRole('complementary', { name: 'Turno e habilidades' })
+    expect(within(column).getByText('Tempo esgotado!')).toBeInTheDocument()
+
+    await tick(500)
+    send('ABILITY_RESOLVED', {
+      by: 'P2',
+      ability: 'BOMBA',
+      targetCell: 5,
+      destinationCell: null,
+      absorbed: false,
+      noEffect: false,
+    })
+    // Um aviso de cada vez: no celular deitado, os dois juntos empurram o deck para fora da tela
+    expect(within(column).getByText('Oponente usou Bomba')).toBeInTheDocument()
+    expect(screen.queryByText('Tempo esgotado!')).not.toBeInTheDocument()
   })
 })
 
@@ -540,12 +560,13 @@ describe('Morte Súbita e empate absoluto (FE-13)', () => {
 })
 
 describe('oponente desconectado', () => {
-  it('aviso fora do tabuleiro com os estouros dele, e some quando ele volta', () => {
+  it('aviso fora do tabuleiro só com os estouros dele (a piada é do Vitão), e some quando ele volta', () => {
     renderArena()
     send('PLAYER_DISCONNECTED', { slot: 'P2' })
     send('TURN_TIMEOUT', { player: 'P2', consecutiveTimeouts: 1 })
     const notice = screen.getByText('Oponente desconectado').parentElement!
-    expect(notice).toHaveTextContent('Será que roubaram o fio do poste dele? · 1/3')
+    expect(notice).toHaveTextContent('Oponente desconectado1/3')
+    expect(notice).not.toHaveTextContent('roubaram')
     // O tabuleiro continua jogável para quem ficou
     expect(screen.getAllByRole('button', { name: /vazia/ }).length).toBeGreaterThan(0)
 

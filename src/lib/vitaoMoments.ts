@@ -9,6 +9,8 @@ export interface VitaoSnapshot {
   /** Última habilidade resolvida: a store troca o objeto a cada habilidade nova */
   lastAbility: { by: PlayerSlot; absorbed: boolean; noEffect: boolean } | null
   lastTimeout: { player: PlayerSlot } | null
+  /** O oponente está conectado (PLAYER_DISCONNECTED / PLAYER_RECONNECTED) */
+  opponentConnected: boolean
   roundEnd: { winner: PlayerSlot | null } | null
   outcome: MatchOutcome | null
   /** Hora em que o MATCH_END chegou; null se o resultado veio de um snapshot de reconexão */
@@ -56,6 +58,11 @@ export function momentsFromChange(
   const timeout = next.lastTimeout
   if (timeout && timeout !== prev.lastTimeout) {
     moments.push({ kind: 'TIMEOUT', by: side(timeout.player, me) })
+  }
+
+  // Oponente caiu: o aviso da Arena fica só com a informação e a piada é do Vitão
+  if (prev.opponentConnected && !next.opponentConnected) {
+    moments.push({ kind: 'OPPONENT_DISCONNECTED' })
   }
 
   const roundEnd = next.roundEnd
