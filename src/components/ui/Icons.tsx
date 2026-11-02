@@ -31,6 +31,17 @@ export function LockIcon({ className }: { className?: string }) {
   )
 }
 
+/** Engrenagem: Configurações */
+export function GearIcon({ className }: { className?: string }) {
+  return (
+    <LineIcon className={className}>
+      <circle cx="12" cy="12" r="6" />
+      <circle cx="12" cy="12" r="2.2" />
+      <path d="M12 2.5 V6 M12 18 V21.5 M2.5 12 H6 M18 12 H21.5 M5.3 5.3 L7.8 7.8 M16.2 16.2 L18.7 18.7 M18.7 5.3 L16.2 7.8 M7.8 16.2 L5.3 18.7" />
+    </LineIcon>
+  )
+}
+
 /** Pausa: duas barras */
 export function PauseIcon({ className }: { className?: string }) {
   return (

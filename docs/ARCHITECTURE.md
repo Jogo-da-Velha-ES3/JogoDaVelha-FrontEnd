@@ -24,6 +24,7 @@ src/
 │   ├── match/           # Arena: turnos, timer, placar MD3, Morte Súbita, banners
 │   ├── results/         # Resultado, Coins, revanche
 │   ├── characters/      # os 6 personagens em SVG (estilo neon) + paleta
+│   ├── settings/        # modal de Configurações (som, música, voz, Vitão, filtro, vibração)
 │   └── vitao/           # Vitão: arte, animação, falas e reações, atrás da flag VITAO_ENABLED
 ├── sockets/            # cliente STOMP + servidor simulado (mock/) com a mesma interface
 ├── lib/                # lógica pura, sem React (testável isolado)
@@ -137,18 +138,19 @@ balão caber no espaço sem cobrir as faixas. O `VitaoSlot` liga o motor ao `Vit
 
 ## 3. Stores (Zustand)
 
-| Store          | Guarda                                                                                                 |
-| -------------- | ------------------------------------------------------------------------------------------------------ |
-| `authStore`    | token, usuário logado, status da sessão                                                                |
-| `profileStore` | apelido, personagem favorito, Coins, inventário (personagens e habilidades), stats                     |
-| `roomStore`    | código da sala, `phase`, jogadores, meu lado (`mySlot`), conexão, queda do oponente, link pendente     |
-| `draftStore`   | personagens reservados por lado, quem está pronto, prazo dos 20s                                       |
-| `matchStore`   | round, placar MD3, Morte Súbita, quem começa, estouros (0–3), fim do round, resultado, Coins, revanche |
-| `boardStore`   | as 16 casas com efeitos e contadores, linha vencedora, última habilidade resolvida                     |
-| `powersStore`  | opções do sorteio, meu deck da rodada, mira em andamento                                               |
-| `timerStore`   | de quem é o turno, prazo do turno (timestamp do servidor), duração (10s/5s)                            |
-| `clockStore`   | diferença entre o relógio do servidor e o do aparelho (`syncWithServer` a cada msg)                    |
-| `toastStore`   | fila de toasts na tela (só interface, não reflete o servidor)                                          |
+| Store           | Guarda                                                                                                 |
+| --------------- | ------------------------------------------------------------------------------------------------------ |
+| `authStore`     | token, usuário logado, status da sessão                                                                |
+| `profileStore`  | apelido, personagem favorito, Coins, inventário (personagens e habilidades), stats                     |
+| `roomStore`     | código da sala, `phase`, jogadores, meu lado (`mySlot`), conexão, queda do oponente, link pendente     |
+| `draftStore`    | personagens reservados por lado, quem está pronto, prazo dos 20s                                       |
+| `matchStore`    | round, placar MD3, Morte Súbita, quem começa, estouros (0–3), fim do round, resultado, Coins, revanche |
+| `boardStore`    | as 16 casas com efeitos e contadores, linha vencedora, última habilidade resolvida                     |
+| `powersStore`   | opções do sorteio, meu deck da rodada, mira em andamento                                               |
+| `timerStore`    | de quem é o turno, prazo do turno (timestamp do servidor), duração (10s/5s)                            |
+| `clockStore`    | diferença entre o relógio do servidor e o do aparelho (`syncWithServer` a cada msg)                    |
+| `toastStore`    | fila de toasts na tela (só interface, não reflete o servidor)                                          |
+| `settingsStore` | preferências das Configurações, guardadas no aparelho (só interface, FE-39)                            |
 
 Regras:
 
@@ -174,8 +176,15 @@ Todo valor fixo do jogo fica aqui, nunca espalhado pelo código. A fonte é o pr
 | `src/constants/texts.ts`      | as frases da interface por tela e as falas do narrador, sem filtro e com filtro (FE-40, guia em `docs/VOICE_GUIDE.md`)               |
 
 O filtro de linguagem é lido por um hook só, `useLanguageFilter` (`src/hooks/useLanguageFilter.ts`),
-que o Vitão também usa. Ele devolve `false` até as Configurações (FE-39) existirem. Nos
-componentes, `useVoice()` escolhe a versão de cada fala.
+que o Vitão também usa. Ele lê o filtro de palavrões das Configurações (`settingsStore`, FE-39),
+desligado por padrão. Nos componentes, `useVoice()` escolhe a versão de cada fala.
+
+As Configurações (FE-39) ficam em `src/features/settings/SettingsModal.tsx` e abrem pelo Hub
+(engrenagem na barra lateral) e pela pausa da Arena. O `settingsStore` guarda as preferências no
+aparelho e funciona sem armazenamento (aba anônima). Quem lê: o motor de som (volume e mudo de
+música e efeitos, em `initSound`), `useLanguageFilter`, a vibração da Morte Súbita
+(`useVibration`) e o `VitaoSlot` (Vitão desligado some, mesmo com a flag `VITAO_ENABLED` ligada). O
+volume da voz fica guardado para a FE-48.
 
 Os identificadores de habilidade e personagem (`'BOMBA'`, `'CAMPO_DE_FORCA'`, `'TRIANGULO'`...) devem
 bater com os enums do back — confirmar na FE-17.

@@ -1,13 +1,13 @@
 import { voiceText, type VoiceLine } from '../constants/texts'
+import { useSettingsStore } from '../stores/settingsStore'
 
 /**
- * Filtro de linguagem das Configurações: ligado, as falas do narrador trocam pela versão filtrada
- * (FE-40) e o Vitão perde as falas `explicit` (FE-44).
- * TODO FE-39: ler do modal de Configurações (localStorage ou store de configurações).
- * Por enquanto, desligado: "sem filtro por padrão" (PROJECT_CONTEXT §9).
+ * Filtro de linguagem das Configurações (FE-39): ligado, as falas do narrador trocam pela versão
+ * filtrada (FE-40) e o Vitão perde as falas `explicit` (FE-44). Desligado por padrão: "sem filtro
+ * por padrão" (PROJECT_CONTEXT §9).
  */
 export function useLanguageFilter(): boolean {
-  return false
+  return useSettingsStore((s) => s.languageFilter)
 }
 
 /** Escolhe a versão de cada fala do narrador (ver constants/texts.ts) pelo filtro atual */

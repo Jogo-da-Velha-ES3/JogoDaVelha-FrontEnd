@@ -89,6 +89,16 @@ export const HUB_TEXTS = {
   logoutBody: 'Você vai precisar entrar de novo com seu e-mail ou usuário e senha.',
 } as const
 
+// ── Configurações (FE-39) ──
+export const SETTINGS_TEXTS = {
+  title: 'Configurações',
+  savedHint: 'Vale na hora e fica guardado neste aparelho.',
+  voiceSoon: 'A voz do Vitão chega em breve.',
+  vitaoHint: 'Desligado, o Vitão some da partida, com balão e voz.',
+  filterHint: 'Troca os palavrões por versões leves.',
+  vibrationHint: 'Nos 3 últimos segundos da Morte Súbita. O iPhone não vibra.',
+} as const
+
 // ── Sala: criar, entrar, Sala de Espera e "Match feito" ──
 export const ROOM_TEXTS = {
   roomOf: (host: string) => `Sala de ${host}`,

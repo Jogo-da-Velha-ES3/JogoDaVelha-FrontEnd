@@ -22,6 +22,7 @@ import { HowToPlayModal } from '../hub/HowToPlayModal'
 import { AbilityNotice } from '../powers/AbilityNotice'
 import { DrawPicker } from '../powers/DrawPicker'
 import { DeckHud } from '../powers/DeckHud'
+import { SettingsModal } from '../settings/SettingsModal'
 import { useAbilityAim } from '../powers/useAbilityAim'
 import { VitaoSlot } from '../vitao/VitaoSlot'
 import { OpponentDisconnectedNotice } from './OpponentDisconnectedNotice'
@@ -34,7 +35,7 @@ import { useSuddenDeathEntrance } from './useSuddenDeathEntrance'
 import { TurnTimeoutToast } from './TurnTimeoutToast'
 import { VsBanner } from './VsBanner'
 
-type ModalKind = 'howToPlay' | 'quit' | null
+type ModalKind = 'howToPlay' | 'settings' | 'quit' | null
 
 const colorOf = (character: CharacterId | null | undefined) =>
   character ? CHARACTER_INFO[character].color : undefined
@@ -357,6 +358,7 @@ export function Arena({ onQuit }: ArenaProps) {
           open={pauseOpen}
           onClose={() => setPauseOpen(false)}
           onHowToPlay={() => openModal('howToPlay')}
+          onSettings={() => openModal('settings')}
           onQuit={() => openModal('quit')}
         />
       </div>
@@ -367,6 +369,7 @@ export function Arena({ onQuit }: ArenaProps) {
         onClose={closeModalToPause}
         closeLabel="Voltar ao menu"
       />
+      <SettingsModal open={activeModal === 'settings'} onClose={closeModalToPause} />
       <QuitModal open={activeModal === 'quit'} onContinue={closeModalToPause} onQuit={quit} />
     </>
   )
