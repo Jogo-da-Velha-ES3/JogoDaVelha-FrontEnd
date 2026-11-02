@@ -148,7 +148,7 @@ export const SHOP_TEXTS = {
   buying: 'Comprando…',
   bought: (name: string) => `${name} é seu!`,
   /** Coração no canto do card do personagem: o que o leitor de tela anuncia */
-  useAsFavorite: (name: string) => `Usar ${name} como favorito`,
+  markFavorite: (name: string) => `Usar ${name} como favorito`,
   isFavorite: (name: string) => `${name} é o seu favorito`,
   equipped: (name: string) => `${name} agora é o seu favorito.`,
   errors: {

@@ -250,10 +250,10 @@ function ItemCard({
           type="button"
           aria-pressed={item.equipped}
           aria-label={
-            item.equipped ? SHOP_TEXTS.isFavorite(item.name) : SHOP_TEXTS.useAsFavorite(item.name)
+            item.equipped ? SHOP_TEXTS.isFavorite(item.name) : SHOP_TEXTS.markFavorite(item.name)
           }
           title={
-            item.equipped ? SHOP_TEXTS.isFavorite(item.name) : SHOP_TEXTS.useAsFavorite(item.name)
+            item.equipped ? SHOP_TEXTS.isFavorite(item.name) : SHOP_TEXTS.markFavorite(item.name)
           }
           // O favorito não se desmarca: o jogador sempre tem um, e trocar é marcar outro
           disabled={item.equipped || favorite.disabled}
