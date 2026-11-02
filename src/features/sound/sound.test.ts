@@ -4,7 +4,9 @@ import { useBoardStore } from '../../stores/boardStore'
 import { useRoomStore } from '../../stores/roomStore'
 import type { ServerEvent } from '../../types/events'
 import type { Cell, PlayerSlot } from '../../types/game'
-import { playSound } from './soundManager'
+import { DEFAULT_SETTINGS } from '../../stores/settingsStore'
+import { applySoundSettings } from '.'
+import { playSound, soundSettings } from './soundManager'
 import { COINS_DELAY_MS, SOUND_KEYS, soundUrl } from './soundMap'
 
 vi.mock('./soundManager', async (importOriginal) => {
@@ -110,5 +112,24 @@ describe('mapa evento → som (FE-37)', () => {
 describe('arquivos de som (src/assets/sounds)', () => {
   it('todo som do mapa tem arquivo', () => {
     expect(SOUND_KEYS.filter((key) => !soundUrl(key))).toEqual([])
+  })
+})
+
+describe('Configurações no motor de som (FE-39)', () => {
+  it('volume e mudo de música e efeitos vêm das preferências', () => {
+    applySoundSettings({
+      ...DEFAULT_SETTINGS,
+      musicOn: false,
+      musicVolume: 0.5,
+      sfxOn: true,
+      sfxVolume: 0.2,
+    })
+    expect(soundSettings.get()).toEqual({
+      musicVolume: 0.5,
+      musicMuted: true,
+      sfxVolume: 0.2,
+      sfxMuted: false,
+    })
+    applySoundSettings(DEFAULT_SETTINGS)
   })
 })

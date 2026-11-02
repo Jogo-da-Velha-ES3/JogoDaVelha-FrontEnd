@@ -1,5 +1,6 @@
 import { VITAO_ENABLED } from '../../constants/game'
 import { useMatchStore } from '../../stores/matchStore'
+import { useSettingsStore } from '../../stores/settingsStore'
 import { useVitaoReactions } from './useVitaoReactions'
 import { VitaoView } from './VitaoView'
 
@@ -21,13 +22,17 @@ function VitaoPresence() {
 }
 
 /**
- * Espaço do Vitão na coluna esquerda da Arena, entre os dois jogadores. Com a flag desligada, o
- * espaço existe, mas nada aparece (PROJECT_CONTEXT §9).
+ * Espaço do Vitão na coluna esquerda da Arena, entre os dois jogadores. Com a flag desligada, ou
+ * com o Vitão desligado nas Configurações (FE-39), o espaço existe, mas nada aparece
+ * (PROJECT_CONTEXT §9).
  */
 export function VitaoSlot() {
+  const vitaoOn = useSettingsStore((s) => s.vitaoOn)
+  const visible = VITAO_ENABLED && vitaoOn
+
   return (
-    <div data-region="vitao" aria-hidden={!VITAO_ENABLED} className="min-h-0 flex-1 select-none">
-      {VITAO_ENABLED && <VitaoPresence />}
+    <div data-region="vitao" aria-hidden={!visible} className="min-h-0 flex-1 select-none">
+      {visible && <VitaoPresence />}
     </div>
   )
 }

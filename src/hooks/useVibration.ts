@@ -1,18 +1,9 @@
 import { useEffect, useRef } from 'react'
-
-/**
- * Lê a preferência de vibração do usuário.
- * TODO FE-39: integrar com o modal de Configurações quando implementado.
- * Por enquanto, retorna sempre `true` (vibração ligada por padrão).
- */
-function useVibrationPreference(): boolean {
-  // TODO FE-39: substituir por leitura de localStorage ou store de configurações
-  return true
-}
+import { useSettingsStore } from '../stores/settingsStore'
 
 /**
  * Hook para vibrar o celular nos 3 últimos segundos do turno na Morte Súbita.
- * Respeita a preferência do usuário (quando FE-39 for implementada).
+ * Respeita a vibração das Configurações (FE-39).
  * Não quebra em dispositivos sem suporte a vibração (iPhone/desktop).
  *
  * @param remainingSeconds - Segundos restantes do turno (do useServerTimer)
@@ -24,7 +15,7 @@ export function useSuddenDeathVibration(
   isMyTurn: boolean,
   suddenDeath: boolean,
 ) {
-  const vibrationEnabled = useVibrationPreference()
+  const vibrationEnabled = useSettingsStore((s) => s.vibrationOn)
   const lastVibratedSecond = useRef<number | null>(null)
 
   useEffect(() => {

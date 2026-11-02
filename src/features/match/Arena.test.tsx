@@ -639,10 +639,19 @@ describe('menu de pausa', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Pausa' }))
     expect(screen.getByRole('dialog', { name: 'Menu de pausa' })).toBeInTheDocument()
     expect(useTimerStore.getState().turn).toBe(turnBefore) // nada foi mandado ao servidor
-    expect(screen.getByRole('button', { name: 'Configurações · em breve' })).toBeDisabled()
 
     fireEvent.click(screen.getByRole('button', { name: 'Desistir' }))
     fireEvent.click(screen.getAllByRole('button', { name: 'Desistir' }).at(-1)!)
     expect(onQuit).toHaveBeenCalledOnce()
+  })
+
+  it('abre as Configurações (FE-39) e volta para o menu ao fechar', () => {
+    renderArena()
+    fireEvent.click(screen.getByRole('button', { name: 'Pausa' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Configurações' }))
+    expect(screen.getByRole('dialog', { name: 'Configurações' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Fechar' }))
+    expect(screen.getByRole('dialog', { name: 'Menu de pausa' })).toBeInTheDocument()
   })
 })
