@@ -114,6 +114,52 @@ export const PROFILE_TEXTS = {
   },
 } as const
 
+// ── Loja (FE-31) ──
+export const SHOP_TEXTS = {
+  title: 'Loja',
+  tabs: { characters: 'Personagens', skills: 'Habilidades', cosmetics: 'Cosméticos' },
+  soon: 'Em breve',
+  cosmeticsSoon: 'Skins, molduras e estilos de tabuleiro chegam depois. Por enquanto, é só jogar.',
+  buyCoins: 'Comprar Coins',
+  /** Até a FE-32 (modal de Coins) chegar */
+  buyCoinsSoon: 'Chega com a FE-32',
+  loading: 'Carregando a Loja…',
+  loadError: 'Não foi possível abrir a Loja agora.',
+  retry: 'Tentar de novo',
+  owned: 'Seu',
+  favorite: 'Favorito',
+  price: (coins: number) => `${coins.toLocaleString('pt-BR')} Coins`,
+  missing: (coins: number) => `Faltam ${coins.toLocaleString('pt-BR')} Coins`,
+  buy: (coins: number) => `Comprar · ${coins.toLocaleString('pt-BR')} Coins`,
+  buyAria: (name: string, coins: number) =>
+    `Comprar ${name} por ${coins.toLocaleString('pt-BR')} Coins`,
+  details: (name: string) => `Ver ${name}`,
+  kinds: { OFENSIVA: 'Ofensiva', DEFENSIVA: 'Defensiva', MOVIMENTO: 'Movimento' },
+  /** Personagem é só visual no MVP: não muda nada na partida */
+  characterHint: 'Muda só a aparência do seu lado na partida.',
+  /** Comprar uma habilidade dá o direito de escolhê-la como inicial [RN-LOJ-02] */
+  skillHint: 'Comprada, ela entra nas suas opções de Habilidades Iniciais na Preparação.',
+  demoLabel: (name: string) => `Demonstração: ${name}`,
+  close: 'Fechar',
+  confirmTitle: (name: string) => `Comprar ${name}?`,
+  confirmBody: (price: number, after: number) =>
+    `Custa ${price.toLocaleString('pt-BR')} Coins. Seu saldo fica em ${after.toLocaleString('pt-BR')}.`,
+  cancel: 'Cancelar',
+  confirm: 'Comprar',
+  buying: 'Comprando…',
+  bought: (name: string) => `${name} é seu!`,
+  useAsFavorite: 'Usar como favorito',
+  equipping: 'Trocando…',
+  isFavorite: 'Seu favorito',
+  equipped: (name: string) => `${name} agora é o seu favorito.`,
+  errors: {
+    insufficientCoins: 'Coins insuficientes para essa compra.',
+    alreadyOwned: 'Esse item já é seu.',
+    notOwned: 'Compre o personagem antes de usar como favorito.',
+    generic: 'Não foi possível concluir agora. Tente de novo.',
+  },
+} as const
+
 // ── Sala: criar, entrar, Sala de Espera e "Match feito" ──
 export const ROOM_TEXTS = {
   roomOf: (host: string) => `Sala de ${host}`,
