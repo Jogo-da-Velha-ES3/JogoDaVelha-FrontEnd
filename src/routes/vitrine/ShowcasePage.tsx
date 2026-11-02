@@ -8,6 +8,7 @@ import { CharacterShowcase } from './CharacterShowcase'
 import { ComponentsShowcase } from './ComponentsShowcase'
 import { MockMatchShowcase } from './MockMatchShowcase'
 import { ShowcasePanel } from './ShowcaseLayout'
+import { VitaoShowcase } from './VitaoShowcase'
 
 interface Tab {
   id: string
@@ -59,6 +60,13 @@ const TABS: Tab[] = [
     description:
       'As peças de interface que as telas usam: cores, botões, modal, avisos, banners e timer.',
     content: <ComponentsShowcase />,
+  },
+  {
+    id: 'vitao',
+    label: 'Vitão',
+    description:
+      'O Vitão parado, as 8 expressões com a reação de cada uma e o balão de fala, no tamanho do espaço da Arena no celular deitado e no desktop.',
+    content: <VitaoShowcase />,
   },
 ]
 
