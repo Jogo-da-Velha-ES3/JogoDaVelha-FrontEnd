@@ -3,6 +3,7 @@
 // Já instalado, ou num navegador que não instala sites (ex: Firefox no computador): o botão some.
 import { useState } from 'react'
 import { Button, Modal } from '../../components/ui'
+import { HUB_TEXTS } from '../../constants/texts'
 import { useInstallPrompt } from '../../hooks/useInstallPrompt'
 import { showToast } from '../../stores/toastStore'
 
@@ -19,7 +20,7 @@ export function InstallAppButton({ className = '' }: { className?: string }) {
     }
     const outcome = await install()
     if (outcome === 'accepted') {
-      showToast({ message: 'Jogo instalado! Ele já está na sua tela inicial.' })
+      showToast({ message: HUB_TEXTS.installed })
     }
   }
 
@@ -33,29 +34,17 @@ export function InstallAppButton({ className = '' }: { className?: string }) {
   )
 }
 
-const IOS_STEPS = [
-  {
-    title: 'Toque em Compartilhar',
-    detail: 'É o quadrado com a seta para cima, na barra do navegador.',
-  },
-  { title: 'Escolha "Adicionar à Tela de Início"', detail: 'Se não aparecer, role a lista.' },
-  {
-    title: 'Toque em "Adicionar"',
-    detail: 'O Jogo do Velho aparece na tela inicial e abre em tela cheia.',
-  },
-]
-
 function IosInstallModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   return (
     <Modal
       open={open}
       onClose={onClose}
-      title="Instalar o jogo"
+      title={HUB_TEXTS.iosInstallTitle}
       size="sm"
       actions={<Button onClick={onClose}>Entendi</Button>}
     >
       <ol className="flex flex-col gap-2 short:gap-1.5">
-        {IOS_STEPS.map((step, i) => (
+        {HUB_TEXTS.iosInstallSteps.map((step, i) => (
           <li key={step.title} className="flex gap-3">
             <span
               aria-hidden
