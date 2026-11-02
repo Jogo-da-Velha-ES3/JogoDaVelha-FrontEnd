@@ -5,10 +5,11 @@ import {
   VITAO_COOLDOWN_SECONDS,
   VITAO_DECISION_WINDOW_MS,
 } from '../../constants/game'
+import { ARENA_TEXTS } from '../../constants/texts'
 import { emptyCells, initialBoardState, useBoardStore } from '../../stores/boardStore'
 import { INITIAL_MATCH_STATE, useMatchStore } from '../../stores/matchStore'
 import { useRoomStore } from '../../stores/roomStore'
-import type { PlayerSlot } from '../../types/game'
+import type { PlayerSlot, PlayerState } from '../../types/game'
 import { useVitaoReactions } from './useVitaoReactions'
 
 const boardWith = (owners: Record<number, PlayerSlot>) =>
@@ -29,7 +30,7 @@ beforeEach(() => {
   vi.spyOn(Math, 'random').mockReturnValue(0)
   useBoardStore.setState(initialBoardState(), true)
   useMatchStore.setState({ ...INITIAL_MATCH_STATE, roundStartedAt: 1000 }, true)
-  useRoomStore.setState({ mySlot: 'P1' })
+  useRoomStore.setState({ mySlot: 'P1', players: [] })
 })
 
 afterEach(() => {
@@ -133,6 +134,26 @@ describe('useVitaoReactions', () => {
     act(() => useBoardStore.setState({ cells: boardWith({ 1: 'P1', 2: 'P2', 3: 'P1' }) }))
     waitWindow()
     expect(result.current).toBeNull()
+  })
+
+  it('oponente caiu: o Vitão faz a piada do Rafik que saiu do aviso da Arena', () => {
+    const p2 = (connected: boolean): PlayerState => ({
+      slot: 'P2',
+      userId: 'u-P2',
+      nickname: 'P2',
+      character: null,
+      roundsWon: 0,
+      consecutiveTimeouts: 0,
+      forceFieldTurnsLeft: 0,
+      silenced: false,
+      connected,
+    })
+    useRoomStore.setState({ players: [p2(true)] })
+    const { result } = renderHook(() => useVitaoReactions())
+    act(() => useRoomStore.setState({ players: [p2(false)] }))
+    waitWindow()
+    expect(result.current?.moment).toEqual({ kind: 'OPPONENT_DISCONNECTED' })
+    expect(result.current?.text).toBe(ARENA_TEXTS.opponentDisconnected.line.unfiltered)
   })
 
   it('W.O. reage uma vez; repetido não reage de novo', () => {

@@ -9,6 +9,7 @@ const snap = (over: Partial<VitaoSnapshot> = {}): VitaoSnapshot => ({
   cells: cells(),
   lastAbility: null,
   lastTimeout: null,
+  opponentConnected: true,
   roundEnd: null,
   outcome: null,
   outcomeReceivedAt: null,
@@ -51,6 +52,12 @@ describe('momentsFromChange', () => {
 
   it('estouro de tempo', () => {
     expect(change({ lastTimeout: { player: 'P1' } })).toEqual([{ kind: 'TIMEOUT', by: 'ME' }])
+  })
+
+  it('oponente caiu: reage na queda, não enquanto continua fora nem quando volta', () => {
+    expect(change({ opponentConnected: false })).toEqual([{ kind: 'OPPONENT_DISCONNECTED' }])
+    expect(change({}, { opponentConnected: false })).toEqual([])
+    expect(change({ opponentConnected: true }, { opponentConnected: false })).toEqual([])
   })
 
   it('fim de round: vitória minha, do oponente e empate', () => {

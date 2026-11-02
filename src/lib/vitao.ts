@@ -13,6 +13,7 @@ export type VitaoMoment =
   | { kind: 'MOVE'; by: VitaoSide }
   | { kind: 'ABILITY'; by: VitaoSide; absorbed: boolean; noEffect: boolean }
   | { kind: 'TIMEOUT'; by: VitaoSide }
+  | { kind: 'OPPONENT_DISCONNECTED' }
   | { kind: 'ROUND_END'; winner: VitaoSide | 'DRAW' }
   | { kind: 'SUDDEN_DEATH_START' }
   | { kind: 'WO'; winner: VitaoSide }
@@ -26,6 +27,7 @@ export type VitaoLineKey =
   | 'ABILITY_NO_EFFECT'
   | 'TIMEOUT_ME'
   | 'TIMEOUT_OPPONENT'
+  | 'OPPONENT_DISCONNECTED'
   | 'ROUND_WIN_ME'
   | 'ROUND_WIN_OPPONENT'
   | 'ROUND_DRAW'
@@ -38,6 +40,8 @@ export interface VitaoLine {
   expression: VitaoExpression
   /** Fala sem filtro: some quando o filtro das Configurações está ligado */
   explicit?: boolean
+  /** Versão limpa de uma fala `explicit` (o [C] do Rafik): só aparece com o filtro ligado */
+  filteredOnly?: boolean
 }
 
 /** Falas por momento: a versão normal e a versão "Diabo" (Morte Súbita) */
@@ -73,6 +77,7 @@ const PRIORITY: Record<VitaoMoment['kind'], number> = {
   MOVE: 1,
   ABILITY: 2,
   TIMEOUT: 2,
+  OPPONENT_DISCONNECTED: 2,
   ROUND_END: 3,
   SUDDEN_DEATH_START: 3,
   WO: 3,
@@ -101,6 +106,8 @@ export function lineKey(moment: VitaoMoment): VitaoLineKey {
       return moment.by === 'ME' ? 'ABILITY_ME' : 'ABILITY_OPPONENT'
     case 'TIMEOUT':
       return moment.by === 'ME' ? 'TIMEOUT_ME' : 'TIMEOUT_OPPONENT'
+    case 'OPPONENT_DISCONNECTED':
+      return 'OPPONENT_DISCONNECTED'
     case 'ROUND_END':
       if (moment.winner === 'DRAW') return 'ROUND_DRAW'
       return moment.winner === 'ME' ? 'ROUND_WIN_ME' : 'ROUND_WIN_OPPONENT'
@@ -142,7 +149,7 @@ export function decideVitaoReaction(
 
   const devil = ctx.suddenDeath
   const pool = devil && entry.devil.length > 0 ? entry.devil : entry.normal
-  const allowed = ctx.filterOn ? pool.filter((line) => !line.explicit) : pool
+  const allowed = pool.filter((line) => (ctx.filterOn ? !line.explicit : !line.filteredOnly))
 
   const line = allowed[Math.floor(random() * allowed.length)]
   if (!line) return null

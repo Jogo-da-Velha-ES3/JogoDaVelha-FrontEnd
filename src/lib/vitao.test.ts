@@ -103,6 +103,24 @@ describe('decideVitaoReaction', () => {
     expect(decideVitaoReaction([moment], ctx({ filterOn: true }), lines)).toBeNull()
   })
 
+  it('frase com versão limpa: sem filtro a [E], com o filtro a [C]', () => {
+    const paired: VitaoLines = {
+      OPPONENT_DISCONNECTED: {
+        normal: [
+          { text: 'Roubaram o fio?', expression: 'DEBOCHADO', explicit: true },
+          { text: 'Os turnos dele correm', expression: 'DEBOCHADO', filteredOnly: true },
+        ],
+        devil: [],
+      },
+    }
+    const moment: VitaoMoment = { kind: 'OPPONENT_DISCONNECTED' }
+    // random 0.99 pegaria a última da lista se as duas valessem
+    const pick = (filterOn: boolean) =>
+      decideVitaoReaction([moment], ctx({ filterOn, random: () => 0.99 }), paired)?.text
+    expect(pick(false)).toBe('Roubaram o fio?')
+    expect(pick(true)).toBe('Os turnos dele correm')
+  })
+
   it('momento sem falas cadastradas: fica quieto, sem quebrar', () => {
     const moment: VitaoMoment = { kind: 'WO', winner: 'OPPONENT' }
     expect(decideVitaoReaction([moment], ctx(), lines)).toBeNull()

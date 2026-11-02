@@ -68,6 +68,7 @@ export function Arena({ onQuit }: ArenaProps) {
   const roundEnd = useMatchStore((s) => s.roundEnd)
   const outcome = useMatchStore((s) => s.outcome)
   const coins = useMatchStore((s) => s.coins)
+  const lastTimeoutAt = useMatchStore((s) => s.lastTimeout?.receivedAt ?? null)
   const enteringSuddenDeath = useSuddenDeathEntrance()
   const cells = useBoardStore((s) => s.cells)
   const winningLine = useBoardStore((s) => s.winningLine)
@@ -264,8 +265,15 @@ export function Arena({ onQuit }: ArenaProps) {
             </p>
           )}
 
-          {/* Habilidade do oponente, anulada ou sem efeito: aqui, para não cobrir o tabuleiro */}
-          <AbilityNotice />
+          {/* Turno perdido (TURN_TIMEOUT) ou habilidade do oponente, anulada ou sem efeito: aqui,
+              para não cobrir o tabuleiro. Um de cada vez, o mais novo: no celular deitado, os
+              dois juntos empurram o deck para fora da tela (o x/3 continua na faixa) */}
+          {lastTimeoutAt !== null &&
+          (lastAbility === null || lastTimeoutAt > lastAbility.receivedAt) ? (
+            <TurnTimeoutToast />
+          ) : (
+            <AbilityNotice />
+          )}
 
           <DeckHud
             deck={deck}
@@ -329,9 +337,6 @@ export function Arena({ onQuit }: ArenaProps) {
             }
             tone="coin"
           />
-
-          {/* Toast de turno perdido (TURN_TIMEOUT) */}
-          <TurnTimeoutToast />
 
           {/* Morte Súbita: entrada (flash, fitas, banner), bordas pulsando, vibração e sons (FE-13) */}
           <SuddenDeathLayer />

@@ -126,8 +126,14 @@ O motor de reações do Vitão (FE-44) fica em `src/features/vitao/` e `src/lib/
 Morte Súbita, filtro) e a detecção dos momentos também (`lib/vitaoMoments.ts`, pela diferença entre
 dois retratos das stores). O hook `useVitaoReactions` observa as stores, que só mudam por evento do
 servidor, e entrega a fala atual ao `VitaoSlot`. O momento grande fala na hora, mesmo dentro da
-pausa de 6s, no lugar da fala atual. As falas provisórias estão em `features/vitao/vitaoLines.ts` (a FE-43 as
-troca). A flag `VITAO_ENABLED` foi ligada em 31/10, com a FE-44.
+pausa de 6s, no lugar da fala atual. As falas provisórias estão em `features/vitao/vitaoLines.ts` (a
+FE-43 troca pelas frases do Rafik de `constants/texts.ts` e tira as piadas dos banners). A flag
+`VITAO_ENABLED` foi ligada em 31/10, com a FE-44.
+
+O desenho do Vitão (FE-42) é o `VitaoView`, que não lê store: recebe a expressão, a fala e o `id` da
+fala, respira parado, toca a reação de cada expressão a cada fala nova e encolhe a cabeça para o
+balão caber no espaço sem cobrir as faixas. O `VitaoSlot` liga o motor ao `VitaoView`, e a vitrine
+(aba Vitão) usa o `VitaoView` direto.
 
 ## 3. Stores (Zustand)
 

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { VITAO_BUBBLE_SECONDS, VITAO_DECISION_WINDOW_MS } from '../../constants/game'
 import { useLanguageFilter } from '../../hooks/useLanguageFilter'
+import { otherSlot } from '../../lib/match'
 import { decideVitaoReaction, type VitaoMoment, type VitaoReaction } from '../../lib/vitao'
 import { momentsFromChange, type VitaoSnapshot } from '../../lib/vitaoMoments'
 import { useBoardStore } from '../../stores/boardStore'
@@ -16,10 +17,13 @@ export interface ShownReaction extends VitaoReaction {
 function readSnapshot(): VitaoSnapshot {
   const board = useBoardStore.getState()
   const match = useMatchStore.getState()
+  const room = useRoomStore.getState()
+  const opponent = room.players.find((p) => p.slot === otherSlot(room.mySlot ?? 'P1'))
   return {
     cells: board.cells,
     lastAbility: board.lastAbility,
     lastTimeout: match.lastTimeout,
+    opponentConnected: opponent?.connected !== false,
     roundEnd: match.roundEnd,
     outcome: match.outcome,
     outcomeReceivedAt: match.outcomeReceivedAt,
@@ -86,7 +90,11 @@ export function useVitaoReactions(): ShownReaction | null {
       if (timer === null) timer = setTimeout(decide, VITAO_DECISION_WINDOW_MS)
     }
 
-    const unsubscribers = [useBoardStore.subscribe(onChange), useMatchStore.subscribe(onChange)]
+    const unsubscribers = [
+      useBoardStore.subscribe(onChange),
+      useMatchStore.subscribe(onChange),
+      useRoomStore.subscribe(onChange),
+    ]
     return () => {
       for (const unsubscribe of unsubscribers) unsubscribe()
       if (timer !== null) clearTimeout(timer)
