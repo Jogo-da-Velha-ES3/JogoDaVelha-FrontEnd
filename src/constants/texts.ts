@@ -87,6 +87,21 @@ export const ACCESS_TEXTS = {
 export const HUB_TEXTS = {
   logoutTitle: 'Quer mesmo sair?',
   logoutBody: 'Você vai precisar entrar de novo com seu e-mail ou usuário e senha.',
+  /** Instalar App (FE-16) [RF-HUB-06]: toast depois de aceitar a janela do navegador */
+  installed: 'Jogo instalado! Ele já está na sua tela inicial.',
+  /** iPhone/iPad não têm janela de instalação: passo a passo do Compartilhar do Safari */
+  iosInstallTitle: 'Instalar o jogo',
+  iosInstallSteps: [
+    {
+      title: 'Toque em Compartilhar',
+      detail: 'É o quadrado com a seta para cima, na barra do navegador.',
+    },
+    { title: 'Escolha "Adicionar à Tela de Início"', detail: 'Se não aparecer, role a lista.' },
+    {
+      title: 'Toque em "Adicionar"',
+      detail: 'O Jogo do Velho aparece na tela inicial e abre em tela cheia.',
+    },
+  ],
 } as const
 
 // ── Configurações (FE-39) ──
