@@ -1,15 +1,19 @@
 import { PlayScreen } from '../features/hub/PlayScreen'
 import { ShopScreen } from '../features/shop/ShopScreen'
-import { PagePlaceholder } from './PagePlaceholder'
+import { ProfileScreen } from '../features/profile/ProfileScreen'
+import { useSearchParams } from 'react-router-dom'
 
 export function PlayPage() {
   return <PlayScreen />
 }
 
 export function ShopPage() {
-  return <ShopScreen />
+  const [searchParams] = useSearchParams()
+  const category = searchParams.get('categoria')
+  const initialTab = category === 'skills' || category === 'characters' ? category : 'characters'
+  return <ShopScreen key={initialTab} initialTab={initialTab} />
 }
 
 export function ProfilePage() {
-  return <PagePlaceholder title="Perfil" card="FE-33" owner="Matheus" />
+  return <ProfileScreen />
 }
