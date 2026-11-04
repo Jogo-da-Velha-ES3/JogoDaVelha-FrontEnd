@@ -348,15 +348,20 @@ as constantes, os tipos, o cliente REST (`src/api/`) e ligou o modo `strict` do 
 ### PWA (FE-16)
 
 O jogo é instalável pelo **vite-plugin-pwa** (configurado em `vite.config.ts`), que gera o manifest
-e o service worker (Workbox) no `npm run build` e injeta o registro no `index.html`.
+e o service worker (Workbox) no `npm run build`. O registro fica em `src/pwa/registerServiceWorker.ts`.
 
 - **Manifest** (no `vite.config.ts`): nome, `display: "fullscreen"`, `orientation: "landscape"`,
   cores no `--color-bg-deep` (`#07060e`) e os ícones de `public/icons/` (192, 512 e um "maskable"
   para o Android recortar). O iPhone usa o `apple-touch-icon` e as metas `apple-mobile-web-app-*`
   do `index.html`.
-- **Service worker:** `registerType: "autoUpdate"` (versão nova entra sozinha). Guarda o app (JS,
-  CSS, HTML e imagens) para abrir sem rede; sons ficam de fora. Toda rota cai no `index.html`, e
+- **Service worker:** `registerType: "autoUpdate"`. Guarda o app (JS, CSS, HTML e imagens) para
+  abrir sem rede; sons ficam de fora. Toda rota cai no `index.html`, e
   `/api/` nunca passa pelo cache. Partida e sala vão por WebSocket, que o service worker não toca.
+- **Versão nova:** depois de um deploy, o jogo abre com a versão do cache e o service worker novo
+  assume em segundos, apagando os arquivos velhos. Por isso a página recarrega nessa hora
+  (`onNeedReload`): sem isso, o primeiro arquivo carregado sob demanda (a conexão da sala) não
+  existe mais e a sala não abre. Dentro da sala não recarrega, para não derrubar a partida; o
+  código dela já carregou, e a versão nova entra na próxima vez que o jogo abrir.
 - Só existe no build: no `npm run dev` e nos testes ele fica desligado. Para testar a instalação,
   use o preview da Vercel (HTTPS).
 - `src/pwa/installPrompt.ts` guarda o `beforeinstallprompt` desde o `main.tsx`, porque o navegador

@@ -10,10 +10,11 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
-    // PWA (FE-16) [RNF-ARQ-03]: gera o manifest e o service worker (Workbox) no build e injeta o
-    // registro no index.html. No `npm run dev` e nos testes fica desligado.
+    // PWA (FE-16) [RNF-ARQ-03]: gera o manifest e o service worker (Workbox) no build; o registro
+    // fica em src/pwa/registerServiceWorker.ts. No `npm run dev` e nos testes fica desligado.
     VitePWA({
       registerType: 'autoUpdate',
+      // 'auto' com o import de src/pwa/registerServiceWorker.ts: o plugin não injeta script nenhum
       injectRegister: 'auto',
       includeAssets: ['favicon.svg', 'icons/apple-touch-icon.png'],
       manifest: {
