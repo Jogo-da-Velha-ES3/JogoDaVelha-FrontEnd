@@ -87,6 +87,21 @@ export const ACCESS_TEXTS = {
 export const HUB_TEXTS = {
   logoutTitle: 'Quer mesmo sair?',
   logoutBody: 'Você vai precisar entrar de novo com seu e-mail ou usuário e senha.',
+  /** Instalar App (FE-16) [RF-HUB-06]: toast depois de aceitar a janela do navegador */
+  installed: 'Jogo instalado! Ele já está na sua tela inicial.',
+  /** iPhone/iPad não têm janela de instalação: passo a passo do Compartilhar do Safari */
+  iosInstallTitle: 'Instalar o jogo',
+  iosInstallSteps: [
+    {
+      title: 'Toque em Compartilhar',
+      detail: 'É o quadrado com a seta para cima, na barra do navegador.',
+    },
+    { title: 'Escolha "Adicionar à Tela de Início"', detail: 'Se não aparecer, role a lista.' },
+    {
+      title: 'Toque em "Adicionar"',
+      detail: 'O Jogo do Velho aparece na tela inicial e abre em tela cheia.',
+    },
+  ],
 } as const
 
 // ── Configurações (FE-39) ──
@@ -97,6 +112,71 @@ export const SETTINGS_TEXTS = {
   vitaoHint: 'Desligado, o Vitão some da partida, com balão e voz.',
   filterHint: 'Troca os palavrões por versões leves.',
   vibrationHint: 'Nos 3 últimos segundos da Morte Súbita. O iPhone não vibra.',
+} as const
+
+// ── Perfil, Loja e Coins (FE-30) ──
+export const PROFILE_TEXTS = {
+  /** Apelido mostrado enquanto o perfil não carregou */
+  loadingNickname: 'Carregando…',
+  /** Topo do Hub quando o perfil não chegou nem uma vez (ex: back fora do ar) */
+  loadError: 'Não foi possível carregar seu perfil.',
+  retry: 'Tentar de novo',
+  /** Erros do simulado, com o texto do back (ShopService e BE-027) */
+  errors: {
+    usernameTaken: 'Esse nome de usuário já está em uso.',
+    insufficientCoins: 'Saldo de Coins insuficiente.',
+    alreadyOwned: 'Você já possui este item.',
+    notOwned: 'Você não possui este item.',
+    itemNotFound: 'Item não encontrado nesta categoria.',
+    packageNotFound: 'Pacote de Coins não encontrado.',
+  },
+} as const
+
+// ── Loja (FE-31) ──
+export const SHOP_TEXTS = {
+  title: 'Loja',
+  tabs: { characters: 'Personagens', skills: 'Habilidades', cosmetics: 'Cosméticos' },
+  soon: 'Em breve',
+  cosmeticsSoon: 'Skins, molduras e estilos de tabuleiro chegam depois. Por enquanto, é só jogar.',
+  buyCoins: 'Comprar Coins',
+  /** Até a FE-32 (modal de Coins) chegar */
+  buyCoinsSoon: 'Chega com a FE-32',
+  loading: 'Carregando a Loja…',
+  loadError: 'Não foi possível abrir a Loja agora.',
+  retry: 'Tentar de novo',
+  owned: 'Possui',
+  price: (coins: number) => `${coins.toLocaleString('pt-BR')} Coins`,
+  buy: (coins: number) => `Comprar · ${coins.toLocaleString('pt-BR')} Coins`,
+  buyAria: (name: string, coins: number) =>
+    `Comprar ${name} por ${coins.toLocaleString('pt-BR')} Coins`,
+  /** Sem saldo: o card mostra só o preço, com o botão travado; o leitor de tela diz o porquê */
+  notEnoughAria: (name: string, coins: number) =>
+    `${name} custa ${coins.toLocaleString('pt-BR')} Coins: saldo insuficiente`,
+  details: (name: string) => `Ver ${name}`,
+  kinds: { OFENSIVA: 'Ofensiva', DEFENSIVA: 'Defensiva', MOVIMENTO: 'Movimento' },
+  /** Personagem é só visual no MVP: não muda nada na partida */
+  characterHint: 'Muda só a aparência do seu lado na partida.',
+  /** Comprar uma habilidade dá o direito de escolhê-la como inicial [RN-LOJ-02] */
+  skillHint: 'Comprada, ela entra nas suas opções de Habilidades Iniciais na Preparação.',
+  demoLabel: (name: string) => `Demonstração: ${name}`,
+  close: 'Fechar',
+  confirmTitle: (name: string) => `Comprar ${name}?`,
+  confirmBody: (price: number, after: number) =>
+    `Custa ${price.toLocaleString('pt-BR')} Coins. Seu saldo fica em ${after.toLocaleString('pt-BR')}.`,
+  cancel: 'Cancelar',
+  confirm: 'Comprar',
+  buying: 'Comprando…',
+  bought: (name: string) => `${name} é seu!`,
+  /** Coração no canto do card do personagem: o que o leitor de tela anuncia */
+  markFavorite: (name: string) => `Usar ${name} como favorito`,
+  isFavorite: (name: string) => `${name} é o seu favorito`,
+  equipped: (name: string) => `${name} agora é o seu favorito.`,
+  errors: {
+    insufficientCoins: 'Coins insuficientes para essa compra.',
+    alreadyOwned: 'Esse item já é seu.',
+    notOwned: 'Compre o personagem antes de usar como favorito.',
+    generic: 'Não foi possível concluir agora. Tente de novo.',
+  },
 } as const
 
 // ── Sala: criar, entrar, Sala de Espera e "Match feito" ──

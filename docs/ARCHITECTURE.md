@@ -27,6 +27,7 @@ src/
 │   ├── settings/        # modal de Configurações (som, música, voz, Vitão, filtro, vibração)
 │   └── vitao/           # Vitão: arte, animação, falas e reações, atrás da flag VITAO_ENABLED
 ├── sockets/            # cliente STOMP + servidor simulado (mock/) com a mesma interface
+├── pwa/                # convite de instalação (beforeinstallprompt); o service worker vem do vite-plugin-pwa
 ├── lib/                # lógica pura, sem React (testável isolado)
 │   ├── winCheck.ts       # verificação de vitória N×N/K, ignorando peças congeladas
 │   ├── abilityTargets.ts # casas vizinhas e os alvos que a mira deixa tocar
@@ -207,19 +208,23 @@ implementados no back (revisão de telas, 06/10), então usar as rotas e payload
 
 ### REST (`VITE_API_URL`)
 
-| Método | Rota                    | Uso                                                         |
-| ------ | ----------------------- | ----------------------------------------------------------- |
-| POST   | `/auth/register`        | criar conta (usuário, e-mail, senha) — já existe no back    |
-| POST   | `/auth/login`           | login com e-mail **ou** usuário + senha → token — já existe |
-| POST   | `/auth/forgot-password` | envia o link de recuperação para o e-mail                   |
-| POST   | `/auth/reset-password`  | troca a senha a partir do token do link                     |
-| GET    | `/me`                   | perfil, Coins, inventário, estatísticas, favorito           |
-| PATCH  | `/me`                   | trocar apelido e personagem favorito                        |
-| GET    | `/shop/catalog`         | itens, preços e pacotes de Coins                            |
-| POST   | `/shop/purchase`        | comprar personagem ou habilidade `[RF-LOJ-02]`              |
-| POST   | `/shop/coins`           | compra simbólica de Coins `[RN-LOJ-04]`                     |
-| POST   | `/rooms`                | criar sala → código de 4 dígitos `[RF-HUB-04]`              |
-| POST   | `/rooms/{code}/join`    | entrar na sala; erros: não existe, lotada, já começou       |
+| Método | Rota                            | Uso                                                         |
+| ------ | ------------------------------- | ----------------------------------------------------------- |
+| POST   | `/auth/register`                | criar conta (usuário, e-mail, senha) — já existe no back    |
+| POST   | `/auth/login`                   | login com e-mail **ou** usuário + senha → token — já existe |
+| POST   | `/auth/forgot-password`         | envia o link de recuperação para o e-mail                   |
+| POST   | `/auth/reset-password`          | troca a senha a partir do token do link                     |
+| GET    | `/profile`                      | apelido, saldo, avatar e personagem mais usado (FE-30)      |
+| GET    | `/profile/stats`                | partidas, vitórias, sequências e taxa de vitória (FE-30)    |
+| PATCH  | `/profile/username`             | trocar apelido → 204 (FE-30)                                |
+| GET    | `/shop/{categoria}`             | catálogo (`characters` ou `skills`) com `owned`/`equipped`  |
+| POST   | `/shop/{cat}/{id}/purchase`     | comprar personagem ou habilidade `[RF-LOJ-02]`              |
+| PUT    | `/shop/characters/{id}/equip`   | equipar o personagem favorito                               |
+| GET    | `/coins/balance`                | saldo `{ coinsBalance }`                                    |
+| GET    | `/coins/packages`               | pacotes simbólicos `{ id, coins, priceInReais }`            |
+| POST   | `/coins/packages/{id}/purchase` | compra simbólica de Coins → 204 `[RN-LOJ-04]`               |
+| POST   | `/rooms`                        | criar sala → código de 4 dígitos `[RF-HUB-04]`              |
+| POST   | `/rooms/{code}/join`            | entrar na sala; erros: não existe, lotada, já começou       |
 
 ### STOMP (`VITE_WEBSOCKET_URL`)
 
@@ -317,6 +322,14 @@ front (`src/sockets/mock/`). Ele fica **ligado por padrão até a FE-18** e desl
 - As telas usam só `src/sockets/gameClient.ts` (`joinRoom`, `sendCommand`, `leaveRoom`) e as
   stores. Nunca sabem se estão falando com o simulado ou com o real.
 - "Casa adjacente" (Tornado, Troca Rápida) inclui as diagonais, como no back.
+- Conta do jogador (FE-30): `src/api/profile.ts` e `src/api/shop.ts` usam as rotas reais do back
+  (BE-027, `ShopController` e `CoinController`, conferidas na `dev` do back em 02/11); no
+  simulado, respondem pela conta guardada no aparelho (`src/api/mockAccount.ts`, no
+  `localStorage`), com 300ms de espera e os mesmos `code` de erro do back. Cada apelido que entra
+  pelo simulado tem a sua conta. O servidor simulado credita os Coins e a partida nela antes do
+  `MATCH_END`, como o back. O `profileStore` só grava a resposta de cada chamada; ele recarrega
+  saldo e estatísticas depois do `MATCH_END` e zera ao Sair. O Hub carrega o perfil ao abrir, e a
+  Preparação libera só os itens com `owned: true` (antes de carregar, só os iniciais).
 - Quedas (FE-20): `?queda=volta` (o bot cai no primeiro turno dele e volta) ou `?queda=wo` (não
   volta e perde por W.O.). Na vitrine, os botões "Minha conexão cai" e "Robô cai" usam
   `getMockControls()` do `gameClient`, que só existe no simulado.
@@ -344,5 +357,27 @@ Howler, React Router, oxlint + Prettier, Husky + lint-staged, Vitest, CI e deplo
 A base da ERS V2 (FE-22) trocou o `socket.io-client` pelo `@stomp/stompjs`, criou as pastas novas,
 as constantes, os tipos, o cliente REST (`src/api/`) e ligou o modo `strict` do TypeScript.
 
-Pendente: configurar o PWA (manifest com `"orientation": "landscape"`, ícones e service worker) —
-card FE-16.
+### PWA (FE-16)
+
+O jogo é instalável pelo **vite-plugin-pwa** (configurado em `vite.config.ts`), que gera o manifest
+e o service worker (Workbox) no `npm run build`. O registro fica em `src/pwa/registerServiceWorker.ts`.
+
+- **Manifest** (no `vite.config.ts`): nome, `display: "fullscreen"`, `orientation: "landscape"`,
+  cores no `--color-bg-deep` (`#07060e`) e os ícones de `public/icons/` (192, 512 e um "maskable"
+  para o Android recortar). O iPhone usa o `apple-touch-icon` e as metas `apple-mobile-web-app-*`
+  do `index.html`.
+- **Service worker:** `registerType: "autoUpdate"`. Guarda o app (JS, CSS, HTML e imagens) para
+  abrir sem rede; sons ficam de fora. Toda rota cai no `index.html`, e
+  `/api/` nunca passa pelo cache. Partida e sala vão por WebSocket, que o service worker não toca.
+- **Versão nova:** depois de um deploy, o jogo abre com a versão do cache e o service worker novo
+  assume em segundos, apagando os arquivos velhos. Por isso a página recarrega nessa hora
+  (`onNeedReload`): sem isso, o primeiro arquivo carregado sob demanda (a conexão da sala) não
+  existe mais e a sala não abre. Dentro da sala não recarrega, para não derrubar a partida; o
+  código dela já carregou, e a versão nova entra na próxima vez que o jogo abrir.
+- Só existe no build: no `npm run dev` e nos testes ele fica desligado. Para testar a instalação,
+  use o preview da Vercel (HTTPS).
+- `src/pwa/installPrompt.ts` guarda o `beforeinstallprompt` desde o `main.tsx`, porque o navegador
+  manda o evento logo no carregamento, antes do Hub existir. O `useInstallPrompt` e o
+  `InstallAppButton` do Hub decidem o botão pela regra pura de `src/lib/installPlatform.ts`: janela
+  de instalação do navegador (Chrome/Edge/Android), passo a passo do Compartilhar (iPhone/iPad) ou
+  botão escondido (já instalado, ou navegador que não instala sites, como o Firefox no computador).

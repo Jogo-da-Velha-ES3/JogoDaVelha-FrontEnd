@@ -7,17 +7,19 @@ import { ApiError } from '../../api/client'
 import { Button } from '../../components/ui'
 import { ROOM_TEXTS } from '../../constants/texts'
 import { roomPath } from '../../routes/paths'
+import { selectFavoriteCharacter, useProfileStore } from '../../stores/profileStore'
 import { showToast } from '../../stores/toastStore'
 import { Character } from '../characters'
 import { HowToPlayModal } from './HowToPlayModal'
+import { InstallAppButton } from './InstallAppButton'
 import { JoinRoomModal } from './JoinRoomModal'
-import { HUB_PLACEHOLDER_PROFILE } from './placeholderProfile'
 
 export function PlayScreen() {
   const navigate = useNavigate()
   const [creating, setCreating] = useState(false)
   const [joinOpen, setJoinOpen] = useState(false)
   const [howToPlayOpen, setHowToPlayOpen] = useState(false)
+  const favoriteCharacter = useProfileStore(selectFavoriteCharacter)
 
   async function handleCreateRoom() {
     if (creating) return
@@ -39,7 +41,7 @@ export function PlayScreen() {
     <section className="flex flex-1 items-center gap-6 py-2 short:gap-4 short:py-0">
       <div className="flex flex-1 items-center justify-center">
         <Character
-          id={HUB_PLACEHOLDER_PROFILE.favoriteCharacter}
+          id={favoriteCharacter}
           variant="full"
           animated
           className="aspect-[160/170] h-52 sm:h-64 short:h-40"
@@ -66,14 +68,17 @@ export function PlayScreen() {
         <Button variant="secondary" block onClick={() => setJoinOpen(true)}>
           Entrar com código
         </Button>
-        <div className="grid grid-cols-2 gap-2">
-          <Button variant="ghost" size="sm" onClick={() => setHowToPlayOpen(true)}>
+        {/* Instalar app some quando já está instalado ou o navegador não instala sites (FE-16) */}
+        <div className="flex gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="flex-1"
+            onClick={() => setHowToPlayOpen(true)}
+          >
             Como jogar
           </Button>
-          {/* Instalar App é a FE-16 (PWA): o gatilho de instalação entra lá */}
-          <Button variant="ghost" size="sm" disabled title="Chega com a FE-16">
-            Instalar app
-          </Button>
+          <InstallAppButton className="flex-1" />
         </div>
       </div>
 
