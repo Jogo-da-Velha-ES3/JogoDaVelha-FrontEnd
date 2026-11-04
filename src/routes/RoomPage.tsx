@@ -5,6 +5,7 @@ import { ROOM_TEXTS } from '../constants/texts'
 import { WaitingRoom } from '../features/lobby/WaitingRoom'
 import { Arena } from '../features/match'
 import { ResultScreen, useRoomExit } from '../features/results'
+import { playMusic, stopAllMusic } from '../features/sound/soundManager'
 import { useIsBefore } from '../hooks/useIsBefore'
 import { isValidRoomCode } from '../lib/roomCode'
 import { joinRoom, leaveRoom } from '../sockets/gameClient'
@@ -74,8 +75,10 @@ function ConnectionNotice() {
 
 function RoomScreen({ code }: { code: string }) {
   const phase = useRoomStore((s) => s.phase)
+  const mySlot = useRoomStore((s) => s.mySlot)
   const outcome = useMatchStore((s) => s.outcome)
   const outcomeReceivedAt = useMatchStore((s) => s.outcomeReceivedAt)
+  const suddenDeath = useMatchStore((s) => s.suddenDeath)
 
   // No W.O. e no empate absoluto, a Arena segura o banner antes do Resultado. Quem reconecta
   // (snapshot) vai direto.
@@ -85,6 +88,35 @@ function RoomScreen({ code }: { code: string }) {
       ? outcomeReceivedAt + RESULT_HOLD_SECONDS * 1000
       : null,
   )
+
+  useEffect(() => {
+    if (phase === 'RESULT' && outcome?.kind === 'ABSOLUTE_DRAW') {
+      stopAllMusic()
+      return
+    }
+
+    if (phase === 'WAITING' || phase === 'MATCHED' || phase === 'DRAFT') {
+      playMusic('trilha-sala')
+      return
+    }
+
+    if (phase === 'RESULT' && !holdingArena) {
+      if (!outcome || outcome.kind === 'ABSOLUTE_DRAW') return
+      playMusic(outcome.winner === mySlot ? 'trilha-vitoria' : 'trilha-derrota')
+      return
+    }
+
+    if (
+      phase === 'VERSUS' ||
+      phase === 'ROUND_DRAW' ||
+      phase === 'PLAYING' ||
+      phase === 'ROUND_END' ||
+      (phase === 'RESULT' && holdingArena)
+    ) {
+      // Durante o breve banner de Arena após empate/W.O., mantém a música da Arena.
+      playMusic(suddenDeath && phase !== 'RESULT' ? 'trilha-morte-subita' : 'trilha-arena')
+    }
+  }, [phase, outcome, mySlot, suddenDeath, holdingArena])
 
   switch (phase) {
     case null:

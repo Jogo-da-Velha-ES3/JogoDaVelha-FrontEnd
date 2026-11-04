@@ -1,9 +1,13 @@
 import { Howl, Howler } from 'howler'
-import { MUSIC_KEYS, SOUND_KEYS, type SoundKey, soundUrl } from './soundMap'
+import { LOOPING_MUSIC_KEYS, MUSIC_KEYS, SOUND_KEYS, type SoundKey, soundUrl } from './soundMap'
 
 const sounds = new Map<SoundKey, Howl>()
+const loopingEffects = new Set<SoundKey>()
 let unlockListening = false
 let musicWanted = false
+let currentMusicKey: SoundKey | null = null
+
+const MUSIC_FADE_MS = 500
 
 const settings = {
   sfxVolume: 1,
@@ -13,6 +17,7 @@ const settings = {
 }
 
 const isMusic = (key: SoundKey) => MUSIC_KEYS.includes(key)
+const isLoopingMusic = (key: SoundKey) => LOOPING_MUSIC_KEYS.includes(key)
 
 function applySettings(key: SoundKey, howl: Howl) {
   const music = isMusic(key)
@@ -20,32 +25,43 @@ function applySettings(key: SoundKey, howl: Howl) {
   howl.mute(music ? settings.musicMuted : settings.sfxMuted)
 }
 
-/** Carrega todos os sons. Arquivo que faltar ou falhar: só não toca, o jogo segue */
+/** Carrega todos os sons. Arquivo que faltar ou falhar: só não toca, o jogo segue. */
 export function loadSounds() {
   for (const key of SOUND_KEYS) {
     const src = soundUrl(key)
     if (!src) continue
+
     try {
       const howl: Howl = new Howl({
         src: [src],
-        loop: isMusic(key),
-        // A trilha é longa: toca por streaming (html5) em vez de baixar tudo ao abrir o app
+        loop: isLoopingMusic(key),
+        // Trilhas longas tocam por streaming em vez de baixar tudo ao abrir o app.
         html5: isMusic(key),
         preload: true,
         onloaderror: () => sounds.delete(key),
-        // Se o navegador recusar (ex: iPhone antes do toque), a música tenta de novo ao liberar
+        // Vitória e Derrota são músicas de resultado em reprodução única.
+        onend: () => {
+          if (isMusic(key) && !isLoopingMusic(key) && currentMusicKey === key) {
+            musicWanted = false
+            currentMusicKey = null
+          }
+        },
+        // Se o navegador recusar a música, tenta novamente ao liberar o áudio.
         onplayerror: () => {
           if (isMusic(key)) {
             howl.once('unlock', () => {
-              if (!howl.playing()) howl.play()
+              if (currentMusicKey === key && musicWanted && !howl.playing()) {
+                howl.play()
+              }
             })
           }
         },
       })
+
       applySettings(key, howl)
       sounds.set(key, howl)
     } catch {
-      // som indisponível: ignora
+      // Som indisponível: ignora.
     }
   }
 }
@@ -55,25 +71,120 @@ function resumeContext() {
     const ctx = Howler.ctx
     if (ctx && ctx.state === 'suspended') void ctx.resume()
   } catch {
-    // sem áudio disponível: ignora
+    // Sem áudio disponível: ignora.
   }
 }
 
-/** Começa a trilha em loop (se já estiver tocando, não faz nada) */
-export function startMusic() {
+/** Toca a trilha escolhida e encerra a anterior. */
+export function playMusic(key: SoundKey) {
+  if (!isMusic(key)) return
+
   musicWanted = true
+
   try {
-    const music = sounds.get('trilha')
-    if (music && !music.playing()) music.play()
+    const nextMusic = sounds.get(key)
+    if (!nextMusic) {
+      currentMusicKey = key
+      return
+    }
+
+    if (currentMusicKey === key && nextMusic.playing()) return
+
+    const previousMusic = currentMusicKey ? sounds.get(currentMusicKey) : undefined
+    currentMusicKey = key
+
+    const startNext = () => {
+      if (currentMusicKey !== key || !musicWanted) return
+      applySettings(key, nextMusic)
+      if (!nextMusic.playing()) nextMusic.play()
+    }
+
+    if (previousMusic && previousMusic !== nextMusic && previousMusic.playing()) {
+      previousMusic.fade(previousMusic.volume(), 0, MUSIC_FADE_MS)
+      previousMusic.once('fade', () => {
+        previousMusic.stop()
+        startNext()
+      })
+    } else {
+      startNext()
+    }
   } catch {
-    // nunca derruba o jogo por causa de som
+    // Nunca derruba o jogo por causa de som.
   }
 }
 
-/** Pausa a música ao sair da aba/app e volta ao retornar */
+/** Para uma trilha e cancela a intenção de retomá-la ao voltar à aba. */
+export function stopMusic(key: SoundKey) {
+  if (!isMusic(key)) return
+
+  try {
+    const music = sounds.get(key)
+    if (currentMusicKey === key) {
+      musicWanted = false
+      currentMusicKey = null
+    }
+    music?.fade(music.volume(), 0, MUSIC_FADE_MS)
+    music?.once('fade', () => music.stop())
+  } catch {
+    // Sem áudio disponível: ignora.
+  }
+}
+
+/** Para todas as trilhas, usado quando o Resultado não tem música própria (ex: empate). */
+export function stopAllMusic() {
+  musicWanted = false
+  currentMusicKey = null
+
+  for (const key of MUSIC_KEYS) {
+    try {
+      const music = sounds.get(key)
+      if (!music) continue
+
+      if (music.playing()) {
+        music.fade(music.volume(), 0, MUSIC_FADE_MS)
+        music.once('fade', () => music.stop())
+      }
+    } catch {
+      // Sem áudio disponível: ignora.
+    }
+  }
+}
+
+/** Toca um efeito em loop, mantendo-o na categoria de efeitos sonoros. */
+export function playLoopSound(key: SoundKey) {
+  if (isMusic(key)) return
+
+  try {
+    const sound = sounds.get(key)
+    if (!sound) return
+
+    loopingEffects.add(key)
+    sound.loop(true)
+    if (!sound.playing()) sound.play()
+  } catch {
+    // Som indisponível: ignora.
+  }
+}
+
+/** Para um efeito em loop e restaura o comportamento de reprodução única. */
+export function stopLoopSound(key: SoundKey) {
+  if (isMusic(key)) return
+
+  try {
+    const sound = sounds.get(key)
+    loopingEffects.delete(key)
+    sound?.stop()
+    sound?.loop(false)
+  } catch {
+    // Som indisponível: ignora.
+  }
+}
+
+/** Pausa a trilha ao sair da aba/app e retoma ao retornar. */
 function handleVisibility() {
   try {
-    const music = sounds.get('trilha')
+    const music = currentMusicKey ? sounds.get(currentMusicKey) : undefined
+
     if (document.hidden) {
       music?.pause()
     } else {
@@ -81,14 +192,11 @@ function handleVisibility() {
       if (musicWanted && music && !music.playing()) music.play()
     }
   } catch {
-    // idem
+    // Sem áudio disponível: ignora.
   }
 }
 
-/**
- * Libera o áudio no primeiro toque (navegadores, principalmente o iPhone, bloqueiam som
- * automático) e, nesse momento, começa a trilha
- */
+/** Libera o áudio no primeiro toque; a tela atual escolhe a trilha com playMusic(). */
 export function setupAudioUnlock() {
   if (unlockListening) return
   unlockListening = true
@@ -97,25 +205,42 @@ export function setupAudioUnlock() {
   const events = ['pointerdown', 'touchend', 'keydown'] as const
   const unlock = () => {
     resumeContext()
-    startMusic()
-    for (const e of events) window.removeEventListener(e, unlock)
+
+    if (currentMusicKey && musicWanted) {
+      const music = sounds.get(currentMusicKey)
+      if (music && !music.playing()) music.play()
+    }
+
+    for (const event of events) window.removeEventListener(event, unlock)
   }
-  for (const e of events) window.addEventListener(e, unlock)
+
+  for (const event of events) window.addEventListener(event, unlock)
 }
 
 export function playSound(key: SoundKey) {
   try {
-    sounds.get(key)?.play()
+    const sound = sounds.get(key)
+    if (!sound) return
+
+    // Efeitos em loop devem continuar em loop se playSound for chamado novamente.
+    if (loopingEffects.has(key)) sound.loop(true)
+    sound.play()
   } catch {
-    // idem
+    // Som indisponível: ignora.
   }
 }
 
 export function stopSound(key: SoundKey) {
   try {
-    sounds.get(key)?.stop()
+    const sound = sounds.get(key)
+    sound?.stop()
+
+    if (loopingEffects.has(key)) {
+      loopingEffects.delete(key)
+      sound?.loop(false)
+    }
   } catch {
-    // idem
+    // Som indisponível: ignora.
   }
 }
 
@@ -123,7 +248,7 @@ function refreshAll() {
   sounds.forEach((howl, key) => applySettings(key, howl))
 }
 
-/** Controles de volume e mudo, separados para efeitos e música (usados nas Configurações, FE-39) */
+/** Controles de volume e mudo, separados para efeitos e música. */
 export const soundSettings = {
   get: () => ({ ...settings }),
   setSfxVolume(v: number) {

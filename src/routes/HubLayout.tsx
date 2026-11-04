@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { Button, GearIcon, Modal } from '../components/ui'
 import { HUB_TEXTS, SETTINGS_TEXTS } from '../constants/texts'
 import { Character } from '../features/characters'
 import { HUB_PLACEHOLDER_PROFILE } from '../features/hub/placeholderProfile'
 import { SettingsModal } from '../features/settings/SettingsModal'
+import { playMusic } from '../features/sound/soundManager'
 import { useAuthStore } from '../stores/authStore'
 import { PATHS } from './paths'
 
@@ -17,6 +18,10 @@ const TABS = [
 // Moldura do Hub (FE-06) [RF-HUB-01] [RF-HUB-03]: menu lateral fixo (Loja · Jogar · Perfil, foco em
 // Jogar), topo com avatar, apelido e Coins, e Sair com confirmação. Layout do esboço de telas.
 export function HubLayout() {
+  useEffect(() => {
+    playMusic('trilha-hub')
+  }, [])
+
   return (
     <div className="flex flex-1 gap-4 py-3 short:gap-3 short:py-2">
       <HubNav />
