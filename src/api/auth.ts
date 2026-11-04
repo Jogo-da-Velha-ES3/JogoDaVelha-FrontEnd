@@ -4,6 +4,7 @@ import { ACCESS_TEXTS } from '../constants/texts'
 import type { FieldErrors, LoginField, RegisterField } from '../lib/authValidation'
 import { isMockServerEnabled } from '../sockets/mode'
 import { ApiError, apiRequest } from './client'
+import { mockBalance, switchMockAccount } from './mockAccount'
 
 /** O que o back devolve no login (LoginResponse) */
 export interface AuthSession {
@@ -65,11 +66,14 @@ export async function register(
 
 // Simulado (sem back): a Vercel continua navegável, como o createRoom() faz
 function mockSession(name: string): AuthSession {
+  const username = name.includes('@') ? name.split('@')[0] : name
+  // A conta simulada desse apelido passa a ser a do Perfil e da Loja (FE-30)
+  switchMockAccount(username)
   return {
     token: `token-simulado-${Date.now()}`,
     id: 'simulado',
-    username: name.includes('@') ? name.split('@')[0] : name,
-    coinsBalance: 0,
+    username,
+    coinsBalance: mockBalance(),
   }
 }
 

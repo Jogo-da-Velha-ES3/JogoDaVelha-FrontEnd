@@ -20,6 +20,7 @@ import {
   CHARACTERS,
   BOARD_CELLS,
 } from '../../constants/game'
+import { type MockMatchResult, recordMockMatch } from '../../api/mockAccount'
 import {
   coinsFor,
   matchStatus,
@@ -730,6 +731,8 @@ export class MockGameServer {
     this.turn = null
     this.outcome = outcome
     this.coins = { P1: coinsFor(outcome, 'P1'), P2: coinsFor(outcome, 'P2') }
+    // Como o back: os Coins e a partida entram na conta antes do aviso (FE-30). Você é o P1
+    recordMockMatch(resultFor(outcome, 'P1'), this.coins.P1)
     this.emit('MATCH_END', { outcome, coins: this.coins })
     this.setPhase('RESULT')
 
@@ -805,4 +808,10 @@ export class MockGameServer {
     this.timers.clear()
     this.emit('ROOM_CLOSED', { reason })
   }
+}
+
+/** Resultado da partida para as estatísticas da conta simulada: W.O. a favor conta como vitória */
+function resultFor(outcome: MatchOutcome, slot: PlayerSlot): MockMatchResult {
+  if (outcome.kind === 'ABSOLUTE_DRAW') return 'DRAW'
+  return outcome.winner === slot ? 'WIN' : 'LOSS'
 }

@@ -24,8 +24,8 @@ type Step = 'CHARACTER' | 'ABILITIES'
 
 export interface PreparationProps {
   /**
-   * O que o jogador já desbloqueou. Até o inventário real chegar (FE-30, `/me`), tudo vem
-   * desbloqueado para o time conseguir testar; os testes passam só os iniciais.
+   * O que o jogador já desbloqueou. Na sala, vem do inventário do `profileStore` (FE-30); sem a
+   * prop (vitrine), tudo fica desbloqueado. Os testes passam só os iniciais.
    */
   unlockedCharacters?: readonly CharacterId[]
   unlockedAbilities?: readonly AbilityId[]

@@ -1,11 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { Button, GearIcon, Modal } from '../components/ui'
-import { HUB_TEXTS, SETTINGS_TEXTS } from '../constants/texts'
+import { HUB_TEXTS, PROFILE_TEXTS, SETTINGS_TEXTS } from '../constants/texts'
 import { Character } from '../features/characters'
-import { HUB_PLACEHOLDER_PROFILE } from '../features/hub/placeholderProfile'
 import { SettingsModal } from '../features/settings/SettingsModal'
 import { useAuthStore } from '../stores/authStore'
+import { selectFavoriteCharacter, useProfileStore } from '../stores/profileStore'
 import { PATHS } from './paths'
 
 const TABS = [
@@ -17,6 +17,13 @@ const TABS = [
 // Moldura do Hub (FE-06) [RF-HUB-01] [RF-HUB-03]: menu lateral fixo (Loja · Jogar · Perfil, foco em
 // Jogar), topo com avatar, apelido e Coins, e Sair com confirmação. Layout do esboço de telas.
 export function HubLayout() {
+  const loadProfile = useProfileStore((s) => s.loadProfile)
+
+  // Perfil, Coins e inventário a cada vez que o Hub abre (ex: na volta de uma partida) (FE-30)
+  useEffect(() => {
+    void loadProfile()
+  }, [loadProfile])
+
   return (
     <div className="flex flex-1 gap-4 py-3 short:gap-3 short:py-2">
       <HubNav />
@@ -94,9 +101,14 @@ function HubNav() {
   )
 }
 
-// Valores fixos até a FE-30 (GET /me); editar o apelido também chega com ela (PATCH /me)
+// Apelido, Coins e o personagem equipado vêm do profileStore, confirmados pelo servidor (FE-30)
 function HubTopBar() {
-  const { nickname, coins, favoriteCharacter } = HUB_PLACEHOLDER_PROFILE
+  const nickname = useProfileStore((s) => s.profile?.username)
+  const coins = useProfileStore((s) => s.coinsBalance)
+  const favoriteCharacter = useProfileStore(selectFavoriteCharacter)
+  // Só quando o perfil nunca chegou: se uma recarga falhar, o topo fica com o último confirmado
+  const neverLoaded = useProfileStore((s) => s.status === 'error' && s.profile === null)
+  const loadProfile = useProfileStore((s) => s.loadProfile)
   return (
     <header className="flex items-center gap-3">
       <Character
@@ -105,13 +117,31 @@ function HubTopBar() {
         decorative
         className="size-10 short:size-9"
       />
-      <span className="truncate font-display text-lg font-bold tracking-wide short:text-base">
-        {nickname}
-      </span>
-      <span className="ml-auto font-display text-lg font-bold text-coin short:text-base">
-        <span className="sr-only">Saldo: </span>
-        {coins.toLocaleString('pt-BR')} Coins
-      </span>
+      {neverLoaded ? (
+        <>
+          <span role="alert" className="min-w-0 truncate text-sm text-danger">
+            {PROFILE_TEXTS.loadError}
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="ml-auto shrink-0"
+            onClick={() => void loadProfile()}
+          >
+            {PROFILE_TEXTS.retry}
+          </Button>
+        </>
+      ) : (
+        <>
+          <span className="truncate font-display text-lg font-bold tracking-wide short:text-base">
+            {nickname ?? PROFILE_TEXTS.loadingNickname}
+          </span>
+          <span className="ml-auto font-display text-lg font-bold text-coin short:text-base">
+            <span className="sr-only">Saldo: </span>
+            {coins === null ? '…' : coins.toLocaleString('pt-BR')} Coins
+          </span>
+        </>
+      )}
     </header>
   )
 }

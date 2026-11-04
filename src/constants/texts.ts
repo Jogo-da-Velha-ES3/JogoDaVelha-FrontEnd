@@ -99,6 +99,24 @@ export const SETTINGS_TEXTS = {
   vibrationHint: 'Nos 3 últimos segundos da Morte Súbita. O iPhone não vibra.',
 } as const
 
+// ── Perfil, Loja e Coins (FE-30) ──
+export const PROFILE_TEXTS = {
+  /** Apelido mostrado enquanto o perfil não carregou */
+  loadingNickname: 'Carregando…',
+  /** Topo do Hub quando o perfil não chegou nem uma vez (ex: back fora do ar) */
+  loadError: 'Não foi possível carregar seu perfil.',
+  retry: 'Tentar de novo',
+  /** Erros do simulado, com o texto do back (ShopService e BE-027) */
+  errors: {
+    usernameTaken: 'Esse nome de usuário já está em uso.',
+    insufficientCoins: 'Saldo de Coins insuficiente.',
+    alreadyOwned: 'Você já possui este item.',
+    notOwned: 'Você não possui este item.',
+    itemNotFound: 'Item não encontrado nesta categoria.',
+    packageNotFound: 'Pacote de Coins não encontrado.',
+  },
+} as const
+
 // ── Sala: criar, entrar, Sala de Espera e "Match feito" ──
 export const ROOM_TEXTS = {
   roomOf: (host: string) => `Sala de ${host}`,
