@@ -103,6 +103,9 @@ export const SETTINGS_TEXTS = {
 export const PROFILE_TEXTS = {
   /** Apelido mostrado enquanto o perfil não carregou */
   loadingNickname: 'Carregando…',
+  /** Topo do Hub quando o perfil não chegou nem uma vez (ex: back fora do ar) */
+  loadError: 'Não foi possível carregar seu perfil.',
+  retry: 'Tentar de novo',
   /** Erros do simulado, com o texto do back (ShopService e BE-027) */
   errors: {
     usernameTaken: 'Esse nome de usuário já está em uso.',

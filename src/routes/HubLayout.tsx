@@ -106,6 +106,9 @@ function HubTopBar() {
   const nickname = useProfileStore((s) => s.profile?.username)
   const coins = useProfileStore((s) => s.coinsBalance)
   const favoriteCharacter = useProfileStore(selectFavoriteCharacter)
+  // Só quando o perfil nunca chegou: se uma recarga falhar, o topo fica com o último confirmado
+  const neverLoaded = useProfileStore((s) => s.status === 'error' && s.profile === null)
+  const loadProfile = useProfileStore((s) => s.loadProfile)
   return (
     <header className="flex items-center gap-3">
       <Character
@@ -114,13 +117,31 @@ function HubTopBar() {
         decorative
         className="size-10 short:size-9"
       />
-      <span className="truncate font-display text-lg font-bold tracking-wide short:text-base">
-        {nickname ?? PROFILE_TEXTS.loadingNickname}
-      </span>
-      <span className="ml-auto font-display text-lg font-bold text-coin short:text-base">
-        <span className="sr-only">Saldo: </span>
-        {coins === null ? '…' : coins.toLocaleString('pt-BR')} Coins
-      </span>
+      {neverLoaded ? (
+        <>
+          <span role="alert" className="min-w-0 truncate text-sm text-danger">
+            {PROFILE_TEXTS.loadError}
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="ml-auto shrink-0"
+            onClick={() => void loadProfile()}
+          >
+            {PROFILE_TEXTS.retry}
+          </Button>
+        </>
+      ) : (
+        <>
+          <span className="truncate font-display text-lg font-bold tracking-wide short:text-base">
+            {nickname ?? PROFILE_TEXTS.loadingNickname}
+          </span>
+          <span className="ml-auto font-display text-lg font-bold text-coin short:text-base">
+            <span className="sr-only">Saldo: </span>
+            {coins === null ? '…' : coins.toLocaleString('pt-BR')} Coins
+          </span>
+        </>
+      )}
     </header>
   )
 }
