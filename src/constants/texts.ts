@@ -126,12 +126,14 @@ export const SHOP_TEXTS = {
   loading: 'Carregando a Loja…',
   loadError: 'Não foi possível abrir a Loja agora.',
   retry: 'Tentar de novo',
-  owned: 'Seu',
+  owned: 'Possui',
   price: (coins: number) => `${coins.toLocaleString('pt-BR')} Coins`,
-  missing: (coins: number) => `Faltam ${coins.toLocaleString('pt-BR')} Coins`,
   buy: (coins: number) => `Comprar · ${coins.toLocaleString('pt-BR')} Coins`,
   buyAria: (name: string, coins: number) =>
     `Comprar ${name} por ${coins.toLocaleString('pt-BR')} Coins`,
+  /** Sem saldo: o card mostra só o preço, com o botão travado; o leitor de tela diz o porquê */
+  notEnoughAria: (name: string, coins: number) =>
+    `${name} custa ${coins.toLocaleString('pt-BR')} Coins: saldo insuficiente`,
   details: (name: string) => `Ver ${name}`,
   kinds: { OFENSIVA: 'Ofensiva', DEFENSIVA: 'Defensiva', MOVIMENTO: 'Movimento' },
   /** Personagem é só visual no MVP: não muda nada na partida */

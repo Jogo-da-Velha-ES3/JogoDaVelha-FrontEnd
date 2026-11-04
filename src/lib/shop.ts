@@ -15,7 +15,7 @@ export type ShopItemState =
   /** Saldo não basta: quanto falta. Saldo ainda não carregado também cai aqui, com o preço todo */
   | { kind: 'MISSING'; missing: number }
 
-/** Estado do card: Seu, À venda ou Sem saldo ("Faltam N Coins") */
+/** Estado do card: Possui, À venda ou Sem saldo (o preço, com o botão travado) */
 export function shopItemState(item: ShopItemLike, balance: number | null): ShopItemState {
   if (item.owned) return { kind: 'OWNED' }
   const available = balance ?? 0

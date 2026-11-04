@@ -71,7 +71,7 @@ export function ShopScreen() {
   return (
     <section className="flex min-h-0 flex-1 flex-col gap-2 short:gap-1.5">
       <div className="flex flex-wrap items-center gap-2">
-        <h1 className="font-display text-2xl font-extrabold tracking-wide text-primary uppercase short:text-xl">
+        <h1 className="font-display text-2xl font-extrabold tracking-wide text-primary uppercase short:sr-only">
           {SHOP_TEXTS.title}
         </h1>
         <div
@@ -148,7 +148,7 @@ export function ShopScreen() {
               'grid min-h-0 flex-1 gap-2 overflow-y-auto p-0.5 short:gap-1.5',
               tab === 'characters'
                 ? 'grid-cols-3 grid-rows-2'
-                : 'auto-rows-fr grid-cols-2 sm:grid-cols-5',
+                : 'auto-rows-[minmax(5.5rem,1fr)] grid-cols-3 sm:grid-cols-5',
             ].join(' ')}
           >
             {(tab === 'characters' ? characterItems : skillItems).map((item) => (
@@ -193,7 +193,6 @@ function ItemVisual({ item, className }: { item: AnyItem; className: string }) {
   )
 }
 
-/** Card com os 3 estados: Seu, À venda (preço) e Sem saldo (botão travado com o que falta) */
 /** Coração do card de personagem comprado. `null` nos outros cards */
 interface FavoriteControl {
   /** Esperando o servidor confirmar este personagem */
@@ -203,6 +202,7 @@ interface FavoriteControl {
   onToggle: () => void
 }
 
+/** Card com os 3 estados: Possui, À venda (preço) e Sem saldo (o preço, com o botão travado) */
 function ItemCard({
   item,
   state,
@@ -239,7 +239,9 @@ function ItemCard({
           className="h-[60%] max-h-24 min-h-8 w-auto max-w-full shrink-0 short:h-[85%] short:max-w-[45%]"
         />
         <span className="flex min-w-0 flex-col items-center short:items-start">
-          <span className="truncate font-display text-sm font-bold text-primary">{item.name}</span>
+          <span className="line-clamp-2 font-display text-sm leading-tight font-bold text-primary short:text-xs">
+            {item.name}
+          </span>
           {subtitle && <span className="text-[10px] text-text-muted sm:text-xs">{subtitle}</span>}
         </span>
       </button>
@@ -285,21 +287,15 @@ function ItemCard({
             disabled={state.kind === 'MISSING'}
             aria-label={
               state.kind === 'MISSING'
-                ? `${item.name}: ${SHOP_TEXTS.missing(state.missing)}`
+                ? SHOP_TEXTS.notEnoughAria(item.name, item.priceCoins)
                 : SHOP_TEXTS.buyAria(item.name, item.priceCoins)
             }
             onClick={onBuy}
           >
-            {state.kind === 'MISSING' ? (
-              SHOP_TEXTS.missing(state.missing)
-            ) : (
-              <>
-                <span aria-hidden className="text-coin">
-                  ●
-                </span>
-                {item.priceCoins.toLocaleString('pt-BR')}
-              </>
-            )}
+            <span aria-hidden className="text-coin">
+              ●
+            </span>
+            {item.priceCoins.toLocaleString('pt-BR')}
           </Button>
         )}
       </div>
@@ -340,9 +336,7 @@ function ItemModal({
                 disabled={state.kind === 'MISSING'}
                 onClick={() => onBuy(item)}
               >
-                {state.kind === 'MISSING'
-                  ? SHOP_TEXTS.missing(state.missing)
-                  : SHOP_TEXTS.buy(item.priceCoins)}
+                {SHOP_TEXTS.buy(item.priceCoins)}
               </Button>
             )}
           </>

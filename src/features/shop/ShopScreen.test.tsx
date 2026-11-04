@@ -39,18 +39,23 @@ describe('Loja (FE-31)', () => {
 
     expect(screen.getByRole('heading', { name: 'Loja' })).toBeInTheDocument()
     expect(tab('Personagens')).toHaveAttribute('aria-selected', 'true')
-    expect(screen.getAllByText('Seu')).toHaveLength(2)
-    // 450 Coins: Quadrado (400) à venda; Triângulo (500) falta 50
+    expect(screen.getAllByText('Possui')).toHaveLength(2)
+    // 450 Coins: Quadrado (400) à venda; Triângulo (500) mostra só o preço, travado
     expect(screen.getByRole('button', { name: 'Comprar Quadrado por 400 Coins' })).toBeEnabled()
-    expect(screen.getByRole('button', { name: 'Triângulo: Faltam 50 Coins' })).toBeDisabled()
+    expect(
+      screen.getByRole('button', { name: 'Triângulo custa 500 Coins: saldo insuficiente' }),
+    ).toBeDisabled()
+    expect(screen.queryByText(/Faltam/)).not.toBeInTheDocument()
   })
 
   it('Habilidades: as 3 iniciais são suas e as outras 7 custam 350', async () => {
     await renderShop()
     await userEvent.click(tab('Habilidades'))
 
-    expect(screen.getAllByText('Seu')).toHaveLength(3)
-    expect(screen.getAllByRole('button', { name: /: Faltam 350 Coins$/ })).toHaveLength(7)
+    expect(screen.getAllByText('Possui')).toHaveLength(3)
+    expect(
+      screen.getAllByRole('button', { name: / custa 350 Coins: saldo insuficiente$/ }),
+    ).toHaveLength(7)
   })
 
   it('Cosméticos aparece como "em breve", sem itens', async () => {
@@ -72,7 +77,7 @@ describe('Loja (FE-31)', () => {
 
     await userEvent.click(within(dialog).getByRole('button', { name: 'Comprar' }))
 
-    await waitFor(() => expect(screen.getAllByText('Seu')).toHaveLength(3))
+    await waitFor(() => expect(screen.getAllByText('Possui')).toHaveLength(3))
     expect(useProfileStore.getState().coinsBalance).toBe(0)
     expect(toasts().at(-1)).toMatchObject({ tone: 'coin', message: 'Quadrado é seu!' })
   })
@@ -118,7 +123,7 @@ describe('Loja (FE-31)', () => {
       }),
     )
     expect(useProfileStore.getState().coinsBalance).toBe(400)
-    expect(screen.getAllByText('Seu')).toHaveLength(2)
+    expect(screen.getAllByText('Possui')).toHaveLength(2)
   })
 
   it('habilidade abre a demonstração no mini-tabuleiro', async () => {
