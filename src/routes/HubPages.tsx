@@ -1,4 +1,5 @@
 import { PlayScreen } from '../features/hub/PlayScreen'
+import { ShopScreen } from '../features/shop/ShopScreen'
 import { PagePlaceholder } from './PagePlaceholder'
 
 export function PlayPage() {
@@ -6,7 +7,7 @@ export function PlayPage() {
 }
 
 export function ShopPage() {
-  return <PagePlaceholder title="Loja" card="FE-31" owner="Vini" />
+  return <ShopScreen />
 }
 
 export function ProfilePage() {

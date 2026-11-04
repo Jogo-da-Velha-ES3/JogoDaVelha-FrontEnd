@@ -25,11 +25,11 @@ export function HubLayout() {
   }, [loadProfile])
 
   return (
-    <div className="flex flex-1 gap-4 py-3 short:gap-3 short:py-2">
+    <div className="flex max-h-dvh min-h-0 flex-1 gap-4 py-3 short:gap-3 short:py-2">
       <HubNav />
-      <div className="flex min-w-0 flex-1 flex-col gap-2">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2">
         <HubTopBar />
-        <main className="flex min-w-0 flex-1 flex-col">
+        <main className="flex min-h-0 min-w-0 flex-1 flex-col">
           <Outlet />
         </main>
       </div>
