@@ -26,8 +26,8 @@ type AnyItem = CharacterItem | SkillItem
 
 const isCharacter = (item: AnyItem): item is CharacterItem => item.category === 'CHARACTERS'
 
-export function ShopScreen() {
-  const [tab, setTab] = useState<Tab>('characters')
+export function ShopScreen({ initialTab = 'characters' }: { initialTab?: Tab }) {
+  const [tab, setTab] = useState<Tab>(initialTab)
   const [details, setDetails] = useState<AnyItem | null>(null)
   const [confirming, setConfirming] = useState<AnyItem | null>(null)
   const id = useId()
