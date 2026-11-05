@@ -1,5 +1,5 @@
 import { Howl, Howler } from 'howler'
-import { LOOPING_MUSIC_KEYS, MUSIC_KEYS, SOUND_KEYS, type SoundKey, soundUrl } from './soundMap'
+import { MUSIC_KEYS, SOUND_KEYS, type SoundKey, soundUrl } from './soundMap'
 
 const sounds = new Map<SoundKey, Howl>()
 const loopingEffects = new Set<SoundKey>()
@@ -17,7 +17,6 @@ const settings = {
 }
 
 const isMusic = (key: SoundKey) => MUSIC_KEYS.includes(key)
-const isLoopingMusic = (key: SoundKey) => LOOPING_MUSIC_KEYS.includes(key)
 
 function applySettings(key: SoundKey, howl: Howl) {
   const music = isMusic(key)
@@ -25,45 +24,57 @@ function applySettings(key: SoundKey, howl: Howl) {
   howl.mute(music ? settings.musicMuted : settings.sfxMuted)
 }
 
-/** Carrega todos os sons. Arquivo que faltar ou falhar: só não toca, o jogo segue. */
+/** Cria o som de uma chave. Arquivo que faltar ou falhar: só não toca, o jogo segue. */
+function createHowl(key: SoundKey): Howl | undefined {
+  const src = soundUrl(key)
+  if (!src) return undefined
+
+  try {
+    const howl: Howl = new Howl({
+      src: [src],
+      loop: isMusic(key),
+      // Trilhas longas tocam por streaming em vez de baixar tudo de uma vez.
+      html5: isMusic(key),
+      preload: true,
+      onloaderror: () => sounds.delete(key),
+      // Se o navegador recusar a música, tenta novamente ao liberar o áudio.
+      onplayerror: () => {
+        if (isMusic(key)) {
+          howl.once('unlock', () => {
+            if (currentMusicKey === key && musicWanted && !howl.playing()) {
+              howl.play()
+            }
+          })
+        }
+      },
+    })
+
+    applySettings(key, howl)
+    sounds.set(key, howl)
+    return howl
+  } catch {
+    // Som indisponível: ignora.
+    return undefined
+  }
+}
+
+/**
+ * Carrega os efeitos ao abrir o app. As trilhas não: cada uma é criada na primeira vez que toca
+ * (playMusic). Criar todas de uma vez baixava ~9 MB de música só de abrir a tela de entrada.
+ */
 export function loadSounds() {
   for (const key of SOUND_KEYS) {
-    const src = soundUrl(key)
-    if (!src) continue
-
-    try {
-      const howl: Howl = new Howl({
-        src: [src],
-        loop: isLoopingMusic(key),
-        // Trilhas longas tocam por streaming em vez de baixar tudo ao abrir o app.
-        html5: isMusic(key),
-        preload: true,
-        onloaderror: () => sounds.delete(key),
-        // Vitória e Derrota são músicas de resultado em reprodução única.
-        onend: () => {
-          if (isMusic(key) && !isLoopingMusic(key) && currentMusicKey === key) {
-            musicWanted = false
-            currentMusicKey = null
-          }
-        },
-        // Se o navegador recusar a música, tenta novamente ao liberar o áudio.
-        onplayerror: () => {
-          if (isMusic(key)) {
-            howl.once('unlock', () => {
-              if (currentMusicKey === key && musicWanted && !howl.playing()) {
-                howl.play()
-              }
-            })
-          }
-        },
-      })
-
-      applySettings(key, howl)
-      sounds.set(key, howl)
-    } catch {
-      // Som indisponível: ignora.
-    }
+    if (!isMusic(key)) createHowl(key)
   }
+}
+
+/** Abaixa a trilha até o silêncio e para */
+function fadeOut(music: Howl, onDone?: () => void) {
+  music.fade(music.volume(), 0, MUSIC_FADE_MS)
+  music.once('fade', () => {
+    music.stop()
+    onDone?.()
+  })
 }
 
 function resumeContext() {
@@ -82,15 +93,16 @@ export function playMusic(key: SoundKey) {
   musicWanted = true
 
   try {
-    const nextMusic = sounds.get(key)
+    const previousMusic = currentMusicKey ? sounds.get(currentMusicKey) : undefined
+    const nextMusic = sounds.get(key) ?? createHowl(key)
     if (!nextMusic) {
+      // Trilha sem arquivo ou que falhou: a anterior não fica tocando no lugar dela
+      if (previousMusic?.playing()) fadeOut(previousMusic)
       currentMusicKey = key
       return
     }
 
     if (currentMusicKey === key && nextMusic.playing()) return
-
-    const previousMusic = currentMusicKey ? sounds.get(currentMusicKey) : undefined
     currentMusicKey = key
 
     const startNext = () => {
@@ -100,11 +112,7 @@ export function playMusic(key: SoundKey) {
     }
 
     if (previousMusic && previousMusic !== nextMusic && previousMusic.playing()) {
-      previousMusic.fade(previousMusic.volume(), 0, MUSIC_FADE_MS)
-      previousMusic.once('fade', () => {
-        previousMusic.stop()
-        startNext()
-      })
+      fadeOut(previousMusic, startNext)
     } else {
       startNext()
     }
@@ -113,24 +121,7 @@ export function playMusic(key: SoundKey) {
   }
 }
 
-/** Para uma trilha e cancela a intenção de retomá-la ao voltar à aba. */
-export function stopMusic(key: SoundKey) {
-  if (!isMusic(key)) return
-
-  try {
-    const music = sounds.get(key)
-    if (currentMusicKey === key) {
-      musicWanted = false
-      currentMusicKey = null
-    }
-    music?.fade(music.volume(), 0, MUSIC_FADE_MS)
-    music?.once('fade', () => music.stop())
-  } catch {
-    // Sem áudio disponível: ignora.
-  }
-}
-
-/** Para todas as trilhas, usado quando o Resultado não tem música própria (ex: empate). */
+/** Para a trilha. No Resultado não tem música: a vinheta é o efeito que toca no MATCH_END. */
 export function stopAllMusic() {
   musicWanted = false
   currentMusicKey = null
@@ -140,10 +131,7 @@ export function stopAllMusic() {
       const music = sounds.get(key)
       if (!music) continue
 
-      if (music.playing()) {
-        music.fade(music.volume(), 0, MUSIC_FADE_MS)
-        music.once('fade', () => music.stop())
-      }
+      if (music.playing()) fadeOut(music)
     } catch {
       // Sem áudio disponível: ignora.
     }

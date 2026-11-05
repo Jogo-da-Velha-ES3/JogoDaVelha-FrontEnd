@@ -3,24 +3,10 @@
  *
  * O hook useSuddenDeathSounds chama estas funções nos momentos certos.
  * O motor de som cuida do volume, do mudo e da reprodução dos arquivos.
+ * A trilha acelerada não fica aqui: ela é escolhida pela fase da sala, como as outras trilhas
+ * (lib/roomMusic.ts), para uma trilha só tocar por vez.
  */
-import {
-  playLoopSound,
-  playMusic,
-  playSound,
-  stopLoopSound,
-  stopMusic,
-} from '../sound/soundManager'
-
-/** Inicia a trilha acelerada durante o round 3. */
-export function startSuddenDeathMusic(): void {
-  playMusic('trilha-morte-subita')
-}
-
-/** Para a trilha acelerada ao sair do round 3. */
-export function stopSuddenDeathMusic(): void {
-  stopMusic('trilha-morte-subita')
-}
+import { playLoopSound, playSound, stopLoopSound } from '../sound/soundManager'
 
 /** Toca a sirene de alerta da Morte Súbita uma vez. */
 export function playSuddenDeathSiren(): void {

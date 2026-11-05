@@ -19,8 +19,6 @@ export type SoundKey =
   | 'trilha-sala'
   | 'trilha-arena'
   | 'trilha-morte-subita'
-  | 'trilha-vitoria'
-  | 'trilha-derrota'
   | 'coracao'
   | 'tique-taque'
   | AbilitySoundKey
@@ -56,25 +54,16 @@ export const SOUND_KEYS: SoundKey[] = [
   'trilha-sala',
   'trilha-arena',
   'trilha-morte-subita',
-  'trilha-vitoria',
-  'trilha-derrota',
   'coracao',
   'tique-taque',
   ...ABILITIES.map(abilitySoundKey),
 ]
 
-/** Sons que contam como música (o resto é efeito) */
+/**
+ * Trilhas, que contam como música (o resto é efeito) e tocam em loop, uma por vez. O Resultado
+ * não tem trilha: a vinheta de vitória, derrota ou empate é o efeito do MATCH_END.
+ */
 export const MUSIC_KEYS: SoundKey[] = [
-  'trilha-hub',
-  'trilha-sala',
-  'trilha-arena',
-  'trilha-morte-subita',
-  'trilha-vitoria',
-  'trilha-derrota',
-]
-
-/** Trilhas que repetem; as músicas de Vitória e Derrota tocam uma vez só. */
-export const LOOPING_MUSIC_KEYS: SoundKey[] = [
   'trilha-hub',
   'trilha-sala',
   'trilha-arena',

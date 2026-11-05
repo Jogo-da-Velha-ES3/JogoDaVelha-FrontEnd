@@ -6,7 +6,8 @@ import { ABILITIES, CHARACTERS } from '../../constants/game'
 import { Board } from '../../features/board'
 import { Arena, useOpponentDisconnect } from '../../features/match'
 import { ResultScreen, useRoomExit } from '../../features/results'
-import { playMusic, stopAllMusic } from '../../features/sound/soundManager'
+import { playMusic } from '../../features/sound/soundManager'
+import { useRoomMusic } from '../../features/sound/useRoomMusic'
 import { otherSlot } from '../../lib/match'
 import {
   getMockControls,
@@ -106,32 +107,11 @@ export function MockMatchShowcase() {
   const room = useRoomStore()
   const match = useMatchStore()
 
+  // Trilhas como no jogo (FE-38): a do Hub fora da partida; na partida, a mesma regra da sala
+  useRoomMusic()
   useEffect(() => {
-    if (!room.code) {
-      playMusic('trilha-hub')
-      return
-    }
-
-    if (room.phase === 'WAITING' || room.phase === 'MATCHED' || room.phase === 'DRAFT') {
-      playMusic('trilha-sala')
-      return
-    }
-
-    if (room.phase === 'RESULT') {
-      if (!match.outcome) return
-
-      if (match.outcome.kind === 'ABSOLUTE_DRAW') {
-        stopAllMusic()
-      } else {
-        playMusic(match.outcome.winner === room.mySlot ? 'trilha-vitoria' : 'trilha-derrota')
-      }
-      return
-    }
-
-    if (room.phase && ARENA_PHASES.includes(room.phase)) {
-      playMusic(match.suddenDeath ? 'trilha-morte-subita' : 'trilha-arena')
-    }
-  }, [room.code, room.phase, room.mySlot, match.outcome, match.suddenDeath])
+    if (!room.code) playMusic('trilha-hub')
+  }, [room.code])
 
   useEffect(() => {
     const off = onServerEventForDebug((e) => setLog((prev) => [e.type, ...prev].slice(0, 10)))
