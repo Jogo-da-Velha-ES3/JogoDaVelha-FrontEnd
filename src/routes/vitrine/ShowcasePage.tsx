@@ -8,6 +8,7 @@ import { CharacterShowcase } from './CharacterShowcase'
 import { ComponentsShowcase } from './ComponentsShowcase'
 import { MockMatchShowcase } from './MockMatchShowcase'
 import { ShowcasePanel } from './ShowcaseLayout'
+import { SoundShowcase } from './SoundShowcase'
 import { VitaoShowcase } from './VitaoShowcase'
 
 interface Tab {
@@ -67,6 +68,13 @@ const TABS: Tab[] = [
     description:
       'O Vitão parado, as 8 expressões com a reação de cada uma e o balão de fala, no tamanho do espaço da Arena no celular deitado e no desktop.',
     content: <VitaoShowcase />,
+  },
+  {
+    id: 'sons',
+    label: 'Sons',
+    description:
+      'Todos os sons do jogo sem jogar: uma partida encurtada que toca as trilhas e os efeitos na ordem do jogo, e cada som sozinho para comparar volume e qualidade.',
+    content: <SoundShowcase />,
   },
 ]
 

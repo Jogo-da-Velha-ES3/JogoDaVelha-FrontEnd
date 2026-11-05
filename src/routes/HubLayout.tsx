@@ -4,6 +4,7 @@ import { Button, GearIcon, Modal } from '../components/ui'
 import { HUB_TEXTS, PROFILE_TEXTS, SETTINGS_TEXTS } from '../constants/texts'
 import { Character } from '../features/characters'
 import { SettingsModal } from '../features/settings/SettingsModal'
+import { playMusic } from '../features/sound/soundManager'
 import { useAuthStore } from '../stores/authStore'
 import { selectFavoriteCharacter, useProfileStore } from '../stores/profileStore'
 import { PATHS } from './paths'
@@ -23,6 +24,11 @@ export function HubLayout() {
   useEffect(() => {
     void loadProfile()
   }, [loadProfile])
+
+  // Trilha do Hub, da Loja e do Perfil (FE-38)
+  useEffect(() => {
+    playMusic('trilha-hub')
+  }, [])
 
   return (
     <div className="flex max-h-dvh min-h-0 flex-1 gap-4 py-3 short:gap-3 short:py-2">

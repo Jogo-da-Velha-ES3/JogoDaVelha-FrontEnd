@@ -2,18 +2,17 @@ import { useEffect, useRef } from 'react'
 import {
   playSuddenDeathSiren,
   startHeartbeat,
-  startSuddenDeathMusic,
   startTickTock,
   stopHeartbeat,
-  stopSuddenDeathMusic,
   stopTickTock,
 } from '../features/match/suddenDeathSounds'
 
 /**
  * Hook para gerenciar os sons da Morte Súbita (FE-13 Parte 5).
  *
- * Chama os ganchos de som nos momentos corretos:
- * - Round 3: trilha acelerada e batida de coração
+ * Chama os ganchos de som nos momentos corretos (a trilha acelerada é escolhida pela fase da
+ * sala, em lib/roomMusic.ts, junto com as outras trilhas):
+ * - Round 3: batida de coração
  * - Entrada (depois do sorteio): sirene
  * - Durante: tique-taque nos 3 últimos segundos de qualquer turno
  * - Saída: para todos os sons
@@ -40,20 +39,18 @@ export function useSuddenDeathSounds(
     if (entering) playSuddenDeathSiren()
   }, [entering])
 
-  // Round 3: trilha e batida de coração
+  // Round 3: batida de coração
   useEffect(() => {
     if (suddenDeath && !entryPlayed.current) {
       entryPlayed.current = true
 
-      // Sons de fundo (começam uma vez)
-      startSuddenDeathMusic()
+      // Som de fundo (começa uma vez)
       startHeartbeat()
     }
 
     // Cleanup: para tudo ao sair da Morte Súbita ou desmontar
     return () => {
       if (entryPlayed.current) {
-        stopSuddenDeathMusic()
         stopHeartbeat()
         stopTickTock()
         entryPlayed.current = false
