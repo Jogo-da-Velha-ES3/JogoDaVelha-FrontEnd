@@ -5,6 +5,7 @@ import { ROOM_TEXTS } from '../constants/texts'
 import { WaitingRoom } from '../features/lobby/WaitingRoom'
 import { Arena } from '../features/match'
 import { ResultScreen, useRoomExit } from '../features/results'
+import { useRoomMusic } from '../features/sound/useRoomMusic'
 import { useIsBefore } from '../hooks/useIsBefore'
 import { isValidRoomCode } from '../lib/roomCode'
 import { joinRoom, leaveRoom } from '../sockets/gameClient'
@@ -85,6 +86,9 @@ function RoomScreen({ code }: { code: string }) {
       ? outcomeReceivedAt + RESULT_HOLD_SECONDS * 1000
       : null,
   )
+
+  // Trilha da Sala, da Arena ou da Morte Súbita; o Resultado fica sem trilha (FE-38)
+  useRoomMusic()
 
   switch (phase) {
     case null:

@@ -15,7 +15,12 @@ export type SoundKey =
   | 'empate'
   | 'coins'
   | 'botao'
-  | 'trilha'
+  | 'trilha-hub'
+  | 'trilha-sala'
+  | 'trilha-arena'
+  | 'trilha-morte-subita'
+  | 'coracao'
+  | 'tique-taque'
   | AbilitySoundKey
 
 /** Som de cada uma das 10 habilidades: habilidades/habilidade-<id em minúsculas>.mp3 */
@@ -45,12 +50,25 @@ export const SOUND_KEYS: SoundKey[] = [
   'empate',
   'coins',
   'botao',
-  'trilha',
+  'trilha-hub',
+  'trilha-sala',
+  'trilha-arena',
+  'trilha-morte-subita',
+  'coracao',
+  'tique-taque',
   ...ABILITIES.map(abilitySoundKey),
 ]
 
-/** Sons que contam como música (o resto é efeito) */
-export const MUSIC_KEYS: SoundKey[] = ['trilha']
+/**
+ * Trilhas, que contam como música (o resto é efeito) e tocam em loop, uma por vez. O Resultado
+ * não tem trilha: a vinheta de vitória, derrota ou empate é o efeito do MATCH_END.
+ */
+export const MUSIC_KEYS: SoundKey[] = [
+  'trilha-hub',
+  'trilha-sala',
+  'trilha-arena',
+  'trilha-morte-subita',
+]
 
 /** O Coins toca um pouco depois do som de resultado, para não encavalar */
 export const COINS_DELAY_MS = 800

@@ -4,8 +4,6 @@ import * as suddenDeathSounds from '../features/match/suddenDeathSounds'
 import { useSuddenDeathSounds } from './useSuddenDeathSounds'
 
 describe('useSuddenDeathSounds', () => {
-  let startMusicSpy: ReturnType<typeof vi.spyOn>
-  let stopMusicSpy: ReturnType<typeof vi.spyOn>
   let playSirenSpy: ReturnType<typeof vi.spyOn>
   let startHeartbeatSpy: ReturnType<typeof vi.spyOn>
   let stopHeartbeatSpy: ReturnType<typeof vi.spyOn>
@@ -13,8 +11,6 @@ describe('useSuddenDeathSounds', () => {
   let stopTickTockSpy: ReturnType<typeof vi.spyOn>
 
   beforeEach(() => {
-    startMusicSpy = vi.spyOn(suddenDeathSounds, 'startSuddenDeathMusic')
-    stopMusicSpy = vi.spyOn(suddenDeathSounds, 'stopSuddenDeathMusic')
     playSirenSpy = vi.spyOn(suddenDeathSounds, 'playSuddenDeathSiren')
     startHeartbeatSpy = vi.spyOn(suddenDeathSounds, 'startHeartbeat')
     stopHeartbeatSpy = vi.spyOn(suddenDeathSounds, 'stopHeartbeat')
@@ -29,16 +25,14 @@ describe('useSuddenDeathSounds', () => {
   it('não dispara nada quando não está em Morte Súbita', () => {
     renderHook(() => useSuddenDeathSounds(false, 5, true))
 
-    expect(startMusicSpy).not.toHaveBeenCalled()
     expect(playSirenSpy).not.toHaveBeenCalled()
     expect(startHeartbeatSpy).not.toHaveBeenCalled()
     expect(startTickTockSpy).not.toHaveBeenCalled()
   })
 
-  it('dispara trilha, sirene e batida de coração na entrada da Morte Súbita', () => {
+  it('dispara sirene e batida de coração na entrada da Morte Súbita', () => {
     renderHook(() => useSuddenDeathSounds(true, 5, true, true))
 
-    expect(startMusicSpy).toHaveBeenCalledTimes(1)
     expect(playSirenSpy).toHaveBeenCalledTimes(1)
     expect(startHeartbeatSpy).toHaveBeenCalledTimes(1)
   })
@@ -48,7 +42,7 @@ describe('useSuddenDeathSounds', () => {
       ({ entering }) => useSuddenDeathSounds(true, null, false, entering),
       { initialProps: { entering: false } },
     )
-    expect(startMusicSpy).toHaveBeenCalledTimes(1)
+    expect(startHeartbeatSpy).toHaveBeenCalledTimes(1)
     expect(playSirenSpy).not.toHaveBeenCalled()
 
     rerender({ entering: true })
@@ -61,7 +55,6 @@ describe('useSuddenDeathSounds', () => {
       { initialProps: { seconds: 5 } },
     )
 
-    expect(startMusicSpy).toHaveBeenCalledTimes(1)
     expect(playSirenSpy).toHaveBeenCalledTimes(1)
     expect(startHeartbeatSpy).toHaveBeenCalledTimes(1)
 
@@ -71,7 +64,6 @@ describe('useSuddenDeathSounds', () => {
     rerender({ seconds: 2 })
 
     // Sons de entrada não devem disparar novamente
-    expect(startMusicSpy).toHaveBeenCalledTimes(1)
     expect(playSirenSpy).toHaveBeenCalledTimes(1)
     expect(startHeartbeatSpy).toHaveBeenCalledTimes(1)
   })
@@ -81,7 +73,6 @@ describe('useSuddenDeathSounds', () => {
 
     unmount()
 
-    expect(stopMusicSpy).toHaveBeenCalledTimes(1)
     expect(stopHeartbeatSpy).toHaveBeenCalledTimes(1)
     expect(stopTickTockSpy).toHaveBeenCalledTimes(1)
   })
@@ -94,7 +85,6 @@ describe('useSuddenDeathSounds', () => {
     // Muda para não-Morte Súbita
     rerender({ sd: false })
 
-    expect(stopMusicSpy).toHaveBeenCalledTimes(1)
     expect(stopHeartbeatSpy).toHaveBeenCalledTimes(1)
     expect(stopTickTockSpy).toHaveBeenCalledTimes(1)
   })

@@ -27,6 +27,7 @@ src/
 │   ├── settings/        # modal de Configurações (som, música, voz, Vitão, filtro, vibração)
 │   └── vitao/           # Vitão: arte, animação, falas e reações, atrás da flag VITAO_ENABLED
 ├── sockets/            # cliente STOMP + servidor simulado (mock/) com a mesma interface
+├── pwa/                # convite de instalação (beforeinstallprompt); o service worker vem do vite-plugin-pwa
 ├── lib/                # lógica pura, sem React (testável isolado)
 │   ├── winCheck.ts       # verificação de vitória N×N/K, ignorando peças congeladas
 │   ├── abilityTargets.ts # casas vizinhas e os alvos que a mira deixa tocar
@@ -356,5 +357,27 @@ Howler, React Router, oxlint + Prettier, Husky + lint-staged, Vitest, CI e deplo
 A base da ERS V2 (FE-22) trocou o `socket.io-client` pelo `@stomp/stompjs`, criou as pastas novas,
 as constantes, os tipos, o cliente REST (`src/api/`) e ligou o modo `strict` do TypeScript.
 
-Pendente: configurar o PWA (manifest com `"orientation": "landscape"`, ícones e service worker) —
-card FE-16.
+### PWA (FE-16)
+
+O jogo é instalável pelo **vite-plugin-pwa** (configurado em `vite.config.ts`), que gera o manifest
+e o service worker (Workbox) no `npm run build`. O registro fica em `src/pwa/registerServiceWorker.ts`.
+
+- **Manifest** (no `vite.config.ts`): nome, `display: "fullscreen"`, `orientation: "landscape"`,
+  cores no `--color-bg-deep` (`#07060e`) e os ícones de `public/icons/` (192, 512 e um "maskable"
+  para o Android recortar). O iPhone usa o `apple-touch-icon` e as metas `apple-mobile-web-app-*`
+  do `index.html`.
+- **Service worker:** `registerType: "autoUpdate"`. Guarda o app (JS, CSS, HTML e imagens) para
+  abrir sem rede; sons ficam de fora. Toda rota cai no `index.html`, e
+  `/api/` nunca passa pelo cache. Partida e sala vão por WebSocket, que o service worker não toca.
+- **Versão nova:** depois de um deploy, o jogo abre com a versão do cache e o service worker novo
+  assume em segundos, apagando os arquivos velhos. Por isso a página recarrega nessa hora
+  (`onNeedReload`): sem isso, o primeiro arquivo carregado sob demanda (a conexão da sala) não
+  existe mais e a sala não abre. Dentro da sala não recarrega, para não derrubar a partida; o
+  código dela já carregou, e a versão nova entra na próxima vez que o jogo abrir.
+- Só existe no build: no `npm run dev` e nos testes ele fica desligado. Para testar a instalação,
+  use o preview da Vercel (HTTPS).
+- `src/pwa/installPrompt.ts` guarda o `beforeinstallprompt` desde o `main.tsx`, porque o navegador
+  manda o evento logo no carregamento, antes do Hub existir. O `useInstallPrompt` e o
+  `InstallAppButton` do Hub decidem o botão pela regra pura de `src/lib/installPlatform.ts`: janela
+  de instalação do navegador (Chrome/Edge/Android), passo a passo do Compartilhar (iPhone/iPad) ou
+  botão escondido (já instalado, ou navegador que não instala sites, como o Firefox no computador).

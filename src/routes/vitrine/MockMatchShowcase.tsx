@@ -6,6 +6,8 @@ import { ABILITIES, CHARACTERS } from '../../constants/game'
 import { Board } from '../../features/board'
 import { Arena, useOpponentDisconnect } from '../../features/match'
 import { ResultScreen, useRoomExit } from '../../features/results'
+import { playMusic } from '../../features/sound/soundManager'
+import { useRoomMusic } from '../../features/sound/useRoomMusic'
 import { otherSlot } from '../../lib/match'
 import {
   getMockControls,
@@ -104,6 +106,12 @@ export function MockMatchShowcase() {
   const [log, setLog] = useState<string[]>([])
   const room = useRoomStore()
   const match = useMatchStore()
+
+  // Trilhas como no jogo (FE-38): a do Hub fora da partida; na partida, a mesma regra da sala
+  useRoomMusic()
+  useEffect(() => {
+    if (!room.code) playMusic('trilha-hub')
+  }, [room.code])
 
   useEffect(() => {
     const off = onServerEventForDebug((e) => setLog((prev) => [e.type, ...prev].slice(0, 10)))
