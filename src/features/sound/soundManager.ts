@@ -68,10 +68,17 @@ export function loadSounds() {
   }
 }
 
-/** Abaixa a trilha até o silêncio e para */
-function fadeOut(music: Howl, onDone?: () => void) {
+/**
+ * Abaixa a trilha até o silêncio e para. Se ela for pedida de novo enquanto abaixa (ex: parar
+ * tudo e logo voltar à mesma trilha), não para: volta ao volume e continua de onde estava.
+ */
+function fadeOut(key: SoundKey, music: Howl, onDone?: () => void) {
   music.fade(music.volume(), 0, MUSIC_FADE_MS)
   music.once('fade', () => {
+    if (currentMusicKey === key && musicWanted) {
+      applySettings(key, music)
+      return
+    }
     music.stop()
     onDone?.()
   })
@@ -93,11 +100,12 @@ export function playMusic(key: SoundKey) {
   musicWanted = true
 
   try {
-    const previousMusic = currentMusicKey ? sounds.get(currentMusicKey) : undefined
+    const previousKey = currentMusicKey
+    const previousMusic = previousKey ? sounds.get(previousKey) : undefined
     const nextMusic = sounds.get(key) ?? createHowl(key)
     if (!nextMusic) {
       // Trilha sem arquivo ou que falhou: a anterior não fica tocando no lugar dela
-      if (previousMusic?.playing()) fadeOut(previousMusic)
+      if (previousKey && previousMusic?.playing()) fadeOut(previousKey, previousMusic)
       currentMusicKey = key
       return
     }
@@ -107,12 +115,17 @@ export function playMusic(key: SoundKey) {
 
     const startNext = () => {
       if (currentMusicKey !== key || !musicWanted) return
+      if (nextMusic.playing()) {
+        // Estava abaixando (pediram de novo durante o fade): volta ao volume sem recomeçar
+        nextMusic.fade(nextMusic.volume(), settings.musicVolume, MUSIC_FADE_MS)
+        return
+      }
       applySettings(key, nextMusic)
-      if (!nextMusic.playing()) nextMusic.play()
+      nextMusic.play()
     }
 
-    if (previousMusic && previousMusic !== nextMusic && previousMusic.playing()) {
-      fadeOut(previousMusic, startNext)
+    if (previousKey && previousMusic && previousMusic !== nextMusic && previousMusic.playing()) {
+      fadeOut(previousKey, previousMusic, startNext)
     } else {
       startNext()
     }
@@ -131,7 +144,7 @@ export function stopAllMusic() {
       const music = sounds.get(key)
       if (!music) continue
 
-      if (music.playing()) fadeOut(music)
+      if (music.playing()) fadeOut(key, music)
     } catch {
       // Sem áudio disponível: ignora.
     }
@@ -229,6 +242,15 @@ export function stopSound(key: SoundKey) {
     }
   } catch {
     // Som indisponível: ignora.
+  }
+}
+
+/** Duração do som em segundos; 0 se ele não existe ou ainda não carregou (aba Sons da vitrine) */
+export function soundDuration(key: SoundKey): number {
+  try {
+    return sounds.get(key)?.duration() ?? 0
+  } catch {
+    return 0
   }
 }
 
