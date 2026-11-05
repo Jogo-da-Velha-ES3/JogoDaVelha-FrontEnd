@@ -31,6 +31,16 @@ export function LockIcon({ className }: { className?: string }) {
   )
 }
 
+/** Lápis: editar (ex: o apelido no Perfil) */
+export function PencilIcon({ className }: { className?: string }) {
+  return (
+    <LineIcon className={className}>
+      <path d="M4 20 L5 15.5 L15.5 5 a2.1 2.1 0 0 1 3 3 L8 18.5 Z" />
+      <path d="M13.5 7 L16.5 10" />
+    </LineIcon>
+  )
+}
+
 /** Engrenagem: Configurações */
 export function GearIcon({ className }: { className?: string }) {
   return (

@@ -121,6 +121,33 @@ export const PROFILE_TEXTS = {
   /** Topo do Hub quando o perfil não chegou nem uma vez (ex: back fora do ar) */
   loadError: 'Não foi possível carregar seu perfil.',
   retry: 'Tentar de novo',
+  // Tela de Perfil (FE-33) [RF-PRF-01] [RF-PRF-02]
+  title: 'Perfil',
+  editNickname: 'Editar apelido',
+  nickname: 'Apelido',
+  save: 'Salvar',
+  saving: 'Salvando…',
+  cancel: 'Cancelar',
+  renamed: 'Apelido atualizado.',
+  renameFailed: 'Não foi possível trocar o apelido agora.',
+  statistics: 'Estatísticas',
+  matches: 'Partidas',
+  wins: 'Vitórias',
+  winRate: 'Taxa de vitória',
+  longestStreak: 'Maior sequência',
+  characters: 'Personagens',
+  skills: 'Habilidades',
+  /** Quantos itens da coleção o jogador tem: "3/6" na tela, "3 de 6" no leitor de tela */
+  ownedCount: (owned: number, total: number) => `${owned}/${total}`,
+  ownedCountLabel: (owned: number, total: number) => `${owned} de ${total} desbloqueados`,
+  favorite: 'Favorito',
+  chooseFavorite: 'Usar como favorito',
+  locked: 'Bloqueado, ver na Loja',
+  /** Rótulo de cada item da coleção para o leitor de tela (ex: "Estrela, bloqueado, ver na Loja") */
+  itemLabel: (name: string, state: string) => `${name}, ${state.toLowerCase()}`,
+  favoriteSaved: (name: string) => `${name} agora é o seu favorito.`,
+  favoriteFailed: 'Não foi possível trocar o favorito agora.',
+  collectionHint: 'Os itens bloqueados levam à Loja.',
   /** Erros do simulado, com o texto do back (ShopService e BE-027) */
   errors: {
     usernameTaken: 'Esse nome de usuário já está em uso.',
