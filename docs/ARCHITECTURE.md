@@ -70,7 +70,11 @@ vencedora que o servidor confirmou.
 - A tabela de rotas fica em `src/routes/routes.tsx` e os caminhos em `src/routes/paths.ts`
   (`PATHS`, `roomPath(code)`): usar as constantes em vez de strings soltas.
 - Guardas: `RequireAuth` (sem sessão → `/entrar`) e `RequireGuest` (`/entrar` logado → Hub ou
-  sala pendente). Um 401 da API derruba a sessão pelo `authStore` e cai no `/entrar`.
+  sala pendente). Um 401 da API (token vencido ou inválido) derruba a sessão pelo `authStore` e
+  cai no `/entrar`, com o aviso "Sua sessão expirou. Entre de novo." uma vez só. O STOMP recusa o
+  token vencido sem dizer o motivo: quando o `connect` falha, o `gameClient` confere a sessão no
+  REST (`isSessionValid`, `GET /coins/balance`) e, com 401, o jogador vai para o Acesso sem erro de
+  sala (FE-49).
 - Link direto: `/sala/4821`. Se não houver sessão, o código fica guardado no `roomStore`
   (`pendingRoomCode`, no `sessionStorage`), o jogador passa pelo Acesso e volta para a sala.
 - Código de sala inválido (`/sala/abc`, `/sala/12345`) mostra "Página não encontrada".
@@ -230,8 +234,19 @@ A fonte é o `docs/contrato-integracao-v2.md` do repositório do back. Ele foi v
 | POST   | `/rooms/{code}/join`            | entrar; erros `ROOM_NOT_FOUND`, `ROOM_FULL`, `ROOM_ALREADY_STARTED` |
 
 Erro único: `{ code, message, status, timestamp, path, fields? }`. Ids das habilidades no campo
-`code`, iguais aos do front. O ajuste fino do REST de perfil, loja e Coins é a FE-49; o da
-recuperação de senha (código `INVALID_RESET_TOKEN`), a FE-36.
+`code`, iguais aos do front. O 401 de token vencido ou inválido vem com `code: "UNAUTHORIZED"`. O
+ajuste da recuperação de senha (código `INVALID_RESET_TOKEN`) é a FE-36.
+
+Perfil, loja e Coins foram conferidos contra o back na FE-49 (`src/api/liveBack.test.ts`). O que
+a tradução em `src/api/shop.ts` muda:
+
+- **Nome dos itens:** o back manda as habilidades em maiúsculas e sem acento ("CAMPO DE FORCA").
+  Para um `code` que o front conhece, vale o nome das constantes ("Campo de Força").
+- **Ordem:** o catálogo vem por preço e código (O antes de X). A Loja e os seletores do
+  `profileStore` seguem a ordem do front.
+- `GET /profile` traz `equippedCharacter` (código) e `preferredCharacter` (o **nome** do mais
+  usado, não o código). O favorito do Hub sai do catálogo (`equipped`).
+- Os Coins da partida já estão no saldo quando o `MATCH_END` chega.
 
 ### STOMP (`VITE_WEBSOCKET_URL`, a raiz do back; o cliente usa `/ws`)
 
@@ -301,7 +316,7 @@ front (`src/sockets/mock/`). Ele fica **ligado por padrão** e desliga com
   stores. Nunca sabem se estão falando com o simulado ou com o real.
 - "Casa adjacente" (Tornado, Troca Rápida) inclui as diagonais, como no back.
 - Conta do jogador (FE-30): `src/api/profile.ts` e `src/api/shop.ts` usam as rotas reais do back
-  (BE-027, `ShopController` e `CoinController`, conferidas na `dev` do back em 02/11); no
+  (BE-027, `ShopController` e `CoinController`, conferidas contra o back na FE-49); no
   simulado, respondem pela conta guardada no aparelho (`src/api/mockAccount.ts`, no
   `localStorage`), com 300ms de espera e os mesmos `code` de erro do back. Cada apelido que entra
   pelo simulado tem a sua conta. O servidor simulado credita os Coins e a partida nela antes do

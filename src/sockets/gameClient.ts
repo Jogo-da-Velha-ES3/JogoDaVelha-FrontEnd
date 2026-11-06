@@ -1,6 +1,7 @@
 // O que as telas usam para falar com a sala: entrar, mandar intenções e sair. Escolhe entre o
 // servidor simulado (FE-35) e o cliente STOMP real (FE-18) pela variável de ambiente. Os dois
 // são carregados sob demanda, só quando alguém entra numa sala.
+import { isSessionValid } from '../api/auth'
 import { applyServerEvent, resetGameStores } from '../stores/serverEvents'
 import { useRoomStore } from '../stores/roomStore'
 import type { ClientCommand, ServerEnvelope } from '../types/events'
@@ -59,7 +60,14 @@ export async function joinRoom(roomCode: string, options: JoinRoomOptions = {}) 
     }),
     conn.onStatus((status) => useRoomStore.getState().setConnectionStatus(status)),
   ]
-  await conn.connect(roomCode)
+  try {
+    await conn.connect(roomCode)
+  } catch (error) {
+    // O back recusa o CONNECT sem dizer o motivo, e o mais comum é o token vencido (ex: link direto
+    // da sala depois de muito tempo). Sessão caída já foi para o Acesso, com o aviso dela
+    if (current === attempt && !(await isSessionValid())) return
+    throw error
+  }
 }
 
 /** Manda uma intenção. O estado só muda quando o servidor responder com eventos. */

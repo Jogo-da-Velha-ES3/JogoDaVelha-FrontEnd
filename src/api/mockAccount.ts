@@ -128,9 +128,10 @@ export function mockProfile(): Profile {
   return update((account) => ({
     username: account.username,
     coinsBalance: account.coinsBalance,
-    avatar: null,
+    avatar: 'DEFAULT',
     // No back é o personagem mais usado nas partidas; o simulado não guarda o histórico
     preferredCharacter: null,
+    equippedCharacter: account.equippedCharacter,
   }))
 }
 
@@ -238,12 +239,14 @@ export function mockBalance(): number {
   return update((account) => account.coinsBalance)
 }
 
-export function mockBuyCoins(packageId: string): void {
+export function mockBuyCoins(packageId: string): number {
   const pack = MOCK_COIN_PACKAGES.find((candidate) => candidate.id === packageId)
-  if (!pack) throw new ApiError(404, PROFILE_TEXTS.errors.packageNotFound, 'NOT_FOUND')
-  update((account) => {
+  // Como no back: pacote inexistente é 400 (IllegalArgumentException no CoinPurchaseService)
+  if (!pack) throw new ApiError(400, PROFILE_TEXTS.errors.packageNotFound, 'ROOM_BAD_REQUEST')
+  return update((account) => {
     // Compra simbólica: crédito imediato, sem pagamento de verdade [RN-LOJ-04]
     account.coinsBalance += pack.coins
+    return account.coinsBalance
   })
 }
 

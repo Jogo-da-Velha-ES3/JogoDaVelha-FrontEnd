@@ -1,6 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { AccountCreatedError, login, loginErrorFor, register, registerErrorFor } from './auth'
+import {
+  AccountCreatedError,
+  isSessionValid,
+  login,
+  loginErrorFor,
+  register,
+  registerErrorFor,
+} from './auth'
 import { ApiError } from './client'
+import { getAuthToken, setAuthToken } from './session'
 
 const fetchMock = vi.fn<typeof fetch>()
 
@@ -25,6 +33,22 @@ describe('com o back de verdade', () => {
     vi.unstubAllEnvs()
     vi.unstubAllGlobals()
     fetchMock.mockReset()
+  })
+
+  it('isSessionValid: 401 derruba a sessão; rede ou erro do servidor presume que vale', async () => {
+    setAuthToken('vencido')
+    respond(401, { code: 'UNAUTHORIZED', message: 'Autenticação necessária ou token inválido' })
+
+    await expect(isSessionValid()).resolves.toBe(false)
+    expect(urlOf(0)).toMatch(/\/coins\/balance$/)
+    expect(getAuthToken()).toBeNull()
+
+    respond(200, { coinsBalance: 10 })
+    await expect(isSessionValid()).resolves.toBe(true)
+    respond(500, { code: 'INTERNAL_ERROR', message: 'Erro interno do servidor' })
+    await expect(isSessionValid()).resolves.toBe(true)
+    fetchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    await expect(isSessionValid()).resolves.toBe(true)
   })
 
   it('login manda identifier e senha, sem token', async () => {

@@ -1,5 +1,6 @@
 import type { Client, IFrame, IMessage, StompConfig } from '@stomp/stompjs'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { APP_TEXTS } from '../constants/texts'
 import type { ServerEnvelope } from '../types/events'
 import type { ConnectionStatus } from './types'
 import { StompConnection, toBrokerUrl } from './stompConnection'
@@ -235,8 +236,9 @@ describe('StompConnection', () => {
   it('servidor recusa a conexão (ex: token inválido): status de erro e connect rejeitado', async () => {
     const connection = setup()
     const connected = connection.connect('4821')
-    fake.stompError('Token inválido')
-    await expect(connected).rejects.toThrow('Token inválido')
+    // Mensagem real do back ao recusar o CONNECT: interna do Spring, não vai para a tela
+    fake.stompError('Failed to send message to ExecutorSubscribableChannel[clientInboundChannel]')
+    await expect(connected).rejects.toThrow(APP_TEXTS.errors.connectionRefused)
     expect(statuses.at(-1)).toBe('ERROR')
   })
 
@@ -245,10 +247,10 @@ describe('StompConnection', () => {
     const connected = connection.connect('4821')
     fake.open()
     await connected
-    fake.stompError('Sessão expirada')
+    fake.stompError('Failed to send message to ExecutorSubscribableChannel[clientInboundChannel]')
     expect(events.at(-1)).toMatchObject({
       type: 'ERROR',
-      payload: { message: 'Sessão expirada' },
+      payload: { message: APP_TEXTS.errors.connectionRefused },
       local: true,
     })
   })

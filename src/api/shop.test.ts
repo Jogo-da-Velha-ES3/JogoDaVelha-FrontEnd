@@ -54,7 +54,7 @@ describe('loja com o back de verdade', () => {
     respond(200, {})
     respond(200, { coinsBalance: 50 })
     respond(200, [])
-    respond(204)
+    respond(200, { coinsBalance: 150 })
 
     await getCatalog('CHARACTERS')
     await getCatalog('SKILLS')
@@ -62,7 +62,7 @@ describe('loja com o back de verdade', () => {
     await equip('uuid-triangulo')
     await expect(getBalance()).resolves.toBe(50)
     await getCoinPackages()
-    await buyCoins('uuid-pacote')
+    await expect(buyCoins('uuid-pacote')).resolves.toBe(150)
 
     expect(urlOf(0)).toMatch(/\/shop\/characters$/)
     expect(urlOf(1)).toMatch(/\/shop\/skills$/)
@@ -74,6 +74,35 @@ describe('loja com o back de verdade', () => {
     expect(urlOf(5)).toMatch(/\/coins\/packages$/)
     expect(urlOf(6)).toMatch(/\/coins\/packages\/uuid-pacote\/purchase$/)
     expect(methodOf(6)).toBe('POST')
+  })
+
+  it('o nome que aparece é o do front: o back manda as habilidades em maiúsculas e sem acento', async () => {
+    const backItem = (category: string, code: string, name: string) => ({
+      id: `uuid-${code}`,
+      category,
+      code,
+      name,
+      description: '',
+      priceCoins: 350,
+      owned: false,
+      equipped: false,
+    })
+    respond(200, [
+      backItem('SKILLS', 'CAMPO_DE_FORCA', 'CAMPO DE FORCA'),
+      backItem('SKILLS', 'SILENCIO', 'SILENCIO'),
+      // Código que o front não conhece (ex: habilidade nova no back): fica o nome do back
+      backItem('SKILLS', 'RADAR', 'RADAR'),
+    ])
+    respond(200, { item: backItem('SKILLS', 'TROCA_RAPIDA', 'TROCA RAPIDA'), coinsBalance: 0 })
+    respond(200, { ...backItem('CHARACTERS', 'CORACAO', 'Coração'), owned: true, equipped: true })
+
+    const skills = await getCatalog('SKILLS')
+    const bought = await purchase('SKILLS', 'uuid-TROCA_RAPIDA')
+    const equipped = await equip('uuid-CORACAO')
+
+    expect(skills.map((item) => item.name)).toEqual(['Campo de Força', 'Silêncio', 'RADAR'])
+    expect(bought.item.name).toBe('Troca Rápida')
+    expect(equipped).toMatchObject({ name: 'Coração', equipped: true })
   })
 
   it('saldo insuficiente chega com o code do back', async () => {
@@ -119,11 +148,12 @@ describe('loja no modo simulado', () => {
   it('Coins simbólicos entram na hora e pagam a compra; comprar de novo dá ALREADY_OWNED', async () => {
     const [pack] = await getCoinPackages()
     expect(pack).toMatchObject({ coins: 100, priceInReais: 4.99 })
+    await expect(buyCoins(pack.id)).resolves.toBe(100)
     await buyCoins(pack.id)
     await buyCoins(pack.id)
-    await buyCoins(pack.id)
-    await buyCoins(pack.id)
+    await expect(buyCoins(pack.id)).resolves.toBe(400)
     await expect(getBalance()).resolves.toBe(400)
+    await expect(buyCoins('nao-existe')).rejects.toMatchObject({ status: 400 })
 
     const tornado = itemOf(await getCatalog('SKILLS'), 'TORNADO')
     const result = await purchase('SKILLS', tornado.id)

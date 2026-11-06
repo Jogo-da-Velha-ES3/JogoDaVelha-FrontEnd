@@ -33,7 +33,13 @@ describe('perfil com o back de verdade', () => {
   })
 
   it('GET /profile e GET /profile/stats devolvem os campos do back', async () => {
-    const profile = { username: 'vini', coinsBalance: 150, avatar: null, preferredCharacter: 'X' }
+    const profile = {
+      username: 'vini',
+      coinsBalance: 150,
+      avatar: 'DEFAULT',
+      preferredCharacter: 'Triângulo',
+      equippedCharacter: 'TRIANGULO',
+    }
     const stats = {
       matchesPlayed: 10,
       wins: 6,
@@ -82,8 +88,9 @@ describe('perfil no modo simulado', () => {
     await expect(getProfile()).resolves.toEqual({
       username: 'vini',
       coinsBalance: 0,
-      avatar: null,
+      avatar: 'DEFAULT',
       preferredCharacter: null,
+      equippedCharacter: null,
     })
     await expect(getStats()).resolves.toEqual({
       matchesPlayed: 0,

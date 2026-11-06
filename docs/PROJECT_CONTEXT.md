@@ -331,7 +331,8 @@ A ERS não define a regra; o back decidiu usar a mesma do W.O. por tempo `[RN-AR
   | Estrela                             | 700    |
   | Cada habilidade (as 7 não iniciais) | 350    |
 
-- Pacotes simbólicos de Coins: **[A VALIDAR COM O BACK]** (proposta: 350, 700 e 1400).
+- Pacotes simbólicos de Coins (os do back, fechados na FE-49): **100** (R$ 4,99), **500**
+  (R$ 19,99) e **1000** (R$ 34,99).
 
 ## 9. Interface
 
@@ -529,9 +530,9 @@ Abrir o jogo → [sem sessão] Acesso → Hub (Jogar; abas Loja / Perfil)
 Validado em 06/11 (FE-17), com o back rodando e partidas inteiras entre dois jogadores: o
 contrato V2 do back (`docs/contrato-integracao-v2.md` no repositório dele, resumo no
 ARCHITECTURE §6) cobre sala, Preparação, sorteio, partida, desconexão, revanche e o snapshot de
-reconexão. Ainda a confirmar no front:
+reconexão. Perfil, loja e Coins foram conferidos contra o back na FE-49. Ainda a confirmar no
+front:
 
-- Pacotes simbólicos de Coins: o back tem 100, 500 e 1000 (FE-49).
 - Recuperação de senha: o back implementou `forgot-password` e `reset-password` (BE-006.1), com o
   código `INVALID_RESET_TOKEN`; o front ainda roda com dados simulados (FE-36).
 

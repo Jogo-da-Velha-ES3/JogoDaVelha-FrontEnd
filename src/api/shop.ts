@@ -1,5 +1,9 @@
-// Loja e Coins pelo REST do back (FE-30) [RF-LOJ-01] [RF-LOJ-02] [RN-LOJ-04]. Rotas do
-// ShopController e do CoinController, já na dev do back. No simulado, a conta fica no aparelho.
+// Loja e Coins pelo REST do back (FE-30, FE-49) [RF-LOJ-01] [RF-LOJ-02] [RN-LOJ-04]. Rotas do
+// ShopController e do CoinController, conferidas contra o back na FE-49. No simulado, a conta fica
+// no aparelho.
+import { ABILITY_INFO } from '../constants/abilities'
+import { CHARACTER_INFO } from '../constants/characters'
+import { isAbilityId, isCharacterId } from '../lib/shop'
 import { isMockServerEnabled } from '../sockets/mode'
 import { apiRequest } from './client'
 import {
@@ -21,6 +25,7 @@ export interface ShopItem {
   id: string
   category: ShopCategory
   code: string
+  /** Nome do front para os códigos que ele conhece ("Campo de Força"); o do back nos outros */
   name: string
   description: string
   priceCoins: number
@@ -45,12 +50,26 @@ export interface CoinPackage {
 /** Caminho da categoria nas rotas do back */
 const PATH: Record<ShopCategory, string> = { CHARACTERS: 'characters', SKILLS: 'skills' }
 
+/**
+ * O back manda o nome das habilidades em maiúsculas e sem acento ("CAMPO DE FORCA"). Texto da
+ * interface fica no front: para um código conhecido, vale o nome das constantes.
+ */
+function withFrontName(item: ShopItem): ShopItem {
+  const { category, code } = item
+  if (category === 'CHARACTERS' && isCharacterId(code)) {
+    return { ...item, name: CHARACTER_INFO[code].name }
+  }
+  if (category === 'SKILLS' && isAbilityId(code)) return { ...item, name: ABILITY_INFO[code].name }
+  return item
+}
+
 export async function getCatalog(category: ShopCategory): Promise<ShopItem[]> {
   if (isMockServerEnabled()) {
     await mockDelay()
     return mockCatalog(category)
   }
-  return apiRequest<ShopItem[]>(`/shop/${PATH[category]}`)
+  const items = await apiRequest<ShopItem[]>(`/shop/${PATH[category]}`)
+  return items.map(withFrontName)
 }
 
 /**
@@ -62,7 +81,10 @@ export async function purchase(category: ShopCategory, itemId: string): Promise<
     await mockDelay()
     return mockPurchase(category, itemId)
   }
-  return apiRequest<Purchase>(`/shop/${PATH[category]}/${itemId}/purchase`, { method: 'POST' })
+  const result = await apiRequest<Purchase>(`/shop/${PATH[category]}/${itemId}/purchase`, {
+    method: 'POST',
+  })
+  return { ...result, item: withFrontName(result.item) }
 }
 
 /** Equipa um personagem (o favorito do Hub). Não comprado: 403 `SHOP_ITEM_NOT_OWNED` */
@@ -71,7 +93,9 @@ export async function equip(itemId: string): Promise<ShopItem> {
     await mockDelay()
     return mockEquip(itemId)
   }
-  return apiRequest<ShopItem>(`/shop/characters/${itemId}/equip`, { method: 'PUT' })
+  return withFrontName(
+    await apiRequest<ShopItem>(`/shop/characters/${itemId}/equip`, { method: 'PUT' }),
+  )
 }
 
 export async function getBalance(): Promise<number> {
@@ -91,14 +115,15 @@ export async function getCoinPackages(): Promise<CoinPackage[]> {
   return apiRequest<CoinPackage[]>('/coins/packages')
 }
 
-/**
- * Compra simbólica de um pacote de Coins. O back responde 204 sem o saldo novo: depois dela,
- * chame `getBalance()` (o `profileStore.buyCoins` já faz isso).
- */
-export async function buyCoins(packageId: string): Promise<void> {
+/** Compra simbólica de um pacote de Coins: devolve o saldo novo, já com o crédito do back */
+export async function buyCoins(packageId: string): Promise<number> {
   if (isMockServerEnabled()) {
     await mockDelay()
     return mockBuyCoins(packageId)
   }
-  await apiRequest<null>(`/coins/packages/${packageId}/purchase`, { method: 'POST' })
+  const { coinsBalance } = await apiRequest<{ coinsBalance: number }>(
+    `/coins/packages/${packageId}/purchase`,
+    { method: 'POST' },
+  )
+  return coinsBalance
 }
