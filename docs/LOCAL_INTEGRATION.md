@@ -149,10 +149,19 @@ cliente STOMP, a tradução e as stores) e um segundo jogador automático do out
 VITE_LIVE_BACK_URL=http://localhost:8080 npx vitest run src/sockets/liveBack.test.ts
 ```
 
-Ele confere a partida 2×0 com habilidade e Resultado, a sala lotada, a jogada fora de hora, a
-saída na Preparação e a queda e a recarga da página no meio da partida. Leva menos de um minuto.
-Rode depois de mexer na tradução do contrato (`src/sockets/`) ou quando o back mudar. Sem a
-variável, ele fica pulado (`npm test` e CI).
+Ele confere a partida 2×0 com habilidade e Resultado (e o saldo já com os Coins no `MATCH_END`),
+a sala lotada, a jogada fora de hora, a saída na Preparação, a queda e a recarga da página no meio
+da partida e o link da sala com o token vencido. Leva menos de um minuto.
+
+O REST de perfil, loja e Coins tem o seu (FE-49): conta nova, catálogo, compra sem saldo, Coins
+simbólicos, compra e equipar, apelido em uso e fora do tamanho, token inválido e back fora do ar.
+
+```bash
+VITE_LIVE_BACK_URL=http://localhost:8080 npx vitest run src/api/liveBack.test.ts
+```
+
+Rode os dois depois de mexer na tradução do contrato (`src/sockets/`, `src/api/`) ou quando o back
+mudar. Sem a variável, eles ficam pulados (`npm test` e CI).
 
 ## 7. Problemas comuns
 

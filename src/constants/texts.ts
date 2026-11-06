@@ -56,6 +56,8 @@ export const ACCESS_TEXTS = {
   forgotPasswordSent:
     'Se esse e-mail estiver cadastrado, você vai receber um link para criar uma senha nova.',
   passwordChanged: 'Senha alterada! Entre com a senha nova.',
+  /** Token vencido ou inválido (401): o jogador volta para o Acesso com este aviso */
+  sessionExpired: 'Sua sessão expirou. Entre de novo.',
   /** Link sem token, inválido, expirado ou já usado: a tela "Nova senha" mostra este texto */
   invalidResetLink: 'Esse link expirou ou não é válido. Peça um novo.',
   errors: {

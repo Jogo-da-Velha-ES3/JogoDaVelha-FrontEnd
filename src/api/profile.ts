@@ -1,6 +1,7 @@
-// Perfil do jogador pelo REST do back (FE-30) [RF-PRF-01] [RF-PRF-02]. Rotas da BE-027, já na dev
-// do back: GET /api/profile, GET /api/profile/stats e PATCH /api/profile/username. O prefixo /api
-// já vem no VITE_API_URL. No simulado, a conta fica no aparelho (mockAccount.ts).
+// Perfil do jogador pelo REST do back (FE-30, FE-49) [RF-PRF-01] [RF-PRF-02]. Rotas da BE-027,
+// conferidas contra o back na FE-49: GET /api/profile, GET /api/profile/stats e
+// PATCH /api/profile/username. O prefixo /api já vem no VITE_API_URL. No simulado, a conta fica no
+// aparelho (mockAccount.ts).
 import { isMockServerEnabled } from '../sockets/mode'
 import { apiRequest } from './client'
 import { mockDelay, mockProfile, mockRename, mockStats } from './mockAccount'
@@ -9,10 +10,15 @@ import { mockDelay, mockProfile, mockRename, mockStats } from './mockAccount'
 export interface Profile {
   username: string
   coinsBalance: number
-  /** Reservado no back: sempre null nesta versão */
+  /** Código do avatar equipado ('DEFAULT' sem nenhum). Avatares ficam para depois do MVP */
   avatar: string | null
-  /** Personagem mais usado nas partidas (não é o equipado); null sem histórico */
+  /**
+   * Personagem mais usado nas partidas (não é o equipado), pelo **nome** ("Triângulo"), não pelo
+   * código; null sem histórico. O front não usa
+   */
   preferredCharacter: string | null
+  /** Código do personagem favorito ('TRIANGULO'); null se nunca equipou. O Hub lê do catálogo */
+  equippedCharacter: string | null
 }
 
 /** GET /profile/stats. A sequência é interrompida por empate ou derrota; W.O. a favor conta */

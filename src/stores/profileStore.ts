@@ -16,6 +16,7 @@ import {
   type ShopItem,
 } from '../api/shop'
 import { ABILITIES, CHARACTERS, STARTER_ABILITIES, STARTER_CHARACTERS } from '../constants/game'
+import { isCharacterId, knownItems } from '../lib/shop'
 import type { AbilityId, CharacterId } from '../types/game'
 import { useAuthStore } from './authStore'
 import { useMatchStore } from './matchStore'
@@ -41,7 +42,7 @@ interface ProfileState extends ProfileData {
   refreshAfterMatch: () => Promise<void>
   /** Compra um item com Coins; erros do back saem como ApiError para a tela mostrar */
   buy: (category: ShopCategory, itemId: string) => Promise<void>
-  /** Compra simbólica de Coins: o back não devolve o saldo, então ele é buscado em seguida */
+  /** Compra simbólica de Coins: grava o saldo novo que o back devolve */
   buyCoins: (packageId: string) => Promise<void>
   rename: (username: string) => Promise<void>
   /** Equipa um personagem comprado: ele vira o favorito do Hub */
@@ -119,8 +120,8 @@ export const useProfileStore = create<ProfileState>()((set, get) => {
 
     buyCoins: async (packageId) => {
       const current = generation
-      await buyCoinsRequest(packageId)
-      setIfCurrent(current, { coinsBalance: await getBalance() })
+      const coinsBalance = await buyCoinsRequest(packageId)
+      setIfCurrent(current, { coinsBalance })
     },
 
     rename: async (username) => {
@@ -155,33 +156,28 @@ export function resetProfile(): void {
 
 // ---- Seletores ----------------------------------------------------------------------------
 
-const isCharacterId = (code: string): code is CharacterId =>
-  (CHARACTERS as readonly string[]).includes(code)
-const isAbilityId = (code: string): code is AbilityId =>
-  (ABILITIES as readonly string[]).includes(code)
-
 /** Personagem do topo e do centro do Hub: o equipado; sem nenhum, o X [RN-LOJ-01] */
 export function selectFavoriteCharacter(state: ProfileData): CharacterId {
   const code = state.characters.find((item) => item.equipped)?.code
   return code && isCharacterId(code) ? code : 'X'
 }
 
-/** Personagens comprados; antes de carregar, só os iniciais (X e O) */
+// O back ordena o catálogo por preço e código (O antes de X); os seletores seguem a ordem do front
+
+/** Personagens comprados, na ordem do front; antes de carregar, só os iniciais (X e O) */
 export function selectOwnedCharacters(state: ProfileData): CharacterId[] {
   if (state.characters.length === 0) return [...STARTER_CHARACTERS]
-  return state.characters
+  return knownItems(state.characters, CHARACTERS)
     .filter((item) => item.owned)
     .map((item) => item.code)
-    .filter(isCharacterId)
 }
 
-/** Habilidades compradas; antes de carregar, só as iniciais (Bomba, Escudo e Ampulheta) */
+/** Habilidades compradas, na ordem do front; antes de carregar, só as iniciais */
 export function selectOwnedAbilities(state: ProfileData): AbilityId[] {
   if (state.skills.length === 0) return [...STARTER_ABILITIES]
-  return state.skills
+  return knownItems(state.skills, ABILITIES)
     .filter((item) => item.owned)
     .map((item) => item.code)
-    .filter(isAbilityId)
 }
 
 // ---- Ligações com o resto do jogo ---------------------------------------------------------

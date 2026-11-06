@@ -1,5 +1,15 @@
 // Regras de exibição da Loja (FE-31) [RF-LOJ-02] [RN-LOJ-03]. Funções puras: só dizem como mostrar
 // um item com o saldo que o servidor confirmou. Quem decide se a compra vale é o servidor.
+import { ABILITIES, CHARACTERS } from '../constants/game'
+import type { AbilityId, CharacterId } from '../types/game'
+
+/** O `code` que veio do back é um personagem que o front conhece? */
+export const isCharacterId = (code: string): code is CharacterId =>
+  (CHARACTERS as readonly string[]).includes(code)
+
+/** O `code` que veio do back é uma habilidade que o front conhece? */
+export const isAbilityId = (code: string): code is AbilityId =>
+  (ABILITIES as readonly string[]).includes(code)
 
 /** O mínimo de um item da Loja para decidir o estado dele */
 export interface ShopItemLike {

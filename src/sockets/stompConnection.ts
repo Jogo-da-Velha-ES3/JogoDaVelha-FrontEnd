@@ -84,8 +84,10 @@ export class StompConnection implements GameConnection {
           this.setStatus('CONNECTED')
           settle()
         },
-        onStompError: (frame) => {
-          const message = frame.headers.message || APP_TEXTS.errors.connectionRefused
+        // O back não diz o motivo: a mensagem do frame é interna do Spring, em inglês ("Failed to
+        // send message to ExecutorSubscribableChannel..."), e nunca vai para a tela
+        onStompError: () => {
+          const message = APP_TEXTS.errors.connectionRefused
           this.setStatus('ERROR')
           if (settled) this.emitLocalError('CONNECTION_ERROR', message)
           settle(new Error(message))

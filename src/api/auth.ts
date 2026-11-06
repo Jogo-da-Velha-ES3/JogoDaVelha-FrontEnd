@@ -21,6 +21,22 @@ interface RegisterResponse {
 }
 
 /** Login por e-mail ou nome de usuário: o back decide qual é pelo `identifier`. */
+/**
+ * O token ainda vale? Pergunta numa rota autenticada barata (o saldo). Com 401, o cliente REST já
+ * derrubou a sessão e o jogador vai para o Acesso. Sem resposta (rede, erro do servidor), presume
+ * que vale: a próxima chamada decide. Serve para quando o STOMP recusa a conexão, porque o back não
+ * diz o motivo.
+ */
+export async function isSessionValid(): Promise<boolean> {
+  if (isMockServerEnabled()) return true
+  try {
+    await apiRequest<unknown>('/coins/balance')
+    return true
+  } catch (error) {
+    return !(error instanceof ApiError && error.status === 401)
+  }
+}
+
 export async function login(identifier: string, password: string): Promise<AuthSession> {
   if (isMockServerEnabled()) return mockSession(identifier.trim())
   return apiRequest<AuthSession>('/auth/login', {

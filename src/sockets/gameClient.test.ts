@@ -14,6 +14,7 @@ import { StompConnection } from './stompConnection'
 import { MockConnection } from './mock/mockConnection'
 import { MOCK_TIMINGS } from './mock/mockServer'
 import { SCENARIOS } from './mock/scenarios'
+import type { GameConnection } from './types'
 
 const LATENCY = 50
 
@@ -92,6 +93,46 @@ describe('gameClient + servidor simulado', () => {
     await pending
     await vi.advanceTimersByTimeAsync(5000)
     expect(useRoomStore.getState().code).toBeNull()
+  })
+})
+
+describe('entrar na sala com o back recusando a conexão', () => {
+  const fetchMock = vi.fn<typeof fetch>()
+
+  beforeEach(() => {
+    vi.stubEnv('VITE_USE_MOCK_SERVER', 'false')
+    vi.stubGlobal('fetch', fetchMock)
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    fetchMock.mockReset()
+  })
+
+  /** Conexão que o back recusa no CONNECT, como o StompConnection com o token vencido */
+  const refused = (): GameConnection => ({
+    connect: () => Promise.reject(new Error('O servidor recusou a conexão.')),
+    disconnect: () => {},
+    send: () => {},
+    onEvent: () => () => {},
+    onStatus: () => () => {},
+  })
+
+  it('token vencido: o REST confirma o 401 e a entrada acaba sem erro de sala', async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ code: 'UNAUTHORIZED' }), { status: 401 }),
+    )
+
+    await expect(joinRoom('4821', { connection: refused() })).resolves.toBeUndefined()
+    expect(String(fetchMock.mock.calls[0][0])).toMatch(/\/coins\/balance$/)
+  })
+
+  it('com a sessão valendo, a recusa chega à tela como erro', async () => {
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ coinsBalance: 0 })))
+
+    await expect(joinRoom('4821', { connection: refused() })).rejects.toThrow(
+      'O servidor recusou a conexão.',
+    )
   })
 })
 

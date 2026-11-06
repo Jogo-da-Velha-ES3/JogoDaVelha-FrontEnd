@@ -1,13 +1,14 @@
 // @vitest-environment node
 // Integração com o back de verdade (opcional). O P1 é o front inteiro (gameClient, cliente STOMP,
-// tradução e stores); o P2 é um cliente STOMP simples, que joga sozinho. Fica pulado sem
+// tradução e stores); o P2 é um cliente STOMP simples, que joga sozinho. O REST de perfil, loja e
+// Coins tem o seu em src/api/liveBack.test.ts (FE-49). Fica pulado sem
 // VITE_LIVE_BACK_URL, então não roda no `npm test` nem no CI. Roda no ambiente node: o WebSocket
 // do jsdom manda a origem localhost:3000, que o back recusa (CORS_ALLOWED_ORIGINS).
 //
 // Com o back rodando na máquina (docs/LOCAL_INTEGRATION.md):
 //   VITE_LIVE_BACK_URL=http://localhost:8080 npx vitest run src/sockets/liveBack.test.ts
 import { Client, type IMessage } from '@stomp/stompjs'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { useBoardStore } from '../stores/boardStore'
 import { useDraftStore } from '../stores/draftStore'
 import { useMatchStore } from '../stores/matchStore'
@@ -193,7 +194,22 @@ async function startRoom(mode: 'play' | 'leave-in-draft') {
   }
 }
 
-describe.skipIf(!BASE)('front contra o back de verdade (FE-18, FE-19, FE-20)', () => {
+/** localStorage em memória: o ambiente node não tem, e o token do login fica nele */
+function memoryStorage(): Storage {
+  const items = new Map<string, string>()
+  return {
+    get length() {
+      return items.size
+    },
+    clear: () => items.clear(),
+    getItem: (key) => items.get(key) ?? null,
+    key: (index) => [...items.keys()][index] ?? null,
+    removeItem: (key) => void items.delete(key),
+    setItem: (key, value) => void items.set(key, value),
+  }
+}
+
+describe.skipIf(!BASE)('front contra o back de verdade (FE-18, FE-19, FE-20, FE-49)', () => {
   let cleanups: (() => void)[] = []
   afterEach(() => {
     cleanups.forEach((cleanup) => cleanup())
@@ -205,6 +221,17 @@ describe.skipIf(!BASE)('front contra o back de verdade (FE-18, FE-19, FE-20)', (
     'partida inteira: Preparação, sorteio, habilidade, 2×0 e o Resultado',
     async () => {
       const room = await startRoom('play')
+      // Como o profileStore: no MATCH_END o front busca o saldo, que já precisa ter os Coins
+      let balances: Promise<{ coinsBalance: number }[]> | null = null
+      const stopBalances = useMatchStore.subscribe((state, previous) => {
+        if (previous.outcome !== null || state.outcome === null) return
+        balances = Promise.all(
+          [room.host, room.guest].map((player) =>
+            rest<{ coinsBalance: number }>('GET', '/coins/balance', player.token),
+          ),
+        )
+      })
+      cleanups.push(stopBalances)
       let usedAbility = false
       const stopDeck = usePowersStore.subscribe((state) => {
         if (state.deck.some((slot) => slot.ability === 'AMPULHETA' && slot.usedThisRound)) {
@@ -236,6 +263,9 @@ describe.skipIf(!BASE)('front contra o back de verdade (FE-18, FE-19, FE-20)', (
       expect(match.outcome).toMatchObject({ kind: 'WIN', winner: 'P1', score: [2, 0] })
       expect(match.score).toEqual({ P1: 2, P2: 0 })
       expect(match.coins).toEqual({ P1: 50, P2: 10 })
+      // Contas novas (0 Coins): o saldo pedido no MATCH_END já veio com o crédito da partida
+      expect(balances).not.toBeNull()
+      expect((await balances!).map((b) => b.coinsBalance)).toEqual([50, 10])
       expect(match.outcomeReceivedAt).not.toBeNull()
       expect(usedAbility).toBe(true)
       expect(room.phases).toEqual(
@@ -305,4 +335,27 @@ describe.skipIf(!BASE)('front contra o back de verdade (FE-18, FE-19, FE-20)', (
     },
     MATCH_TIMEOUT,
   )
+  it('token vencido no link direto da sala: o back recusa e a sessão cai (FE-49)', async () => {
+    // O front inteiro como nas telas: conexão criada pelo gameClient, token do localStorage
+    vi.resetModules()
+    vi.stubEnv('VITE_USE_MOCK_SERVER', 'false')
+    vi.stubEnv('VITE_API_URL', `${BASE}/api`)
+    vi.stubEnv('VITE_WEBSOCKET_URL', BASE ?? '')
+    vi.stubGlobal('localStorage', memoryStorage())
+    try {
+      const [client, { useAuthStore }] = await Promise.all([
+        import('./gameClient'),
+        import('../stores/authStore'),
+      ])
+      useAuthStore.getState().login('token.vencido.qualquer')
+
+      // Sem erro de sala para a tela: a sessão caiu e o RequireAuth leva ao Acesso
+      await expect(client.joinRoom('4821')).resolves.toBeUndefined()
+      expect(useAuthStore.getState().token).toBeNull()
+      client.leaveRoom()
+    } finally {
+      vi.unstubAllEnvs()
+      vi.unstubAllGlobals()
+    }
+  })
 })

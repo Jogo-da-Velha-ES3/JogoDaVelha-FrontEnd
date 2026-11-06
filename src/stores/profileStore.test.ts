@@ -38,6 +38,26 @@ describe('profileStore (FE-30)', () => {
     expect(selectFavoriteCharacter(state())).toBe('X')
   })
 
+  it('os itens comprados seguem a ordem do front, não a do back (preço e código)', () => {
+    const item = (category: 'CHARACTERS' | 'SKILLS', code: string, owned: boolean) => ({
+      id: code,
+      category,
+      code,
+      name: code,
+      description: '',
+      priceCoins: 0,
+      owned,
+      equipped: false,
+    })
+    useProfileStore.setState({
+      characters: [item('CHARACTERS', 'O', true), item('CHARACTERS', 'X', true)],
+      skills: [item('SKILLS', 'TORNADO', true), item('SKILLS', 'BOMBA', true)],
+    })
+
+    expect(selectOwnedCharacters(state())).toEqual(['X', 'O'])
+    expect(selectOwnedAbilities(state())).toEqual(['BOMBA', 'TORNADO'])
+  })
+
   it('loadProfile traz perfil, estatísticas, catálogo e saldo do servidor', async () => {
     await state().loadProfile()
 
