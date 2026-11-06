@@ -140,6 +140,20 @@ Outras ferramentas:
 - **Banco:** `docker exec -it jogodavelha-postgres psql -U postgres -d jogodavelha`.
 - **Redis (estado das partidas):** `docker exec -it jogodavelha-redis redis-cli` e `KEYS *`.
 
+### Teste automático contra o back local
+
+Com o back no ar, um teste joga partidas inteiras com o front de um lado (o `gameClient`, o
+cliente STOMP, a tradução e as stores) e um segundo jogador automático do outro:
+
+```bash
+VITE_LIVE_BACK_URL=http://localhost:8080 npx vitest run src/sockets/liveBack.test.ts
+```
+
+Ele confere a partida 2×0 com habilidade e Resultado, a sala lotada, a jogada fora de hora, a
+saída na Preparação e a queda e a recarga da página no meio da partida. Leva menos de um minuto.
+Rode depois de mexer na tradução do contrato (`src/sockets/`) ou quando o back mudar. Sem a
+variável, ele fica pulado (`npm test` e CI).
+
 ## 7. Problemas comuns
 
 | Sintoma                                                              | Causa e solução                                                                                    |

@@ -379,8 +379,111 @@ describe('fase, revanche e sala', () => {
     expect(useRoomStore.getState().lastError).toMatchObject({ code: 'NOT_YOUR_TURN' })
     send('PLAYER_LEFT', { slot: 'P2' })
     expect(useRoomStore.getState().players.map((p) => p.slot)).toEqual(['P1'])
-    send('ROOM_CLOSED', { reason: 'Oponente voltou ao lobby' })
-    expect(useRoomStore.getState().closedReason).toBe('Oponente voltou ao lobby')
+    send('ROOM_CLOSED', { reason: 'RETURN_TO_LOBBY' })
+    expect(useRoomStore.getState().closedReason).toBe('RETURN_TO_LOBBY')
+  })
+
+  it.each([
+    ['REMATCH_DECLINED', 'DECLINED'],
+    ['REMATCH_EXPIRED', 'TIMEOUT'],
+    ['RETURN_TO_LOBBY', 'LEFT'],
+    ['REMATCH_DISCONNECTED', 'LEFT'],
+  ] as const)(
+    'o back cancela a revanche encerrando a sala: %s vira %s, com quem tinha pedido',
+    (closed, cancelled) => {
+      send('REMATCH_REQUESTED', { by: 'P1', deadline: clock + 15_000 })
+      send('ROOM_CLOSED', { reason: closed })
+      expect(match()).toMatchObject({
+        rematch: null,
+        rematchCancelled: { reason: cancelled, requestedBy: 'P1' },
+      })
+      expect(useRoomStore.getState().closedReason).toBe(closed)
+    },
+  )
+
+  it('sala encerrada sem pedido de revanche não inventa um cancelamento', () => {
+    send('ROOM_CLOSED', { reason: 'RETURN_TO_LOBBY' })
+    expect(match().rematchCancelled).toBeNull()
+  })
+})
+
+describe('contrato do back (FE-18, FE-19)', () => {
+  const snapshot = (patch: Partial<RoomSnapshot> = {}): RoomSnapshot => ({
+    code: '4821',
+    phase: 'PLAYING',
+    players: [player('P1', { character: 'X' }), player('P2', { character: 'O' })],
+    mySlot: 'P1',
+    round: 3,
+    suddenDeath: true,
+    board: cells('................'),
+    turn: null,
+    myDeck: [],
+    outcome: null,
+    serverTime: clock,
+    ...patch,
+  })
+
+  it('DRAFT_UPDATE mais antigo que o último aplicado é descartado', () => {
+    const update = (version: number, characters: object) =>
+      send('DRAFT_UPDATE', {
+        deadline: clock + 20_000,
+        characters,
+        ready: { P1: false, P2: false },
+        version,
+      })
+    update(2, { P1: 'X', P2: 'O' })
+    update(1, { P2: 'O' })
+    expect(useDraftStore.getState()).toMatchObject({ characters: { P1: 'X', P2: 'O' }, version: 2 })
+
+    // Uma revanche começa outra Preparação, com a versão de novo em 0
+    send('PHASE_CHANGE', { phase: 'DRAFT' })
+    update(0, {})
+    expect(useDraftStore.getState()).toMatchObject({ characters: {}, version: 0 })
+  })
+
+  it('snapshot mais antigo que o último aplicado é descartado', () => {
+    send('ROOM_SNAPSHOT', snapshot({ round: 2, serverTime: clock + 5000 }))
+    send('ROOM_SNAPSHOT', snapshot({ round: 1, serverTime: clock - 5000 }))
+    expect(match().round).toBe(2)
+  })
+
+  it('o snapshot depois do MATCH_END não apaga o fim da partida que a tela ainda mostra', () => {
+    send('ROOM_SNAPSHOT', snapshot())
+    send('ROUND_END', { round: 3, winner: null, winningLine: null, score: { P1: 1, P2: 1 } })
+    send('MATCH_END', { outcome: { kind: 'ABSOLUTE_DRAW' }, coins: { P1: 20, P2: 20 } })
+    const receivedAt = match().outcomeReceivedAt
+    expect(receivedAt).not.toBeNull()
+
+    send(
+      'ROOM_SNAPSHOT',
+      snapshot({ phase: 'RESULT', outcome: { kind: 'ABSOLUTE_DRAW' }, coins: { P1: 20, P2: 20 } }),
+    )
+    expect(match()).toMatchObject({
+      outcome: { kind: 'ABSOLUTE_DRAW' },
+      outcomeReceivedAt: receivedAt,
+      roundEnd: { round: 3, winner: null },
+    })
+  })
+
+  it('quem reconecta no Resultado vê o estado final, sem replay', () => {
+    send(
+      'ROOM_SNAPSHOT',
+      snapshot({
+        phase: 'RESULT',
+        outcome: { kind: 'WO', winner: 'P1' },
+        coins: { P1: 30, P2: 0 },
+      }),
+    )
+    expect(match().outcomeReceivedAt).toBeNull()
+  })
+
+  it('o Silêncio oficial do TURN_START vale no lugar da dedução', () => {
+    send('TURN_START', { ...turn('P2'), silenced: { P1: false, P2: true } })
+    const silencedOf = (slot: PlayerSlot) =>
+      useRoomStore.getState().players.find((p) => p.slot === slot)?.silenced
+    expect(silencedOf('P2')).toBe(true)
+    send('TURN_START', { ...turn('P1'), silenced: { P1: false, P2: false } })
+    expect(silencedOf('P2')).toBe(false)
   })
 })
 

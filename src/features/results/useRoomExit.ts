@@ -3,6 +3,7 @@ import { useLanguageFilter } from '../../hooks/useLanguageFilter'
 import { useMatchStore } from '../../stores/matchStore'
 import { useRoomStore } from '../../stores/roomStore'
 import { rematchCancelledMessage } from './rematch'
+import { roomClosedMessage } from './roomClosed'
 
 /**
  * Chama `onExit` quando a sala acabou para você: o seu pedido de revanche foi cancelado
@@ -21,7 +22,7 @@ export function useRoomExit(onExit: (message: string) => void) {
   if (cancelled && me !== null && cancelled.requestedBy === me) {
     message = rematchCancelledMessage(cancelled.reason, true, filterOn)
   } else if (closedReason !== null && phase !== 'RESULT') {
-    message = closedReason
+    message = roomClosedMessage(closedReason)
   }
 
   useEffect(() => {

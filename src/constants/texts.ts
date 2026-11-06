@@ -220,6 +220,14 @@ export const ROOM_TEXTS = {
   preparationIn: 'Preparação em',
   preparing: 'Preparando…',
   reconnecting: 'Reconectando…',
+  /** Sala encerrada pelo servidor (ROOM_CLOSED), para quem ficou */
+  closed: {
+    opponentLeft: 'O oponente saiu da sala.',
+    expired: 'A sala expirou.',
+    rematchDeclined: 'A revanche foi recusada.',
+    rematchExpired: 'O tempo da revanche acabou.',
+    other: 'A sala foi encerrada.',
+  },
   errors: {
     notFound: (code: string) => `Sala ${code} não encontrada.`,
     full: (code: string) => `A sala ${code} já está cheia.`,
@@ -425,9 +433,10 @@ export const RESULT_TEXTS = {
     WIN: victoryLine,
     LOSS: { unfiltered: 'É a vergonha da profissão.', filtered: 'Você perdeu a partida.' },
     DRAW: null,
+    // Serve para os dois W.O.: 3 estouros seguidos ou desistência (o back manda os dois iguais)
     WO_WIN: {
       unfiltered: 'O oponente… arregou!',
-      filtered: `O oponente esgotou o tempo ${MAX_CONSECUTIVE_TIMEOUTS} vezes`,
+      filtered: 'O oponente abandonou a partida',
     },
     WO_LOSS: {
       unfiltered: 'Assoprou a velhinha errada, hein… entendeu?',

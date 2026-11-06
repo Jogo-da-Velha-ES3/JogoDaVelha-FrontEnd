@@ -10,6 +10,8 @@ interface ImportMetaEnv {
   readonly VITE_MOCK_SCENARIO?: string
   /** O que o bot faz no Resultado: aceita, recusa, ignora, pede, sai */
   readonly VITE_MOCK_REMATCH?: string
+  /** Só testes: URL do back local para o teste ao vivo (src/sockets/liveBack.test.ts) */
+  readonly VITE_LIVE_BACK_URL?: string
 }
 
 interface ImportMeta {

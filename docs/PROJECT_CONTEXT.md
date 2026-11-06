@@ -181,26 +181,25 @@ estratégico e competitivo, **sem pay-to-win**.
 - Estados visuais da casa `[RF-ARN-01]`: vazia, peça do P1, peça do P2, bloqueada por Escudo,
   peça congelada, peça com Reforço, alvo de habilidade, linha vencedora.
 
-### Melhor de 3 (MD3) — regra decidida em 18/10 **[A VALIDAR COM O BACK]**
+### Melhor de 3 (MD3) — regra da ERS `[RF-ARN-05]`, a mesma do back
 
-> Substitui a regra da ERS `[RF-ARN-05]`, que encerrava a partida em 1×0 quando um dos 2
-> primeiros rounds empatava (o outro jogador não tinha chance de reagir). Proposta enviada ao GP
-> e ao back em 18/10: o servidor decide o placar, então o back precisa seguir a mesma regra.
+> Em 18/10 o front propôs que o round 3 acontecesse sempre (inclusive em 1×0). O back manteve a
+> regra da ERS, explicada pelo Victor com o desempate do truco paulista, e a equipe decidiu seguir
+> o back em 06/11. O servidor decide o placar; o front só mostra.
 
-- A partida tem **até 3 rounds** e só acaba antes do round 3 se alguém fizer **2×0**.
-- **Round 3 = Morte Súbita, sempre** (inclusive em 1×0): timer de **5s por turno** e interface de
-  alerta vermelho.
-- **No fim do round 3, vence quem tiver mais rounds.** Placar igual (1×1 ou 0×0) é **empate
-  absoluto** `[RN-ARN-06]`: os dois recebem +20 Coins. **Não existe mata-mata.**
+- A partida tem **até 3 rounds**. **Depois do round 2, quem estiver na frente vence:** 2×0, ou
+  1×0 quando um dos dois rounds empatou.
+- **Round 3 = Morte Súbita**, só com o placar igual depois do round 2 (1×1 ou 0×0): timer de
+  **5s por turno** e interface de alerta vermelho.
+- Quem vencer a Morte Súbita leva a partida. Se ela empatar, é **empate absoluto** `[RN-ARN-06]`:
+  os dois recebem +20 Coins. **Não existe mata-mata.**
 
-  | Depois dos rounds 1 e 2 | Round 3                   | Final                     |
-  | ----------------------- | ------------------------- | ------------------------- |
-  | 2×0                     | não tem                   | vitória 2×0               |
-  | 1×1                     | alguém vence / empata     | vitória 2×1 / empate abs. |
-  | 1×0 (um round empatou)  | quem está na frente vence | vitória 2×0               |
-  | 1×0                     | quem está atrás vence     | empate absoluto (1×1)     |
-  | 1×0                     | empata                    | vitória 1×0               |
-  | 0×0 (dois empates)      | alguém vence / empata     | vitória 1×0 / empate abs. |
+  | Depois dos rounds 1 e 2 | Round 3               | Final                     |
+  | ----------------------- | --------------------- | ------------------------- |
+  | 2×0                     | não tem               | vitória 2×0               |
+  | 1×0 (um round empatou)  | não tem               | vitória 1×0               |
+  | 1×1                     | alguém vence / empata | vitória 2×1 / empate abs. |
+  | 0×0 (dois empates)      | alguém vence / empata | vitória 1×0 / empate abs. |
 
 - **Quem começa:** no round 1, sorteado pelo servidor; a partir do round 2, alterna a cada round.
 - Placares finais possíveis: 2×0 ("VITÓRIA IMPECÁVEL"), 2×1, 1×0, empate absoluto ou W.O.
@@ -238,7 +237,8 @@ A ERS não define a regra; o back decidiu usar a mesma do W.O. por tempo `[RN-AR
   informação, numa linha; a piada da queda é do Vitão, no balão (02/11).
 - **Quem caiu** vê "Reconectando…", não consegue jogar até voltar e volta para o mesmo ponto da
   partida pelo `ROOM_SNAPSHOT` completo (o estado está no servidor).
-- **No Resultado,** cair conta como sair da sala e cancela a revanche **[A VALIDAR COM O BACK]**.
+- **No Resultado,** cair conta como sair da sala e cancela a revanche (no back,
+  `ROOM_CLOSED` com `REMATCH_DISCONNECTED`).
 
 ## 7. Salas, preparação e pós-jogo
 
@@ -287,8 +287,12 @@ A ERS não define a regra; o back decidiu usar a mesma do W.O. por tempo `[RN-AR
   Hub quando ela é cancelada (recusa, 15s sem resposta ou saída do outro). Quem não pediu continua
   no Resultado para ver placar e Coins, com o aviso ("O oponente saiu da sala.", "O tempo para
   aceitar a revanche acabou.") e a revanche desabilitada; sai pelo "Voltar ao Lobby". Se os dois
-  pedirem ao mesmo tempo, vale como aceite. **[A VALIDAR COM O BACK]** os nomes dos eventos
-  (`REMATCH_REQUESTED`, `REMATCH_CANCELLED`, `ROOM_CLOSED`).
+  pedirem ao mesmo tempo, vale como aceite. No back, o pedido chega no `rematch` do snapshot e o
+  cancelamento é a própria sala encerrada (`ROOM_CLOSED` com `REMATCH_DECLINED`,
+  `REMATCH_EXPIRED`, `RETURN_TO_LOBBY` ou `REMATCH_DISCONNECTED`).
+- **Sair antes da partida (decidido em 06/11):** sair no MATCH FEITO ou na Preparação encerra a
+  sala, sem partida e sem Coins (`ROOM_CLOSED` com `PLAYER_LEFT`); quem ficou volta ao Hub com
+  "O oponente saiu da sala.". Durante a partida, sair é desistência (W.O. para o outro).
 - **Cor da derrota no Resultado (decidido na FE-15):** a derrota e a derrota por W.O. aparecem em
   vermelho (título, borda do painel e etiqueta W.O.). É uma exceção à regra de "vermelho só para
   quem está em perigo" usada na Arena (§9), decidido na FE-15. A vitória usa a cor do personagem e
@@ -383,7 +387,8 @@ Abrir o jogo → [sem sessão] Acesso → Hub (Jogar; abas Loja / Perfil)
 - **Ordem do início do round (decidido em 24/10):** sorteio da 3ª habilidade → apresentação do
   round (2,5s: quem começa e "MATCH POINT", ou a entrada da Morte Súbita no round 3) → primeiro
   turno. O servidor só manda o primeiro `TURN_START` depois da apresentação, para ela não comer o
-  tempo do turno **[A VALIDAR COM O BACK]**.
+  tempo do turno. O back também segura 3s no "MATCH FEITO", 3s no VS e 2,5s no fim do round
+  (contrato V2).
 - **Timer do turno (decidido em 16/10):** sempre mostra o turno atual, inclusive o do oponente,
   com o prazo do `TURN_START`. Na sua vez fica na sua cor e vermelho nos últimos 3s; na vez do
   oponente fica na cor dele, com o texto "Vez do oponente" e sem o vermelho (o tempo dele acabando
@@ -398,7 +403,7 @@ Abrir o jogo → [sem sessão] Acesso → Hub (Jogar; abas Loja / Perfil)
   | 2º estouro seguido        | quem estoura | TEMPO ESGOTADO!       | Acorda pra vida, mané! Mais um e é W.O. · 2/3 / Mais um e é W.O.! · 2/3 | vermelho              |
   | 1º/2º estouro do oponente | o outro      | OPONENTE PERDEU A VEZ | 1/3 ou 2/3                                                              | cor do oponente       |
   | 3º estouro (W.O.)         | quem estoura | DERROTA POR W.O.      | Assoprou a velhinha errada, hein… entendeu? / Que desperdício de tempo… | vermelho              |
-  | 3º estouro do oponente    | o outro      | VITÓRIA POR W.O.      | O oponente… arregou! / O oponente esgotou o tempo 3 vezes               | cor do seu personagem |
+  | 3º estouro do oponente    | o outro      | VITÓRIA POR W.O.      | O oponente… arregou! / O oponente abandonou a partida                   | cor do seu personagem |
 
   Os textos vêm da voz do jogo (FE-40, `src/constants/texts.ts`). O título do W.O. de quem estoura
   passou de "W.O.!" para "DERROTA POR W.O.", igual ao Resultado: a piada tomou o lugar do
@@ -519,22 +524,16 @@ Abrir o jogo → [sem sessão] Acesso → Hub (Jogar; abas Loja / Perfil)
 - **Prazos:** Marco 4 (27/10) = lógica core + WebSocket funcionando · Marco 5 (03/11) = PWA +
   testes · Marco 6 (10/11) = publicação em produção
 
-### A validar com o back antes de implementar
+### Contrato com o back
 
-- Contrato REST (auth, perfil, inventário, loja, compra de Coins) e destinos STOMP
-- Fases da sala (`phase`) e o snapshot completo para reconexão (campos pedidos em 15/10)
-- Pacotes simbólicos de Coins
-- Endpoints de recuperação de senha (formato proposto em 15/10; o front segue com dados
-  simulados)
-  - (24/10) Ainda não existem no back (card BE-006.1, na reserva). Proposta, a validar: 200 (e
-    não 204) no forgot, `newPassword` + `confirmPassword` no reset, e o código
-    `INVALID_RESET_TOKEN`, que é só nossa proposta (o card diz 400/410). Ver ARCHITECTURE §6.
-- `PLAYER_DISCONNECTED` / `PLAYER_RECONNECTED` e se cair no Resultado cancela a revanche
-- Regra nova da MD3 (18/10): até 3 rounds, só acaba antes em 2×0, empate absoluto com placar
-  igual no fim do round 3 (§6)
-- Apresentação do round (24/10): 2,5s entre o fim do sorteio e o primeiro `TURN_START` (§9)
-- Silêncio (29/10): mandar quem está silenciado no `TURN_START`; até lá o front deduz do
-  `ABILITY_RESOLVED` (ARCHITECTURE §6)
+Validado em 06/11 (FE-17), com o back rodando e partidas inteiras entre dois jogadores: o
+contrato V2 do back (`docs/contrato-integracao-v2.md` no repositório dele, resumo no
+ARCHITECTURE §6) cobre sala, Preparação, sorteio, partida, desconexão, revanche e o snapshot de
+reconexão. Ainda a confirmar no front:
+
+- Pacotes simbólicos de Coins: o back tem 100, 500 e 1000 (FE-49).
+- Recuperação de senha: o back implementou `forgot-password` e `reset-password` (BE-006.1), com o
+  código `INVALID_RESET_TOKEN`; o front ainda roda com dados simulados (FE-36).
 
 ## 12. Prioridade de implementação (MVP 1)
 

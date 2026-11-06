@@ -3,11 +3,11 @@
 // Cada store reflete o que o servidor confirmou: nada aqui calcula placar, vencedor ou timeout.
 import type { CharacterId, PlayerSlot, PlayerState } from '../types/game'
 import { otherSlot } from '../lib/match'
-import type { ServerEnvelope, ServerEvent } from '../types/events'
+import type { RoomClosedReason, ServerEnvelope, ServerEvent } from '../types/events'
 import { initialBoardState, useBoardStore } from './boardStore'
 import { useClockStore } from './clockStore'
 import { INITIAL_DRAFT_STATE, useDraftStore } from './draftStore'
-import { INITIAL_MATCH_STATE, useMatchStore } from './matchStore'
+import { INITIAL_MATCH_STATE, type RematchCancelReason, useMatchStore } from './matchStore'
 import { INITIAL_POWERS_DATA, usePowersStore } from './powersStore'
 import { INITIAL_ROOM_STATE, useRoomStore } from './roomStore'
 import { INITIAL_TIMER_STATE, useTimerStore } from './timerStore'
@@ -15,6 +15,15 @@ import { playSoundForServerEvent } from '../features/sound'
 
 const patchPlayer = (players: PlayerState[], slot: PlayerSlot, patch: Partial<PlayerState>) =>
   players.map((p) => (p.slot === slot ? { ...p, ...patch } : p))
+
+/** Sala encerrada com um pedido de revanche em aberto: o motivo do cancelamento [RN-POS-02] */
+const REMATCH_CANCEL_REASON: Partial<Record<RoomClosedReason, RematchCancelReason>> = {
+  REMATCH_DECLINED: 'DECLINED',
+  REMATCH_EXPIRED: 'TIMEOUT',
+  RETURN_TO_LOBBY: 'LEFT',
+  REMATCH_DISCONNECTED: 'LEFT',
+  PLAYER_LEFT: 'LEFT',
+}
 
 /** Limpa o estado da partida (Preparação, placar, tabuleiro, habilidades, turno) */
 function resetMatchStores() {
@@ -43,6 +52,17 @@ export function applyServerEvent(envelope: ServerEnvelope, receivedAt = Date.now
     case 'ROOM_SNAPSHOT': {
       // Estado completo, ao entrar e ao reconectar: substitui tudo
       const s = event.payload
+      const room = useRoomStore.getState()
+      const sameRoom = room.code === s.code
+      // Mais antigo que o último aplicado: chegou fora de ordem
+      if (sameRoom && s.serverTime < room.snapshotTime) return
+      const previous = useMatchStore.getState()
+      const previousWinningLine = useBoardStore.getState().winningLine
+      const draftVersion = useDraftStore.getState().version
+      // O back manda um snapshot logo depois do MATCH_END (e a cada pedido de revanche). Ele não
+      // pode apagar o que a tela ainda mostra do fim da partida: a hora do resultado segura o
+      // banner do W.O. e toca a comemoração; o fim do round mostra o EMPATE ABSOLUTO
+      const keepResult = sameRoom && previous.outcome !== null && s.outcome !== null
       const of = (slot: PlayerSlot) => s.players.find((p) => p.slot === slot)
       resetMatchStores()
       useRoomStore.setState({
@@ -51,6 +71,7 @@ export function applyServerEvent(envelope: ServerEnvelope, receivedAt = Date.now
         players: s.players,
         mySlot: s.mySlot,
         closedReason: null,
+        snapshotTime: s.serverTime,
       })
       useMatchStore.setState({
         round: s.round,
@@ -63,13 +84,27 @@ export function applyServerEvent(envelope: ServerEnvelope, receivedAt = Date.now
         outcome: s.outcome,
         coins: s.coins ?? null,
         rematch: s.rematch ? { requestedBy: s.rematch.by, deadline: s.rematch.deadline } : null,
+        ...(keepResult && {
+          outcomeReceivedAt: previous.outcomeReceivedAt,
+          roundEnd: previous.roundEnd,
+          lastTimeout: previous.lastTimeout,
+        }),
       })
       if (s.draft) {
         const characters: Partial<Record<PlayerSlot, CharacterId>> = {}
         for (const p of s.players) if (p.character) characters[p.slot] = p.character
-        useDraftStore.setState({ deadline: s.draft.deadline, ready: s.draft.ready, characters })
+        useDraftStore.setState({
+          deadline: s.draft.deadline,
+          ready: s.draft.ready,
+          characters,
+          // O snapshot não traz a versão: na mesma Preparação, continua valendo a última aplicada
+          version: sameRoom && s.phase === 'DRAFT' ? draftVersion : null,
+        })
       }
-      useBoardStore.setState({ cells: s.board })
+      useBoardStore.setState({
+        cells: s.board,
+        ...(keepResult && { winningLine: previousWinningLine }),
+      })
       usePowersStore.setState({ deck: s.myDeck, drawOptions: s.drawOptions ?? null })
       useTimerStore.setState({ turn: s.turn })
       return
@@ -108,8 +143,11 @@ export function applyServerEvent(envelope: ServerEnvelope, receivedAt = Date.now
       return
 
     case 'DRAFT_UPDATE': {
-      const { deadline, characters, ready } = event.payload
-      useDraftStore.setState({ deadline, characters, ready })
+      const { deadline, characters, ready, version = null } = event.payload
+      // Os dois escolhendo juntos: um aviso mais antigo pode chegar depois do mais novo
+      const applied = useDraftStore.getState().version
+      if (version !== null && applied !== null && version < applied) return
+      useDraftStore.setState({ deadline, characters, ready, version })
       useRoomStore.setState((r) => ({
         players: r.players.map((p) => ({ ...p, character: characters[p.slot] ?? p.character })),
       }))
@@ -145,15 +183,16 @@ export function applyServerEvent(envelope: ServerEnvelope, receivedAt = Date.now
       return
 
     case 'TURN_START': {
-      const { consecutiveTimeouts, ...turn } = event.payload
-      useTimerStore.setState({ turn })
+      const { consecutiveTimeouts, silenced, player, startedAt, durationSeconds } = event.payload
+      useTimerStore.setState({ turn: { player, startedAt, durationSeconds } })
       useMatchStore.setState({ consecutiveTimeouts })
-      // O Silêncio vale só para o turno de quem foi silenciado: acaba quando começa o do outro
       useRoomStore.setState((r) => ({
         players: r.players.map((p) => ({
           ...p,
           consecutiveTimeouts: consecutiveTimeouts[p.slot],
-          silenced: p.slot === turn.player && p.silenced,
+          // Valor oficial do back. Sem ele (simulado): o Silêncio vale só para o turno de quem foi
+          // silenciado e acaba quando começa o do outro
+          silenced: silenced ? silenced[p.slot] : p.slot === player && p.silenced,
         })),
       }))
       usePowersStore.setState({ aim: null })
@@ -167,8 +206,7 @@ export function applyServerEvent(envelope: ServerEnvelope, receivedAt = Date.now
     case 'ABILITY_RESOLVED':
       useBoardStore.setState({ lastAbility: { ...event.payload, serverTime, receivedAt } })
       // Silêncio confirmado (não anulado pelo Campo de Força) cala o oponente no próximo turno dele.
-      // [A VALIDAR COM O BACK] hoje só o snapshot traz o `silenced`; pedir o dos dois lados no
-      // TURN_START, como os estouros
+      // O back confirma no TURN_START seguinte (`silenced`); o simulado depende só daqui
       if (event.payload.ability === 'SILENCIO' && !event.payload.absorbed) {
         useRoomStore.setState((r) => ({
           players: patchPlayer(r.players, otherSlot(event.payload.by), { silenced: true }),
@@ -232,9 +270,20 @@ export function applyServerEvent(envelope: ServerEnvelope, receivedAt = Date.now
       }))
       return
 
-    case 'ROOM_CLOSED':
-      useRoomStore.setState({ closedReason: event.payload.reason })
+    case 'ROOM_CLOSED': {
+      const { reason } = event.payload
+      // O back não tem evento de revanche cancelada: a sala encerrada é que cancela o pedido
+      const pending = useMatchStore.getState().rematch
+      const cancel = REMATCH_CANCEL_REASON[reason]
+      if (pending && cancel) {
+        useMatchStore.setState({
+          rematch: null,
+          rematchCancelled: { reason: cancel, requestedBy: pending.requestedBy },
+        })
+      }
+      useRoomStore.setState({ closedReason: reason })
       return
+    }
 
     case 'ERROR':
       useRoomStore.setState({ lastError: { ...event.payload, serverTime } })

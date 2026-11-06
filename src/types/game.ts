@@ -79,8 +79,9 @@ export interface RoomSnapshot {
   myDeck: DeckSlot[]
   outcome: MatchOutcome | null
   serverTime: number
-  // [A VALIDAR COM O BACK] Pedido ao Victor em 15/10 (FE-20): sem isto, quem recarrega no meio da
-  // Preparação, do sorteio ou do Resultado volta com a tela incompleta. Opcionais até lá.
+  // Pedidos na FE-20 e entregues pelo back (contrato V2): sem isto, quem recarrega no meio da
+  // Preparação, do sorteio ou do Resultado volta com a tela incompleta. Opcionais porque o
+  // simulado nem sempre os manda.
   /** Na Preparação: prazo dos 20s e quem já está pronto */
   draft?: { deadline: number; ready: Record<PlayerSlot, boolean> } | null
   /** No sorteio: as minhas 3 cartas e o prazo dos 8s (privado) */
