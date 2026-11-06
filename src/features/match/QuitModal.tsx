@@ -13,7 +13,7 @@ interface QuitModalProps {
  * Modal de confirmação de desistência, fiel ao esboço (seção "Modais Globais · Sair/desistir"):
  * card com "DESISTIR?", mensagem de consequência e dois botões (CONTINUAR / DESISTIR).
  * Não fecha no clique fora — o jogador precisa escolher explicitamente.
- * O resultado da desistência é do servidor [A VALIDAR COM O BACK].
+ * O resultado da desistência é do servidor: o `/leave` vira W.O. para o oponente.
  */
 export function QuitModal({ open, onContinue, onQuit }: QuitModalProps) {
   return (

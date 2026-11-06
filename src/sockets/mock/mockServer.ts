@@ -42,7 +42,12 @@ import type {
   RoomSnapshot,
   TurnState,
 } from '../../types/game'
-import type { ClientCommand, ServerEnvelope, ServerEvent } from '../../types/events'
+import type {
+  ClientCommand,
+  RoomClosedReason,
+  ServerEnvelope,
+  ServerEvent,
+} from '../../types/events'
 import { isBlockedFor, resolveAbility, type ShieldOwners, tickEffects } from './abilities'
 import { chooseBotAction } from './bot'
 import { type BotDrop, type BotRematch, SCENARIOS, type Scenario } from './scenarios'
@@ -68,11 +73,12 @@ export const MOCK_TIMINGS = {
   botReconnect: TURN_DURATION_SECONDS * 1000 + 1500,
 }
 
+/** Motivo da sala encerrada por cancelamento de revanche, com os códigos do back */
 const ROOM_CLOSED_REASON = {
-  TIMEOUT: 'O tempo da revanche acabou.',
-  DECLINED: 'A revanche foi recusada.',
-  LEFT: 'O oponente saiu da sala.',
-} as const
+  TIMEOUT: 'REMATCH_EXPIRED',
+  DECLINED: 'REMATCH_DECLINED',
+  LEFT: 'RETURN_TO_LOBBY',
+} as const satisfies Record<string, RoomClosedReason>
 
 interface MockPlayer extends PlayerState {
   initialAbilities: AbilityId[] | null
@@ -195,7 +201,7 @@ export class MockGameServer {
 
   /**
    * Alguém caiu. Sem prazo especial: os turnos dele continuam correndo e 3 estouros seguidos dão
-   * W.O. [RN-ARN-01]. No Resultado, cair conta como sair da sala [A VALIDAR COM O BACK].
+   * W.O. [RN-ARN-01]. No Resultado, cair conta como sair da sala (no back, REMATCH_DISCONNECTED).
    */
   disconnect(slot: PlayerSlot) {
     const p = this.players[slot]
@@ -530,7 +536,7 @@ export class MockGameServer {
     this.setPhase('PLAYING')
     this.emit('BOARD_UPDATE', { board: this.cells })
     // Apresentação do round (quem começa, MATCH POINT ou a entrada da Morte Súbita) antes do
-    // primeiro turno, para ela não comer o tempo dele [A VALIDAR COM O BACK]
+    // primeiro turno, para ela não comer o tempo dele (como o back)
     this.phaseTimer = this.later(ROUND_INTRO_SECONDS * 1000, () => {
       if (this.phase === 'PLAYING') this.startTurn(this.roundStarter)
     })
@@ -736,7 +742,7 @@ export class MockGameServer {
     this.emit('MATCH_END', { outcome, coins: this.coins })
     this.setPhase('RESULT')
 
-    // Caído no Resultado conta como saída: sala encerrada e sem revanche [A VALIDAR COM O BACK].
+    // Caído no Resultado conta como saída: sala encerrada e sem revanche, como no back.
     // Só o bot: a sua queda é simulada pela conexão, que volta com o snapshot.
     if (!this.player('P2').connected) return this.leave('P2')
 
@@ -798,11 +804,12 @@ export class MockGameServer {
       this.emit('REMATCH_CANCELLED', { reason: 'LEFT' })
     }
     this.emit('PLAYER_LEFT', { slot })
-    this.closeRoom(slot === 'P1' ? 'Você saiu da sala.' : ROOM_CLOSED_REASON.LEFT)
+    // Como o back: sair no Resultado é voltar ao lobby; antes dele, encerra a sala
+    this.closeRoom(this.phase === 'RESULT' ? 'RETURN_TO_LOBBY' : 'PLAYER_LEFT')
     if (slot === 'P1') this.stop()
   }
 
-  private closeRoom(reason: string) {
+  private closeRoom(reason: RoomClosedReason) {
     this.closed = true
     this.timers.forEach(clearTimeout)
     this.timers.clear()

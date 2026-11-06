@@ -26,10 +26,10 @@ function win(winner: PlayerSlot, score: Score): MatchStatus {
 }
 
 /**
- * Depois de cada round, a partida acaba ou segue? Regra decidida em 18/10 (substitui a da ERS
- * [RF-ARN-05], que encerrava em 1×0 depois de um empate) [A VALIDAR COM O BACK]:
- * - a partida tem até 3 rounds e só acaba antes do round 3 se alguém fizer 2×0;
- * - o round 3 é sempre a Morte Súbita;
+ * Depois de cada round, a partida acaba ou segue? Regra da ERS [RF-ARN-05], a mesma do back
+ * (confirmada em 06/11; a proposta de 18/10, com round 3 sempre, ficou de fora):
+ * - depois do round 2, quem estiver na frente vence: 2×0, ou 1×0 com um round empatado;
+ * - o round 3 (Morte Súbita) só acontece com o placar igual: 1×1 ou 0×0;
  * - no fim do round 3, vence quem tiver mais rounds; placar igual = empate absoluto, sem
  *   mata-mata [RN-ARN-06].
  */
@@ -40,6 +40,8 @@ export function matchStatus(results: readonly RoundResult[]): MatchStatus {
   const leader: PlayerSlot = score.P1 > score.P2 ? 'P1' : 'P2'
 
   if (score[leader] >= ROUNDS_TO_WIN_MATCH) return win(leader, score)
+  // Fim do round 2 com alguém na frente (2×0 ou 1×0 com um empate)
+  if (results.length === MAX_ROUNDS - 1 && score.P1 !== score.P2) return win(leader, score)
 
   if (results.length < MAX_ROUNDS) {
     const nextRound = results.length + 1

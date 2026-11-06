@@ -9,6 +9,7 @@ import { leaveRoom, sendCommand } from '../../sockets/gameClient'
 import { useMatchStore } from '../../stores/matchStore'
 import { useRoomStore } from '../../stores/roomStore'
 import { rematchCancelledMessage } from './rematch'
+import { roomClosedMessage } from './roomClosed'
 
 export interface RematchPanelProps {
   /** "Voltar ao Lobby". Padrão: sai da sala e vai para o Hub */
@@ -44,7 +45,7 @@ export function RematchPanel({ onLeave, className = '' }: RematchPanelProps) {
   if (cancelled) {
     ended = rematchCancelledMessage(cancelled.reason, cancelled.requestedBy === me, filterOn)
   } else if (!opponent) ended = voice(T.opponentLeft)
-  else if (closedReason !== null) ended = closedReason
+  else if (closedReason !== null) ended = roomClosedMessage(closedReason)
 
   const pending = ended === null ? rematch : null
   const askedByOpponent = pending !== null && pending.requestedBy !== me

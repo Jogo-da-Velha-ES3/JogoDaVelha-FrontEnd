@@ -28,8 +28,8 @@ export const SCENARIOS: Record<ScenarioId, Scenario> = {
   vitoria: { id: 'vitoria', scriptedRounds: ['P1', 'P1'], botIdle: false },
   'empate-absoluto': { id: 'empate-absoluto', scriptedRounds: ['P1', 'P2', null], botIdle: false },
   'morte-subita': { id: 'morte-subita', scriptedRounds: ['P2', 'P1'], botIdle: false },
-  // Regra de 18/10: empate + derrota (0×1) ainda vai para o round 3, que é seu
-  virada: { id: 'virada', scriptedRounds: [null, 'P2'], botIdle: false },
+  // Dois empates (0×0): o round 3, a Morte Súbita, decide e é seu
+  virada: { id: 'virada', scriptedRounds: [null, null], botIdle: false },
   wo: { id: 'wo', scriptedRounds: [], botIdle: true },
   // FE-15: o Resultado de quem perde. O bot vence os dois rounds (0×2), ou você perde por W.O.
   derrota: { id: 'derrota', scriptedRounds: ['P2', 'P2'], botIdle: false },

@@ -74,8 +74,8 @@ vencedora que o servidor confirmou.
 - Link direto: `/sala/4821`. Se não houver sessão, o código fica guardado no `roomStore`
   (`pendingRoomCode`, no `sessionStorage`), o jogador passa pelo Acesso e volta para a sala.
 - Código de sala inválido (`/sala/abc`, `/sala/12345`) mostra "Página não encontrada".
-- **[A VALIDAR COM O BACK]** Dentro de `/sala/:codigo`, a tela é escolhida pelo campo `phase` que
-  o servidor manda no snapshot da sala, em vez de rotas separadas para jogo e resultado. Assim,
+- Dentro de `/sala/:codigo`, a tela é escolhida pelo campo `phase` que o servidor manda no
+  snapshot da sala (e no `PHASE_CHANGE`), em vez de rotas separadas para jogo e resultado. Assim,
   ao recarregar ou reconectar, o jogador cai direto na fase certa:
 
 ```ts
@@ -198,117 +198,95 @@ bater com os enums do back — confirmar na FE-17.
 | `src/types/events.ts`  | `ServerEvent` (eventos do servidor), `ServerEnvelope` e `ClientCommand` (intenções do cliente)                          |
 | `src/sockets/types.ts` | `GameConnection`: a interface que o cliente STOMP real e o servidor simulado implementam                                |
 
-Os tipos de eventos são o rascunho do contrato da seção 6 e mudam junto com ele.
+Os tipos de eventos seguem o contrato da seção 6, no vocabulário do front.
 
-## 6. Contrato com o back (rascunho — validar antes de implementar)
+## 6. Contrato com o back (V2, validado em 06/11)
 
-Existe para mitigar o risco R02 do TAP. **Não implementar a integração real até isto estar
-confirmado com o time de back.** Os nomes abaixo são proposta do front; cadastro e login já foram
-implementados no back (revisão de telas, 06/10), então usar as rotas e payloads reais deles.
+A fonte é o `docs/contrato-integracao-v2.md` do repositório do back. Ele foi validado na FE-17
+(PR #129 do back) com o back rodando e partidas inteiras entre dois jogadores
+(`docs/LOCAL_INTEGRATION.md`). Os nomes do back ficam só na tradução: `src/sockets/destinations.ts`
+(o que o front manda) e `src/sockets/envelope.ts` (o que chega). O resto do front usa os tipos de
+`src/types/events.ts`, e as mensagens reais capturadas ficam em
+`src/sockets/__fixtures__/backMessages.ts`, nos testes da tradução.
 
-### REST (`VITE_API_URL`)
+### REST (`VITE_API_URL`, termina em `/api`)
 
-| Método | Rota                            | Uso                                                         |
-| ------ | ------------------------------- | ----------------------------------------------------------- |
-| POST   | `/auth/register`                | criar conta (usuário, e-mail, senha) — já existe no back    |
-| POST   | `/auth/login`                   | login com e-mail **ou** usuário + senha → token — já existe |
-| POST   | `/auth/forgot-password`         | envia o link de recuperação para o e-mail                   |
-| POST   | `/auth/reset-password`          | troca a senha a partir do token do link                     |
-| GET    | `/profile`                      | apelido, saldo, avatar e personagem mais usado (FE-30)      |
-| GET    | `/profile/stats`                | partidas, vitórias, sequências e taxa de vitória (FE-30)    |
-| PATCH  | `/profile/username`             | trocar apelido → 204 (FE-30)                                |
-| GET    | `/shop/{categoria}`             | catálogo (`characters` ou `skills`) com `owned`/`equipped`  |
-| POST   | `/shop/{cat}/{id}/purchase`     | comprar personagem ou habilidade `[RF-LOJ-02]`              |
-| PUT    | `/shop/characters/{id}/equip`   | equipar o personagem favorito                               |
-| GET    | `/coins/balance`                | saldo `{ coinsBalance }`                                    |
-| GET    | `/coins/packages`               | pacotes simbólicos `{ id, coins, priceInReais }`            |
-| POST   | `/coins/packages/{id}/purchase` | compra simbólica de Coins → 204 `[RN-LOJ-04]`               |
-| POST   | `/rooms`                        | criar sala → código de 4 dígitos `[RF-HUB-04]`              |
-| POST   | `/rooms/{code}/join`            | entrar na sala; erros: não existe, lotada, já começou       |
+| Método | Rota                            | Uso                                                                 |
+| ------ | ------------------------------- | ------------------------------------------------------------------- |
+| POST   | `/auth/register`                | criar conta (usuário, e-mail, senha); não devolve token             |
+| POST   | `/auth/login`                   | login com e-mail **ou** usuário + senha → token                     |
+| POST   | `/auth/forgot-password`         | envia o link de recuperação (200, mensagem genérica)                |
+| POST   | `/auth/reset-password`          | `{ token, newPassword, confirmPassword }`                           |
+| GET    | `/profile`                      | apelido, saldo, avatar, personagem mais usado e o equipado          |
+| GET    | `/profile/stats`                | partidas, vitórias, sequências e taxa de vitória                    |
+| PATCH  | `/profile/username`             | trocar apelido → 204                                                |
+| GET    | `/shop/{categoria}`             | catálogo (`characters` ou `skills`) com `owned`/`equipped`          |
+| POST   | `/shop/{cat}/{id}/purchase`     | comprar personagem ou habilidade `[RF-LOJ-02]`                      |
+| PUT    | `/shop/characters/{id}/equip`   | equipar o personagem favorito                                       |
+| GET    | `/coins/balance`                | saldo `{ coinsBalance }`                                            |
+| GET    | `/coins/packages`               | pacotes simbólicos `{ id, coins, priceInReais }`                    |
+| POST   | `/coins/packages/{id}/purchase` | compra simbólica → 200 `{ coinsBalance }` `[RN-LOJ-04]`             |
+| POST   | `/rooms`                        | criar sala → código de 4 dígitos `[RF-HUB-04]`                      |
+| POST   | `/rooms/{code}/join`            | entrar; erros `ROOM_NOT_FOUND`, `ROOM_FULL`, `ROOM_ALREADY_STARTED` |
 
-### STOMP (`VITE_WEBSOCKET_URL`)
+Erro único: `{ code, message, status, timestamp, path, fields? }`. Ids das habilidades no campo
+`code`, iguais aos do front. O ajuste fino do REST de perfil, loja e Coins é a FE-49; o da
+recuperação de senha (código `INVALID_RESET_TOKEN`), a FE-36.
 
-- `CONNECT` com o token no header `Authorization`.
-- **Assinaturas:** `/topic/rooms/{code}` (eventos públicos da sala), `/user/queue/room` (eventos
-  privados: opções do meu sorteio, meu deck) e `/user/queue/errors` (erros das minhas ações, já
-  existente no back).
-- **Envio (cliente → servidor), prefixo `/app/rooms/{code}`:**
-  - `/draft/character` `{ character }`
-  - `/draft/abilities` `{ abilities: [AbilityId, AbilityId] }`
-  - `/draw/pick` `{ ability }`
-  - `/move` `{ cell }`
-  - `/ability` `{ ability, targetCell?, destinationCell? }`
-  - `/rematch/request`, `/rematch/respond` `{ accept }`
-  - `/leave`
-- **Eventos (servidor → cliente)**, num envelope `{ type, payload, serverTime }`:
-  - `ROOM_SNAPSHOT` — estado completo (ao entrar e ao reconectar): fase, jogadores, round, placar,
-    tabuleiro, turno, meu deck e resultado; e, pedidos na FE-20, o prazo e o "pronto" da
-    Preparação, as minhas 3 cartas do sorteio, os Coins e o pedido de revanche em aberto
-  - `PLAYER_JOINED`, `PLAYER_LEFT`, `PLAYER_DISCONNECTED`, `PLAYER_RECONNECTED` (`{ slot }`, sem
-    prazo: quem cai segue a regra dos 3 estouros)
-  - `PHASE_CHANGE` — nova `phase` da sala (proposto na FE-12)
-  - `DRAFT_UPDATE` — personagens bloqueados e status de cada jogador
-  - `DRAW_OPTIONS` (privado) — 3 habilidades e prazo de 8s
-  - `ROUND_START` — round, quem começa, Morte Súbita
-  - `DECK_UPDATE` (privado) — meu deck, no início do round e depois de cada habilidade (proposto
-    na FE-12: fora do `ROUND_START`, que é público)
-  - `TURN_START` — jogador, timestamp de início, duração e os estouros seguidos de cada lado
-    (valor oficial; proposto na FE-12 para o front não deduzir quando zeram). **[A VALIDAR COM O
-    BACK]** (24/10) Depois do sorteio (`PHASE_CHANGE` para `PLAYING`), o primeiro `TURN_START` do
-    round sai só depois de `ROUND_INTRO_SECONDS` (2,5s): é a apresentação do round (quem começa,
-    MATCH POINT ou a entrada da Morte Súbita), que assim não come o tempo do primeiro turno
-  - `BOARD_UPDATE` — casas e efeitos depois de uma ação
-  - `ABILITY_RESOLVED` — quem usou, qual, alvo, se foi anulada pelo Campo de Força, se ficou sem
-    efeito. **[A VALIDAR COM O BACK]** (29/10) Só o `ROOM_SNAPSHOT` traz o `silenced`: o front
-    deduz o Silêncio daqui (quando não foi anulado) e o desfaz no `TURN_START` do outro jogador e
-    no `ROUND_START`. Pedir o `silenced` de cada lado no `TURN_START`, como os estouros
-  - `TURN_TIMEOUT` — jogador e estouros consecutivos (x/3)
-  - `ROUND_END` — vencedor ou empate, linha vencedora, placar
-  - `MATCH_END` — resultado (vitória, empate absoluto, W.O.) e Coins de cada um
-  - `REMATCH_REQUESTED`, `REMATCH_CANCELLED`, `ROOM_CLOSED`
-  - `ERROR` — código e mensagem
+### STOMP (`VITE_WEBSOCKET_URL`, a raiz do back; o cliente usa `/ws`)
 
-Ponto de partida para discussão com o Victor Hugo (back). Não é definitivo até ser validado dos
-dois lados.
+- `CONNECT` com `Authorization: Bearer <token>`: a identidade vem do token, nunca do corpo.
+- **Assinaturas:** `/topic/rooms/{code}` (eventos públicos), `/user/queue/room` (privados: o
+  snapshot completo, as minhas cartas do sorteio, o meu deck, a queda do oponente) e
+  `/user/queue/errors` (erros das minhas ações, no formato do REST, sem envelope).
+- **Envio, prefixo `/app/rooms/{code}`** (`toBackCommand`):
 
-**Contrato do back (15/10):** o back mantém `docs/contrato-integracao.md` no repositório dele,
-com o status de cada rota e evento (✅ disponível, 📝 proposta) e as datas por card. Ele é a fonte
-do que já existe. Já confirmado:
+  | Intenção do front                    | Destino e corpo do back                                           |
+  | ------------------------------------ | ----------------------------------------------------------------- |
+  | entrar ou voltar                     | `/connect` → responde com o `ROOM_SNAPSHOT` privado               |
+  | `DRAFT_CHARACTER`, `DRAFT_ABILITIES` | `/draft/character` `{ character }`, `/draft/abilities`            |
+  | `DRAW_PICK`                          | `/draw/pick` `{ ability }` (sai a sorteada anterior)              |
+  | `MOVE` `{ cell }`                    | `/move` `{ position }`                                            |
+  | `USE_ABILITY`                        | `/ability` `{ skillCode, targetPosition?, destinationPosition? }` |
+  | `REMATCH_REQUEST`                    | `/rematch/request`                                                |
+  | `REMATCH_RESPOND` `{ accept }`       | `/rematch/accept` ou `/rematch/decline`                           |
+  | `LEAVE`                              | `/leave`, em qualquer fase (abaixo)                               |
 
-- REST com prefixo **`/api`** (ex: `POST /api/auth/login`): `VITE_API_URL` termina em `/api`.
-- Erro único no REST: `{ code, message, status, timestamp, path, fields? }`.
-- Ids das habilidades no campo `code`, iguais aos do front.
-- STOMP em `/ws` (sem `/api`), com `/topic` e `/queue`. Os erros das minhas ações chegam em
-  `/user/queue/errors`, no formato do REST e fora do envelope; o front traduz para `ERROR`.
-- Temporário até a BE-009.1: sala com `?playerId=` e erros `ROOM_BAD_REQUEST` (inclusive sala
-  inexistente) e `ROOM_CONFLICT`.
-- Respostas do Victor (15/10): tópico no plural (`/topic/rooms/{code}`), `MATCH_END` (não
-  `GAME_OVER`), erros STOMP com o mesmo catálogo de códigos do REST, "casa adjacente" inclui as
-  diagonais, desconexão segue a regra dos 3 estouros (PROJECT_CONTEXT §6) e o cadastro não devolve
-  token (o front faz o login logo depois). BE-040 (JWT no `CONNECT`) e o `ROOM_SNAPSHOT` mínimo
-  antes de 22/10.
-
-**Recuperação de senha (24/10), proposta, a validar com o back:** `forgot-password` e
-`reset-password` ainda não existem no back; hoje são só o card BE-006.1, na reserva (fora do
-prazo de 31/10). O que o front assumiu e o que o card descreve:
-
-- `forgot-password`: o card descreve resposta **200** com mensagem genérica (o combinado verbal
-  era 204). O front trata 200 e 204 como sucesso e mostra sempre o próprio texto.
-- `reset-password`: o card descreve `{ token, newPassword, confirmPassword }`. O front envia esse
-  corpo (em `resetPassword`, em `src/api/auth.ts`); se o back adotar `{ token, password }`,
-  só essa função muda.
-- Erro de token inválido, expirado ou já usado: o card diz apenas "400/410". O código
-  `INVALID_RESET_TOKEN` é só **proposta do front** (constante `INVALID_RESET_TOKEN_CODE`). Sem
-  código, o front trata 400/410 sem `VALIDATION_ERROR` como link inválido.
-- O link do e-mail usa a variável `FRONTEND_RESET_PASSWORD_URL` do back (padrão do card:
-  `/reset-password` na porta 3000); para o front, deve apontar para `<front>/redefinir-senha`.
-- O reset não encerra sessões já abertas (decisão do card).
+- **Eventos**, no envelope `{ type, payload, serverTime }` (ms). O que a tradução muda:
+  - `ROOM_SNAPSHOT`: o público (tópico, sem `mySlot`) é descartado; vale o privado. Um snapshot
+    mais antigo que o último aplicado também (`roomStore.snapshotTime`). O snapshot que o back
+    manda depois do `MATCH_END` e a cada pedido de revanche não apaga o fim da partida que a tela
+    ainda mostra (a hora do resultado, o fim do round, a linha vencedora).
+  - `PLAYER_JOINED`: vira o jogador P2 (`{ player }`); o snapshot logo depois completa o resto.
+  - `ROUND_START`: `firstPlayer` vira `startingPlayer`.
+  - `ABILITY_RESOLVED`: `skillCode`/`targetPosition`/`destinationPosition` viram
+    `ability`/`targetCell`/`destinationCell` (null quando a habilidade não tem alvo).
+  - `ROUND_END`: o empate vem sem `winningLine`, que vira null.
+  - `DRAFT_UPDATE` traz `version`: um aviso mais antigo que o último aplicado é descartado (com os
+    dois escolhendo juntos, eles chegam fora de ordem). Cada Preparação começa em 0.
+  - `TURN_START` traz os estouros e o `silenced` oficiais de cada lado.
+  - `ROOM_CLOSED` traz o motivo como código: `PLAYER_LEFT`, `RETURN_TO_LOBBY`, `REMATCH_DECLINED`,
+    `REMATCH_EXPIRED`, `REMATCH_DISCONNECTED`, `HOST_LEFT` ou `EXPIRED`. O back não tem evento de
+    revanche cancelada: a sala encerrada com um pedido em aberto cancela o pedido
+    (`serverEvents`), e o aviso vem de `roomClosedMessage` (`features/results`).
+  - Os demais (`PHASE_CHANGE`, `DRAW_OPTIONS`, `DECK_UPDATE`, `BOARD_UPDATE`, `TURN_TIMEOUT`,
+    `MATCH_END`, `PLAYER_DISCONNECTED`, `PLAYER_RECONNECTED`) já vêm no formato do front.
+- **Saída (`/leave`):** na Sala de Espera, o host encerra a sala; no MATCH FEITO e na Preparação,
+  a sala é encerrada sem partida (`PLAYER_LEFT`); na partida, é desistência e o outro vence por
+  W.O.; no Resultado, é voltar ao lobby. O `leaveRoom()` do `gameClient` manda sempre o mesmo.
+- **Tempos do servidor:** 3s de "MATCH FEITO" antes de os 20s da Preparação começarem, 3s de VS
+  antes do round 1, 2,5s de apresentação antes do primeiro `TURN_START` de cada round
+  (`ROUND_INTRO_SECONDS`) e 2,5s depois do `ROUND_END`. O `MATCH_END` chega antes do
+  `PHASE_CHANGE` para `RESULT`; no W.O., na hora.
+- **Regras:** MD3 da ERS (depois do round 2 quem está na frente vence; round 3 só com placar
+  igual), "casa adjacente" com diagonais, desconexão pela regra dos 3 estouros, e o deck do round
+  = 2 iniciais + 1 sorteada (a nova entra no lugar da anterior).
 
 ### Servidor simulado (FE-35)
 
 Enquanto o back não está pronto, o front roda contra um **servidor simulado** que vive no próprio
-front (`src/sockets/mock/`). Ele fica **ligado por padrão até a FE-18** e desliga com
-`VITE_USE_MOCK_SERVER=false`.
+front (`src/sockets/mock/`). Ele fica **ligado por padrão** e desliga com
+`VITE_USE_MOCK_SERVER=false`, que liga o front no back de verdade (`docs/LOCAL_INTEGRATION.md`).
 
 - Implementa a mesma `GameConnection` do cliente STOMP real e emite os eventos do contrato acima.
   Faz o papel do servidor autoritativo: decide jogada, vitória, placar, timeout e as 10

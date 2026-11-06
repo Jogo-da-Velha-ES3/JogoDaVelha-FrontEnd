@@ -112,8 +112,23 @@ describe('RematchPanel', () => {
     renderResult()
     send('REMATCH_REQUESTED', { by: 'P2', deadline: deadline() })
     send('REMATCH_CANCELLED', { reason: 'TIMEOUT' })
-    send('ROOM_CLOSED', { reason: 'O tempo da revanche acabou.' })
+    send('ROOM_CLOSED', { reason: 'REMATCH_EXPIRED' })
     expect(screen.getByRole('status')).toHaveTextContent('O tempo para aceitar a revanche acabou.')
+    expect(button('Revanche')).toBeDisabled()
+  })
+
+  it('no back real: o oponente pediu e o prazo acabou (só a sala encerrada chega)', () => {
+    renderResult()
+    send('REMATCH_REQUESTED', { by: 'P2', deadline: deadline() })
+    send('ROOM_CLOSED', { reason: 'REMATCH_EXPIRED' })
+    expect(screen.getByRole('status')).toHaveTextContent('O tempo para aceitar a revanche acabou.')
+    expect(button('Revanche')).toBeDisabled()
+  })
+
+  it('no back real: o oponente voltou ao lobby sem pedido de revanche', () => {
+    renderResult()
+    send('ROOM_CLOSED', { reason: 'RETURN_TO_LOBBY' })
+    expect(screen.getByRole('status')).toHaveTextContent('O oponente saiu da sala.')
     expect(button('Revanche')).toBeDisabled()
   })
 

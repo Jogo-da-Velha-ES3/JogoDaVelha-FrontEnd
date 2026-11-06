@@ -175,7 +175,7 @@ describe('StompConnection', () => {
     connection.send({ type: 'MOVE', payload: { cell: 5 } })
     connection.send({ type: 'DRAFT_CHARACTER', payload: { character: 'ESTRELA' } })
     expect(fake.published.slice(1)).toEqual([
-      { destination: '/app/rooms/4821/move', body: '{"cell":5}' },
+      { destination: '/app/rooms/4821/move', body: '{"position":5}' },
       { destination: '/app/rooms/4821/draft/character', body: '{"character":"ESTRELA"}' },
     ])
   })

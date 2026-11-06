@@ -37,8 +37,8 @@ export const ROUND_BANNER_SECONDS = 2.5
 export const ROUND_COIN_FLIP_SECONDS = 1.2
 /**
  * Apresentação do round: depois do sorteio da 3ª habilidade, o servidor espera este tempo antes do
- * primeiro TURN_START. Cabe o banner de início do round e a entrada da Morte Súbita
- * [A VALIDAR COM O BACK]
+ * primeiro TURN_START. Cabe o banner de início do round e a entrada da Morte Súbita (o back faz o
+ * mesmo, contrato V2)
  */
 export const ROUND_INTRO_SECONDS = 2.5
 /** Habilidade resolvida (FE-27): o efeito na casa e o aviso ("Oponente usou…", "Anulada…") */

@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 import type { ConnectionStatus } from '../sockets/types'
+import type { RoomClosedReason } from '../types/events'
 import type { PlayerSlot, PlayerState, RoomPhase } from '../types/game'
 
 export interface RoomGameState {
@@ -9,7 +10,12 @@ export interface RoomGameState {
   phase: RoomPhase | null
   players: PlayerState[]
   mySlot: PlayerSlot | null
-  closedReason: string | null
+  closedReason: RoomClosedReason | null
+  /**
+   * `serverTime` do último ROOM_SNAPSHOT aplicado: um snapshot mais antigo que chegue depois (fora
+   * de ordem) é descartado
+   */
+  snapshotTime: number
   lastError: { code: string; message: string; serverTime: number } | null
   connection: ConnectionStatus
 }
@@ -31,6 +37,7 @@ export const INITIAL_ROOM_STATE: RoomGameState = {
   players: [],
   mySlot: null,
   closedReason: null,
+  snapshotTime: 0,
   lastError: null,
   connection: 'IDLE',
 }

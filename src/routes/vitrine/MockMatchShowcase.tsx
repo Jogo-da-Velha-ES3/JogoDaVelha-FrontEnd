@@ -53,7 +53,7 @@ const SCENARIO_CARDS: { id: ScenarioId; title: string; description: string }[] =
   {
     id: 'virada',
     title: 'Virada',
-    description: 'Empata o 1º round e o robô vence o 2º (0×1). No round 3, vença para empatar.',
+    description: 'Os dois primeiros rounds empatam (0×0). A Morte Súbita decide a partida.',
   },
   {
     id: 'empate-absoluto',

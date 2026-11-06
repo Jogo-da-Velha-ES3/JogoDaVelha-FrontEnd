@@ -5,11 +5,11 @@ import { getAuthToken } from '../api/session'
 import { APP_TEXTS } from '../constants/texts'
 import type { ClientCommand, ServerEnvelope } from '../types/events'
 import {
-  commandDestination,
   ERRORS_QUEUE,
   joinDestination,
   PRIVATE_QUEUE,
   roomTopic,
+  toBackCommand,
 } from './destinations'
 import { parseServerMessage } from './envelope'
 import type { ConnectionStatus, GameConnection, Unsubscribe } from './types'
@@ -145,10 +145,7 @@ export class StompConnection implements GameConnection {
       this.emitLocalError('NOT_CONNECTED', APP_TEXTS.errors.notConnected)
       return
     }
-    this.client.publish({
-      destination: commandDestination(this.roomCode, command.type),
-      body: JSON.stringify(command.payload),
-    })
+    this.client.publish(toBackCommand(this.roomCode, command))
   }
 
   onEvent(listener: (event: ServerEnvelope) => void): Unsubscribe {

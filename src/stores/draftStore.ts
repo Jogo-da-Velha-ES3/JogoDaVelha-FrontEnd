@@ -8,12 +8,15 @@ export interface DraftState {
   characters: Partial<Record<PlayerSlot, CharacterId>>
   /** "escolhendo…" / "pronto" */
   ready: Record<PlayerSlot, boolean>
+  /** `version` do último DRAFT_UPDATE aplicado (null: nenhum ainda, ou o simulado, que não manda) */
+  version: number | null
 }
 
 export const INITIAL_DRAFT_STATE: DraftState = {
   deadline: null,
   characters: {},
   ready: { P1: false, P2: false },
+  version: null,
 }
 
 // Só muda por evento do servidor (stores/serverEvents.ts)

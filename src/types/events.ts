@@ -1,4 +1,5 @@
-// Contrato de eventos com o back (rascunho — ARCHITECTURE.md §6). Ajustar quando a FE-17 fechar.
+// Eventos do servidor e intenções do cliente, no vocabulário do front. O contrato V2 do back
+// (ARCHITECTURE.md §6) é traduzido para estes tipos em src/sockets/envelope.ts e destinations.ts.
 import type {
   AbilityId,
   Cell,
@@ -22,6 +23,19 @@ export interface ServerEnvelope<T extends ServerEvent = ServerEvent> {
   local?: boolean
 }
 
+/**
+ * Por que a sala foi encerrada (`ROOM_CLOSED`). PLAYER_LEFT: alguém saiu depois do MATCH FEITO e
+ * antes da partida; RETURN_TO_LOBBY: alguém voltou ao lobby no Resultado.
+ */
+export type RoomClosedReason =
+  | 'HOST_LEFT'
+  | 'PLAYER_LEFT'
+  | 'EXPIRED'
+  | 'REMATCH_DECLINED'
+  | 'REMATCH_EXPIRED'
+  | 'RETURN_TO_LOBBY'
+  | 'REMATCH_DISCONNECTED'
+
 export type ServerEvent =
   | { type: 'ROOM_SNAPSHOT'; payload: RoomSnapshot }
   | { type: 'PLAYER_JOINED'; payload: { player: PlayerState } }
@@ -39,28 +53,32 @@ export type ServerEvent =
         /** Personagem reservado por cada jogador (bloqueado para o outro) */
         characters: Partial<Record<PlayerSlot, CharacterId>>
         ready: Record<PlayerSlot, boolean>
+        /**
+         * Cresce a cada mudança do Draft: com os dois escolhendo juntos, os avisos podem chegar fora
+         * de ordem, e o mais antigo é descartado. Cada Draft (inclusive o da revanche) começa em 0
+         */
+        version?: number
       }
     }
-  /** [A VALIDAR COM O BACK] Troca de fase da sala; sem isto o front teria de deduzir a tela */
-  | { type: 'PHASE_CHANGE'; payload: { phase: RoomPhase } }
+  /** Troca de fase da sala: decide a tela de /sala/:codigo */
+  | { type: 'PHASE_CHANGE'; payload: { phase: RoomPhase; round?: number } }
   | { type: 'DRAW_OPTIONS'; payload: { options: AbilityId[]; deadline: number } }
   | {
       type: 'ROUND_START'
       payload: { round: number; startingPlayer: PlayerSlot; suddenDeath: boolean }
     }
   /**
-   * [A VALIDAR COM O BACK] Meu deck (privado): no início do round e depois de cada habilidade
-   * usada. Fora do ROUND_START, que é público, para o oponente não ver.
+   * Meu deck (privado): no sorteio de cada round e depois de cada habilidade usada. Fora do
+   * ROUND_START, que é público, para o oponente não ver.
    */
   | { type: 'DECK_UPDATE'; payload: { deck: DeckSlot[] } }
   | {
       type: 'TURN_START'
       payload: TurnState & {
-        /**
-         * [A VALIDAR COM O BACK] Estouros seguidos de cada lado, valor oficial. Zeram quando o
-         * jogador age [RN-ARN-01]; vindo daqui, o front não precisa deduzir isso.
-         */
+        /** Estouros seguidos de cada lado, valor oficial. Zeram quando o jogador age [RN-ARN-01] */
         consecutiveTimeouts: Record<PlayerSlot, number>
+        /** Quem está silenciado neste turno. Sem o campo (simulado), o front deduz do Silêncio */
+        silenced?: Record<PlayerSlot, boolean>
       }
     }
   | { type: 'BOARD_UPDATE'; payload: { board: Cell[] } }
@@ -93,7 +111,7 @@ export type ServerEvent =
     }
   | { type: 'REMATCH_REQUESTED'; payload: { by: PlayerSlot; deadline: number } }
   | { type: 'REMATCH_CANCELLED'; payload: { reason: 'TIMEOUT' | 'DECLINED' | 'LEFT' } }
-  | { type: 'ROOM_CLOSED'; payload: { reason: string } }
+  | { type: 'ROOM_CLOSED'; payload: { reason: RoomClosedReason } }
   | { type: 'ERROR'; payload: { code: string; message: string } }
 
 export type ServerEventType = ServerEvent['type']

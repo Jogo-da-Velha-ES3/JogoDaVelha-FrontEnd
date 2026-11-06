@@ -4,9 +4,8 @@
 //
 // Destaque: o trecho entre `**` aparece em negrito com um brilho leve (ver HowToPlayRichText).
 //
-// ATENÇÃO: a página "Melhor de 3" (com a Morte Súbita) segue a regra decidida em 18/10
-// (PROJECT_CONTEXT §6), que AINDA É A VALIDAR COM O BACK. Se o back decidir diferente, só essa
-// página muda.
+// A página "Melhor de 3" (com a Morte Súbita) segue a regra da ERS, a mesma do back
+// (PROJECT_CONTEXT §6).
 //
 // ATENÇÃO (para quem revisar o tom): as páginas cabem por pouco em 330px de altura (celular
 // deitado), em especial "Habilidades". Confira o tamanho no celular deitado antes de alongar as
@@ -142,9 +141,9 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
     title: 'Melhor de 3',
     visual: 'suddenDeath',
     points: [
-      `A partida tem até **${MAX_ROUNDS} rounds**. Com **${ROUNDS_TO_WIN_MATCH}×0**, ela termina antes do round ${MAX_ROUNDS}.`,
-      `O round ${MAX_ROUNDS} é sempre a **Morte Súbita**, com **${SUDDEN_DEATH_TURN_DURATION_SECONDS}s** por turno.`,
-      `No fim dele, vence quem tiver **mais rounds**. Placar igual (${TIED_BEFORE_WIN}×${TIED_BEFORE_WIN} ou 0×0) é **empate absoluto**.`,
+      `A partida tem até **${MAX_ROUNDS} rounds**. Depois do round ${MAX_ROUNDS - 1}, quem estiver **na frente vence**.`,
+      `Placar igual (${TIED_BEFORE_WIN}×${TIED_BEFORE_WIN} ou 0×0) leva à **Morte Súbita**, com **${SUDDEN_DEATH_TURN_DURATION_SECONDS}s** por turno.`,
+      'Quem vencer a Morte Súbita leva a partida. Se ela empatar, é **empate absoluto**.',
       'Quem começa é sorteado no round 1 e **alterna a cada round**.',
     ],
   },
