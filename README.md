@@ -120,6 +120,9 @@ Ele conecta com o token no `CONNECT`, assina a sala e a fila privada, reconecta 
 `src/sockets/destinations.ts` e a tradução das mensagens em `src/sockets/envelope.ts`: ajustes do
 contrato com o back (FE-17) mudam só esses arquivos.
 
+Para subir o back na sua máquina, ligar o front nele e depurar a integração, siga o
+[docs/LOCAL_INTEGRATION.md](docs/LOCAL_INTEGRATION.md).
+
 ## Rotas
 
 Tabela em `src/routes/routes.tsx` e caminhos em `src/routes/paths.ts` (detalhes no
