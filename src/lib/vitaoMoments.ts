@@ -13,7 +13,7 @@ export interface VitaoSnapshot {
     absorbed: boolean
     noEffect: boolean
     /** Qual habilidade foi (nome do campo no payload do ABILITY_RESOLVED) */
-    abilityId?: AbilityId
+    ability?: AbilityId
   } | null
   lastTimeout: {
     player: PlayerSlot
@@ -65,7 +65,7 @@ export function momentsFromChange(
       by: side(ability.by, me),
       absorbed: ability.absorbed,
       noEffect: ability.noEffect,
-      abilityId: ability.abilityId,
+      abilityId: ability.ability,
     })
   }
 

@@ -1,9 +1,8 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { CHARACTER_INFO } from '../../constants/characters'
 import { MAX_CONSECUTIVE_TIMEOUTS } from '../../constants/game'
-import { ARENA_TEXTS, joinParts } from '../../constants/texts'
+import { ARENA_TEXTS } from '../../constants/texts'
 import { useIsBefore } from '../../hooks/useIsBefore'
-import { useVoice } from '../../hooks/useLanguageFilter'
 import { useMatchStore } from '../../stores/matchStore'
 import { useRoomStore } from '../../stores/roomStore'
 
@@ -17,6 +16,8 @@ const TOAST_MS = 3000
  * Aparece quando o servidor manda TURN_TIMEOUT → matchStore.lastTimeout.
  * Nunca dispara porque o timer do front chegou a 0 [PROJECT_CONTEXT §9].
  *
+ * Só a informação (ex: "Tempo esgotado! · 1/3"): a piada do 1º e do 2º estouro é do Vitão (FE-43).
+ *
  * Cor: vermelho para quem estoura; cor do personagem do oponente para quem vê o estouro alheio.
  * Some automaticamente após 3s.
  *
@@ -24,7 +25,6 @@ const TOAST_MS = 3000
  * rótulo do round e a faixa do oponente (corrigido em 02/11).
  */
 export function TurnTimeoutToast() {
-  const voice = useVoice()
   const mySlot = useRoomStore((s) => s.mySlot) ?? 'P1'
   const players = useRoomStore((s) => s.players)
   const lastTimeout = useMatchStore((s) => s.lastTimeout)
@@ -47,10 +47,10 @@ export function TurnTimeoutToast() {
     : 'var(--color-danger)'
   const borderColor = isMyTimeout ? 'var(--color-danger)' : toasterColor
 
-  // Texto conforme a tabela do PROJECT_CONTEXT §9 (só para 1/3 e 2/3; W.O. fica no Banner)
+  // Só a informação, conforme a tabela do PROJECT_CONTEXT §9 (1/3 e 2/3; o W.O. fica no Banner)
   const T = ARENA_TEXTS.timeout
   const title = isMyTimeout ? T.title : T.opponentTitle
-  const subtitle = isMyTimeout ? joinParts(voice(T.mine(count)), T.count(count)) : T.count(count)
+  const subtitle = T.count(count)
 
   return (
     <AnimatePresence>
