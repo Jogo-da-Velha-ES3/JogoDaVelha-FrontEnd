@@ -168,8 +168,6 @@ export const SHOP_TEXTS = {
   soon: 'Em breve',
   cosmeticsSoon: 'Skins, molduras e estilos de tabuleiro chegam depois. Por enquanto, é só jogar.',
   buyCoins: 'Comprar Coins',
-  /** Até a FE-32 (modal de Coins) chegar */
-  buyCoinsSoon: 'Chega com a FE-32',
   loading: 'Carregando a Loja…',
   loadError: 'Não foi possível abrir a Loja agora.',
   retry: 'Tentar de novo',
@@ -206,6 +204,22 @@ export const SHOP_TEXTS = {
     notOwned: 'Compre o personagem antes de usar como favorito.',
     generic: 'Não foi possível concluir agora. Tente de novo.',
   },
+} as const
+
+// ── Comprar Coins (FE-32) ──
+export const COINS_TEXTS = {
+  title: 'Comprar Coins',
+  /** Aviso fixo [RN-LOJ-04]: compra simbólica, sem pagamento nem cartão */
+  aviso: 'Compra simbólica: nada é cobrado. Tudo no jogo também pode ser conseguido jogando.',
+  loading: 'Carregando pacotes…',
+  loadError: 'Não foi possível carregar os pacotes agora.',
+  /** "Receber" reforça o caráter simbólico (esboço de telas, modal de Coins) */
+  receive: (coins: number) => `Receber ${coins.toLocaleString('pt-BR')} Coins`,
+  buying: 'Comprando…',
+  /** Erro de rede ou do servidor: o crédito pode ter ocorrido; não soma nada no front */
+  buyError: 'Não foi possível concluir agora. Tente de novo.',
+  /** Toast de sucesso, só depois da resposta da API */
+  received: (coins: number) => `+${coins.toLocaleString('pt-BR')} Coins`,
 } as const
 
 // ── Sala: criar, entrar, Sala de Espera e "Match feito" ──
