@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  DECK_SIZE,
   PREPARATION_SECONDS,
   REMATCH_WINDOW_SECONDS,
   ROUND_INTRO_SECONDS,
@@ -64,10 +65,39 @@ function toFirstTurn(ctx: Ctx, botAbilities?: [AbilityId, AbilityId]) {
   pickDraws(ctx)
 }
 
-/** Os dois escolhem a carta do sorteio e passa a apresentação do round: começa o primeiro turno */
+/**
+ * Os dois escolhem a carta do sorteio e passa a apresentação do round: começa o primeiro turno.
+ * Com o deck completo (do round 2 em diante), a carta nova entra no lugar da primeira do deck
+ */
 function pickDraws(ctx: Ctx) {
-  ctx.send({ type: 'DRAW_PICK', payload: { ability: ctx.last('DRAW_OPTIONS')!.options[0] } })
+  const deck = ctx.last('DECK_UPDATE')?.deck ?? []
+  ctx.send({
+    type: 'DRAW_PICK',
+    payload: {
+      ability: ctx.last('DRAW_OPTIONS')!.options[0],
+      abilityToRemove: deck.length === DECK_SIZE ? deck[0].ability : undefined,
+    },
+  })
   vi.advanceTimersByTime(MOCK_TIMINGS.botDraw + ROUND_INTRO_SECONDS * 1000)
+}
+
+/** Joga o round 1 até você vencer e chega ao sorteio do round 2 */
+function toSecondDraw(ctx: Ctx) {
+  toFirstTurn(ctx)
+  ensureMyTurn(ctx, 15)
+  for (const [mine, bot] of [
+    [0, 8],
+    [1, 9],
+    [2, 10],
+  ]) {
+    ctx.move(mine)
+    ctx.move(bot, 'P2')
+  }
+  ctx.move(3)
+  expect(ctx.last('ROUND_END')?.winner).toBe('P1')
+  vi.advanceTimersByTime(MOCK_TIMINGS.roundEnd)
+  expect(ctx.last('ROUND_START')?.round).toBe(2)
+  expect(ctx.phases().at(-1)).toBe('ROUND_DRAW')
 }
 
 /** Se a vez for do P2, ele joga numa casa inofensiva para devolver a vez ao P1 */
@@ -207,6 +237,78 @@ describe('round', () => {
 
     vi.advanceTimersByTime(MOCK_TIMINGS.roundEnd)
     expect(ctx.last('ROUND_START')?.round).toBe(2)
+  })
+})
+
+describe('sorteio da 3ª carta (FE-50, regra do back)', () => {
+  it('no round 1 a carta entra no deck: pedir para tirar outra é recusado', () => {
+    const ctx = setup()
+    vi.advanceTimersByTime(MOCK_TIMINGS.botJoin + MOCK_TIMINGS.matched)
+    ctx.send({ type: 'DRAFT_CHARACTER', payload: { character: 'X' } })
+    ctx.send({ type: 'DRAFT_ABILITIES', payload: { abilities: ['BOMBA', 'SILENCIO'] } })
+    vi.advanceTimersByTime(MOCK_TIMINGS.botDraft + MOCK_TIMINGS.versus)
+    const [card] = ctx.last('DRAW_OPTIONS')!.options
+
+    ctx.send({ type: 'DRAW_PICK', payload: { ability: card, abilityToRemove: 'BOMBA' } })
+    expect(ctx.last('ERROR')?.code).toBe('INVALID_DRAW')
+    expect(ctx.last('DECK_UPDATE')?.deck).toHaveLength(2)
+
+    ctx.send({ type: 'DRAW_PICK', payload: { ability: card } })
+    expect(ctx.last('DECK_UPDATE')?.deck.map((d) => [d.ability, d.source])).toEqual([
+      ['BOMBA', 'INITIAL'],
+      ['SILENCIO', 'INITIAL'],
+      [card, 'DRAWN'],
+    ])
+  })
+
+  it('do round 2 em diante, a carta nova entra no lugar da que você escolher, até uma inicial', () => {
+    const ctx = setup()
+    toSecondDraw(ctx)
+
+    // O deck continua o do round 1, com as cartas liberadas para o round novo
+    const deck = ctx.last('DECK_UPDATE')!.deck
+    expect(deck.map((d) => [d.ability, d.source, d.usedThisRound])).toEqual([
+      ['BOMBA', 'INITIAL', false],
+      ['SILENCIO', 'INITIAL', false],
+      [deck[2].ability, 'DRAWN', false],
+    ])
+    // As opções nunca repetem o deck atual
+    const { options } = ctx.last('DRAW_OPTIONS')!
+    expect(options.filter((a) => deck.some((d) => d.ability === a))).toEqual([])
+
+    // Sem dizer qual sai, é recusado (como no back)
+    ctx.send({ type: 'DRAW_PICK', payload: { ability: options[0] } })
+    expect(ctx.last('ERROR')?.code).toBe('INVALID_DRAW')
+
+    ctx.send({ type: 'DRAW_PICK', payload: { ability: options[0], abilityToRemove: 'BOMBA' } })
+    expect(ctx.last('DECK_UPDATE')?.deck.map((d) => [d.ability, d.source])).toEqual([
+      [options[0], 'DRAWN'],
+      ['SILENCIO', 'INITIAL'],
+      [deck[2].ability, 'DRAWN'],
+    ])
+
+    // Uma escolha por sorteio; quem volta não recebe mais as cartas
+    ctx.send({ type: 'DRAW_PICK', payload: { ability: options[1], abilityToRemove: 'SILENCIO' } })
+    expect(ctx.last('ERROR')?.code).toBe('DRAW_RESOLVED')
+    ctx.server.disconnect('P1')
+    ctx.server.reconnect('P1')
+    expect(ctx.last('ROOM_SNAPSHOT')).toMatchObject({ phase: 'ROUND_DRAW', drawOptions: null })
+    expect(ctx.last('ROOM_SNAPSHOT')?.myDeck.map((d) => d.ability)).toContain(options[0])
+  })
+
+  it('tempo esgotado do round 2 em diante: o sorteio é pulado e o deck fica como está', () => {
+    const ctx = setup()
+    toSecondDraw(ctx)
+    const decks = ctx.all('DECK_UPDATE').length
+    const deck = ctx.last('DECK_UPDATE')!.deck
+
+    vi.advanceTimersByTime(ctx.last('DRAW_OPTIONS')!.deadline - Date.now())
+    expect(ctx.phases().at(-1)).toBe('PLAYING')
+    expect(ctx.all('DECK_UPDATE')).toHaveLength(decks) // nenhum deck mudou
+    vi.advanceTimersByTime(ROUND_INTRO_SECONDS * 1000)
+    ctx.server.disconnect('P1')
+    ctx.server.reconnect('P1')
+    expect(ctx.last('ROOM_SNAPSHOT')?.myDeck).toEqual(deck)
   })
 })
 

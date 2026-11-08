@@ -1,6 +1,7 @@
 // O que as telas usam para falar com a sala: entrar, mandar intenções e sair. Escolhe entre o
-// servidor simulado (FE-35) e o cliente STOMP real (FE-18) pela variável de ambiente. Os dois
-// são carregados sob demanda, só quando alguém entra numa sala.
+// servidor simulado (FE-35) e o cliente STOMP real (FE-18) pela variável de ambiente; quem passa
+// opções do simulado (vitrine, testes) usa o simulado sempre. Os dois são carregados sob demanda,
+// só quando alguém entra numa sala.
 import { isSessionValid } from '../api/auth'
 import { applyServerEvent, resetGameStores } from '../stores/serverEvents'
 import { useRoomStore } from '../stores/roomStore'
@@ -12,9 +13,9 @@ import type { GameConnection, Unsubscribe } from './types'
 export { isMockServerEnabled }
 
 export async function createGameConnection(
-  mockOptions: MockConnectionOptions = {},
+  mockOptions?: MockConnectionOptions,
 ): Promise<GameConnection> {
-  if (isMockServerEnabled()) {
+  if (mockOptions || isMockServerEnabled()) {
     const [{ MockConnection }, { resolveBotDrop, resolveBotRematch, resolveScenario }] =
       await Promise.all([import('./mock/mockConnection'), import('./mock/scenarios')])
     const { search } = window.location
@@ -41,7 +42,7 @@ const debugListeners = new Set<(event: ServerEnvelope) => void>()
 export interface JoinRoomOptions {
   /** Conexão pronta (testes); sem isto, cria a do ambiente */
   connection?: GameConnection
-  /** Opções do simulado (ex: cenário da vitrine) */
+  /** Usa o simulado com estas opções, mesmo com ele desligado (ex: cenário da vitrine) */
   mock?: MockConnectionOptions
 }
 

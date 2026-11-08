@@ -347,9 +347,11 @@ export function Arena({ onQuit }: ArenaProps) {
             aparece em PLAYING. z-[4]: a pausa abre por cima */}
         {phase === 'ROUND_DRAW' && (
           <DrawPicker
+            key={round}
             options={drawOptions?.options ?? null}
             deadline={drawOptions?.deadline ?? null}
-            chosen={deck.find((slot) => slot.source === 'DRAWN')?.ability ?? null}
+            deck={deck}
+            round={round}
           />
         )}
 

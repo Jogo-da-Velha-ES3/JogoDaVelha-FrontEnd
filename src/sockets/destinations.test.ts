@@ -55,6 +55,16 @@ describe('toBackCommand — intenções no formato do back', () => {
       destination: at('/draw/pick'),
       body: '{"ability":"TORNADO"}',
     })
+    // Do round 2 em diante: a carta nova e a habilidade do deck que sai
+    expect(
+      toBackCommand('4821', {
+        type: 'DRAW_PICK',
+        payload: { ability: 'TORNADO', abilityToRemove: 'ESCUDO' },
+      }),
+    ).toEqual({
+      destination: at('/draw/pick'),
+      body: '{"ability":"TORNADO","abilityToRemove":"ESCUDO"}',
+    })
     expect(toBackCommand('4821', { type: 'REMATCH_REQUEST', payload: {} }).destination).toBe(
       at('/rematch/request'),
     )

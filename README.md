@@ -75,8 +75,10 @@ de relógio do aparelho é corrigida pelo `clockStore`; o cliente STOMP deve cha
 
 ## Servidor simulado
 
-Até o cliente STOMP real (FE-18), a sala roda contra um servidor simulado no próprio front, com
-um oponente automático. Ele já vem ligado (`VITE_USE_MOCK_SERVER=false` desliga).
+O front tem um servidor simulado, com um oponente automático, para trabalhar nas telas sem o
+back. Desde a FE-50 ele vem **desligado**: sem variável, o front usa o back de verdade (seção
+abaixo). Para jogar contra o robô, `VITE_USE_MOCK_SERVER=true` no `.env.local`. A vitrine
+(`/vitrine`) e os testes usam o simulado sempre.
 
 - **Telas:** usam `joinRoom(código)`, `sendCommand(intenção)` e `leaveRoom()` de
   `src/sockets/gameClient.ts`, e leem o estado das stores. O estado só muda com a resposta do
@@ -105,15 +107,17 @@ um oponente automático. Ele já vem ligado (`VITE_USE_MOCK_SERVER=false` deslig
   `src/api/rooms.ts`. No simulado, criar só sorteia o código e entrar sempre funciona; no real,
   os erros já vêm prontos para a tela ("Sala 4821 não encontrada", sala cheia, partida começada).
 
-### Back de verdade (FE-18)
+### Back de verdade (padrão)
 
-O cliente STOMP real (`src/sockets/stompConnection.ts`) já está pronto. Para usá-lo:
+O cliente STOMP real (`src/sockets/stompConnection.ts`) é o padrão. Ele precisa das URLs do back
+(na Vercel, nas variáveis de Production e Preview; na sua máquina, no `.env.local`):
 
 ```bash
-VITE_USE_MOCK_SERVER=false
-VITE_API_URL=http://localhost:8080/api     # o REST do back usa o prefixo /api
-VITE_WEBSOCKET_URL=http://localhost:8080   # vira ws://localhost:8080/ws
+VITE_API_URL=https://<back>/api     # o REST do back usa o prefixo /api
+VITE_WEBSOCKET_URL=https://<back>   # a raiz do back; vira wss://<back>/ws
 ```
+
+Para o back local: `http://localhost:8080/api` e `http://localhost:8080`.
 
 Ele conecta com o token no `CONNECT`, assina a sala e a fila privada, reconecta sozinho
 ("Reconectando…" na tela) e pede o estado completo de novo ao voltar. Os destinos ficam em

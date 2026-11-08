@@ -92,7 +92,15 @@ function driveP1(options: { ability?: { round: number; id: AbilityId } } = {}) {
     const options_ = usePowersStore.getState().drawOptions
     if (options_ && sent.pickRound !== match.round) {
       sent.pickRound = match.round
-      sendCommand({ type: 'DRAW_PICK', payload: { ability: options_.options[0] } })
+      // Do round 2 em diante o deck está completo e o back exige a carta que sai (FE-50): sai a
+      // sorteada, e as iniciais (a Ampulheta do teste) ficam
+      const drawn = usePowersStore.getState().deck.find((slot) => slot.source === 'DRAWN')
+      sendCommand({
+        type: 'DRAW_PICK',
+        payload: drawn
+          ? { ability: options_.options[0], abilityToRemove: drawn.ability }
+          : { ability: options_.options[0] },
+      })
     }
     const turn = useTimerStore.getState().turn
     if (turn?.player === room.mySlot && turn.startedAt !== sent.turn) {
@@ -121,6 +129,7 @@ function botP2(code: string, guest: Account, mode: 'play' | 'leave-in-draft') {
   const received: BackMessage[] = []
   const cells = [4, 5, 6, 8, 9, 12, 13]
   let board: { owner: string | null }[] = []
+  let deck: { ability: string; source: string }[] = []
   let sentCharacter = false
   let sentAbilities = false
   const client = new Client({
@@ -147,8 +156,12 @@ function botP2(code: string, guest: Account, mode: 'play' | 'leave-in-draft') {
       sentAbilities = true
       send('/draft/abilities', { abilities: ['BOMBA', 'ESCUDO'] })
     }
-    if (data.type === 'DRAW_OPTIONS')
-      send('/draw/pick', { ability: (payload.options as string[])[0] })
+    if (data.type === 'DECK_UPDATE') deck = payload.deck as typeof deck
+    if (data.type === 'DRAW_OPTIONS') {
+      // Do round 2 em diante, sai a sorteada do round anterior (o back exige `abilityToRemove`)
+      const drawn = deck.find((slot) => slot.source === 'DRAWN')?.ability
+      send('/draw/pick', { ability: (payload.options as string[])[0], abilityToRemove: drawn })
+    }
     if (data.type === 'BOARD_UPDATE') board = payload.board as typeof board
     if (data.type === 'TURN_START' && payload.player === 'P2') {
       send('/move', { position: cells.find((index) => !board[index]?.owner) })
