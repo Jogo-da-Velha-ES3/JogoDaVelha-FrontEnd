@@ -7,7 +7,8 @@ import { momentsFromChange, type VitaoSnapshot } from '../../lib/vitaoMoments'
 import { useBoardStore } from '../../stores/boardStore'
 import { useMatchStore } from '../../stores/matchStore'
 import { useRoomStore } from '../../stores/roomStore'
-import { VITAO_LINES } from './vitaoLines'
+import type { AbilityId } from '../../types/game'
+import { buildVitaoLines } from './vitaoLines'
 
 export interface ShownReaction extends VitaoReaction {
   /** Muda a cada fala nova, mesmo com o mesmo texto */
@@ -30,6 +31,7 @@ function readSnapshot(): VitaoSnapshot {
     introStartedAt: match.introStartedAt,
     roundStartedAt: match.roundStartedAt,
     suddenDeath: match.suddenDeath,
+    score: match.score,
   }
 }
 
@@ -61,6 +63,16 @@ export function useVitaoReactions(): ShownReaction | null {
       const moments = pending
       pending = []
 
+      // Os dados das falas por habilidade e por estouro vêm dos próprios momentos, capturados no
+      // instante da mudança (a store pode ter mudado de novo durante a janela de decisão)
+      let abilityId: AbilityId | null = null
+      let myTimeouts: number | null = null
+      for (const m of moments) {
+        if (m.kind === 'ABILITY' && m.by === 'OPPONENT') abilityId = m.abilityId ?? null
+        if (m.kind === 'TIMEOUT' && m.by === 'ME') myTimeouts = m.count ?? null
+      }
+      const lines = buildVitaoLines({ abilityId, myTimeouts })
+
       const now = Date.now()
       const decision = decideVitaoReaction(
         moments,
@@ -70,7 +82,7 @@ export function useVitaoReactions(): ShownReaction | null {
           suddenDeath: useMatchStore.getState().suddenDeath,
           filterOn: filterRef.current,
         },
-        VITAO_LINES,
+        lines,
       )
       if (!decision) return
 
