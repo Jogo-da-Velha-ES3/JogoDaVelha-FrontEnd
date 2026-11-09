@@ -56,5 +56,8 @@ export default defineConfig({
     setupFiles: ['src/test/setup.ts'],
     include: ['src/**/*.test.{ts,tsx}'],
     passWithNoTests: true,
+    // O app usa o back real por padrão (FE-50); os testes rodam no servidor simulado, e quem testa
+    // a integração com o back desliga com vi.stubEnv('VITE_USE_MOCK_SERVER', 'false')
+    env: { VITE_USE_MOCK_SERVER: 'true' },
   },
 })

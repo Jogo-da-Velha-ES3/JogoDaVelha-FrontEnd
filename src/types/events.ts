@@ -120,7 +120,14 @@ export type ServerEventType = ServerEvent['type']
 export type ClientCommand =
   | { type: 'DRAFT_CHARACTER'; payload: { character: CharacterId } }
   | { type: 'DRAFT_ABILITIES'; payload: { abilities: [AbilityId, AbilityId] } }
-  | { type: 'DRAW_PICK'; payload: { ability: AbilityId } }
+  | {
+      type: 'DRAW_PICK'
+      /**
+       * Com o deck incompleto (round 1), a carta entra no deck. Com o deck completo (do round 2
+       * em diante), `abilityToRemove` diz qual habilidade do deck sai, e é obrigatório
+       */
+      payload: { ability: AbilityId; abilityToRemove?: AbilityId }
+    }
   | { type: 'MOVE'; payload: { cell: number } }
   | {
       type: 'USE_ABILITY'

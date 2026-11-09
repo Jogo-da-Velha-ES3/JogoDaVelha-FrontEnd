@@ -399,14 +399,37 @@ export const ABILITY_TEXTS = {
     destination: 'agora escolha a casa de destino',
     step: (ability: string, step: string) => `${ability}: ${step}`,
   },
+  /**
+   * Sorteio (FE-10; regra do back na FE-50): no round 1 a carta completa o deck; do round 2 em
+   * diante ela entra no lugar de uma habilidade do deck, e sem escolha o deck fica como está
+   */
   draw: {
     title: 'Sorteio da 3ª habilidade',
+    titleSwap: 'Sorteio: troca de habilidade',
     choose: 'Escolha uma carta para completar seu deck.',
+    chooseSwap: 'Escolha uma carta nova para entrar no lugar de uma do seu deck.',
+    chooseOut: 'Qual habilidade do seu deck sai?',
+    incomingLabel: 'Entra',
+    removeLabel: (name: string, tag: string) => `Tirar ${name}, ${tag.toLowerCase()}`,
+    back: 'Escolher outra carta',
+    keepHint: 'Se o tempo acabar, seu deck continua o mesmo.',
+    keep: 'Manter meu deck',
+    keptTitle: 'Seu deck fica como está.',
+    kept: 'O round começa quando o tempo do sorteio acabar.',
+    showCards: 'Ver as cartas de novo',
+    deckLabel: 'Seu deck',
     chosen: 'Esta é a sua 3ª habilidade nesta rodada.',
+    entered: 'Esta habilidade entrou no seu deck.',
+    swapped: (name: string) => `Saiu ${name}.`,
     waitingOpponent: 'Aguardando o oponente…',
     waitingCards: 'Aguardando as cartas do servidor…',
+    waitingEnd: 'Aguardando o fim do sorteio…',
     sending: 'Enviando escolha ao servidor…',
     expired: 'Tempo esgotado. Aguardando a escolha automática do servidor…',
+    expiredSwap: 'Tempo esgotado. Seu deck continua o mesmo.',
+    initialTag: 'Inicial',
+    drawnTag: 'Sorteada',
+    experimentTag: 'Experimente',
   },
 } as const
 

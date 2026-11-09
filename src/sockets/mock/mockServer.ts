@@ -3,6 +3,7 @@
 // vitória, placar e timeout com as regras de src/lib. Você é sempre o P1; o bot é o P2.
 import {
   ABILITIES,
+  DECK_SIZE,
   DRAW_OPTIONS,
   DRAW_PICK_SECONDS,
   EFFECT_DURATION_TURNS,
@@ -82,8 +83,13 @@ const ROOM_CLOSED_REASON = {
 
 interface MockPlayer extends PlayerState {
   initialAbilities: AbilityId[] | null
+  /** Deck atual: as 2 iniciais no começo; continua de um round para o outro, como no back */
+  deck: AbilityId[]
   drawOptions: AbilityId[]
-  drawn: AbilityId | null
+  /** Já escolheu a carta deste sorteio, ou o sorteio dele acabou pelo prazo */
+  drawResolved: boolean
+  /** Cartas já escolhidas nos sorteios da partida: não voltam como opção */
+  chosenDraws: AbilityId[]
   used: Set<AbilityId>
 }
 
@@ -100,6 +106,9 @@ export interface MockServerOptions {
   nickname?: string
   random?: () => number
 }
+
+/** Deck completo: a carta do sorteio precisa entrar no lugar de outra */
+const isDeckFull = (p: MockPlayer) => p.deck.length >= DECK_SIZE
 
 const emptyCells = (): Cell[] =>
   Array.from({ length: BOARD_CELLS }, (_, index) => ({ index, owner: null, effects: [] }))
@@ -189,7 +198,7 @@ export class MockGameServer {
       serverTime: Date.now(),
       draft: this.phase === 'DRAFT' ? { deadline: this.draftDeadline, ready } : null,
       drawOptions:
-        this.phase === 'ROUND_DRAW' && !me.drawn
+        this.phase === 'ROUND_DRAW' && !me.drawResolved
           ? { options: me.drawOptions, deadline: this.drawDeadline }
           : null,
       coins: this.coins,
@@ -286,8 +295,10 @@ export class MockGameServer {
       silenced: false,
       connected: true,
       initialAbilities: null,
+      deck: [],
       drawOptions: [],
-      drawn: null,
+      drawResolved: false,
+      chosenDraws: [],
       used: new Set(),
     }
   }
@@ -295,8 +306,10 @@ export class MockGameServer {
   private publicState(slot: PlayerSlot): PlayerState {
     const {
       initialAbilities: _a,
+      deck: _k,
       drawOptions: _o,
-      drawn: _d,
+      drawResolved: _r,
+      chosenDraws: _c,
       used: _u,
       ...state
     } = this.player(slot)
@@ -328,7 +341,7 @@ export class MockGameServer {
       case 'DRAFT_ABILITIES':
         return this.pickAbilities(slot, command.payload.abilities)
       case 'DRAW_PICK':
-        return this.pickDraw(slot, command.payload.ability)
+        return this.pickDraw(slot, command.payload.ability, command.payload.abilityToRemove)
       case 'MOVE':
         return this.move(slot, command.payload.cell)
       case 'USE_ABILITY': {
@@ -435,6 +448,7 @@ export class MockGameServer {
         )
       }
       if (!p.initialAbilities) p.initialAbilities = this.sample(STARTER_ABILITIES, 2)
+      p.deck = [...p.initialAbilities]
     }
     this.emitDraft()
     this.setPhase('VERSUS')
@@ -444,16 +458,14 @@ export class MockGameServer {
 
   // ---------------------------------------------------------------- rounds e sorteio
 
+  /** Como o back: é "inicial" a habilidade escolhida na Preparação; as outras vieram do sorteio */
   private deckOf(slot: PlayerSlot): DeckSlot[] {
     const p = this.player(slot)
-    const deck: DeckSlot[] = (p.initialAbilities ?? []).map((ability) => ({
+    return p.deck.map((ability) => ({
       ability,
-      source: 'INITIAL',
+      source: p.initialAbilities?.includes(ability) ? 'INITIAL' : 'DRAWN',
       usedThisRound: p.used.has(ability),
     }))
-    if (p.drawn)
-      deck.push({ ability: p.drawn, source: 'DRAWN', usedThisRound: p.used.has(p.drawn) })
-    return deck
   }
 
   private startRound() {
@@ -469,7 +481,7 @@ export class MockGameServer {
       p.silenced = false
       p.forceFieldTurnsLeft = 0
       p.used = new Set()
-      p.drawn = null
+      p.drawResolved = false
       p.drawOptions = []
     }
     this.emit('ROUND_START', {
@@ -486,9 +498,11 @@ export class MockGameServer {
     this.drawDeadline = deadline
     for (const slot of ['P1', 'P2'] as const) {
       const p = this.player(slot)
-      // Pool completo menos as 2 iniciais; pode trazer habilidade não comprada [RF-DRAFT-03]
+      // Catálogo completo, inclusive o que não foi comprado [RF-DRAFT-03], sem o deck atual, as
+      // iniciais e as cartas já escolhidas em sorteios anteriores (como o back)
+      const excluded = new Set([...p.deck, ...(p.initialAbilities ?? []), ...p.chosenDraws])
       p.drawOptions = this.sample(
-        ABILITIES.filter((a) => !p.initialAbilities?.includes(a)),
+        ABILITIES.filter((a) => !excluded.has(a)),
         DRAW_OPTIONS,
       )
       this.emit('DECK_UPDATE', { deck: this.deckOf(slot) }, slot)
@@ -497,7 +511,9 @@ export class MockGameServer {
     this.phaseTimer = this.later(DRAW_PICK_SECONDS * 1000, () => this.finishDraw())
     this.later(MOCK_TIMINGS.botDraw, () => {
       const bot = this.player('P2')
-      if (bot.connected) this.pickDraw('P2', this.pick(bot.drawOptions))
+      if (!bot.connected) return
+      const ability = this.pick(bot.drawOptions)
+      this.pickDraw('P2', ability, isDeckFull(bot) ? this.pick(bot.deck) : undefined)
     })
   }
 
@@ -511,27 +527,53 @@ export class MockGameServer {
     })
   }
 
-  private pickDraw(slot: PlayerSlot, ability: AbilityId) {
+  /**
+   * Com o deck incompleto (round 1), a carta entra no deck. Com o deck completo (do round 2 em
+   * diante), ela entra no lugar de `abilityToRemove`, obrigatório, como no back
+   */
+  private pickDraw(slot: PlayerSlot, ability: AbilityId, abilityToRemove?: AbilityId) {
     if (this.phase !== 'ROUND_DRAW') return this.error(slot, 'WRONG_PHASE', 'O sorteio já acabou.')
     const p = this.player(slot)
+    if (p.drawResolved) {
+      return this.error(slot, 'DRAW_RESOLVED', 'O seu sorteio deste round já foi resolvido.')
+    }
     if (!p.drawOptions.includes(ability)) {
       return this.error(slot, 'INVALID_DRAW', 'Escolha uma das 3 cartas do sorteio.')
     }
-    p.drawn = ability
+    const replacing = isDeckFull(p)
+    if (replacing && (!abilityToRemove || !p.deck.includes(abilityToRemove))) {
+      return this.error(slot, 'INVALID_DRAW', 'Escolha qual habilidade do deck vai sair.')
+    }
+    if (!replacing && abilityToRemove) {
+      return this.error(slot, 'INVALID_DRAW', 'Ainda não há habilidade para tirar do deck.')
+    }
+    // A carta nova fica na posição da que saiu, para o deck não embaralhar na tela
+    p.deck = replacing
+      ? p.deck.map((a) => (a === abilityToRemove ? ability : a))
+      : [...p.deck, ability]
+    p.chosenDraws.push(ability)
+    p.drawResolved = true
     this.emit('DECK_UPDATE', { deck: this.deckOf(slot) }, slot)
-    if (this.player(otherSlot(slot)).drawn) this.finishDraw()
+    if (this.player(otherSlot(slot)).drawResolved) this.finishDraw()
   }
 
-  /** Fim dos 8s ou os dois escolheram: carta automática para quem não escolheu [RN-DRAFT-05] */
+  /**
+   * Fim dos 8s ou os dois escolheram. Para quem não escolheu: com o deck incompleto (round 1), uma
+   * carta automática [RN-DRAFT-05]; com o deck completo, o sorteio é pulado e o deck fica como está,
+   * sem DECK_UPDATE (como o back)
+   */
   private finishDraw() {
     if (this.phase !== 'ROUND_DRAW') return
     this.cancel(this.phaseTimer)
     for (const slot of ['P1', 'P2'] as const) {
       const p = this.player(slot)
-      if (!p.drawn) {
-        p.drawn = this.pick(p.drawOptions)
-        this.emit('DECK_UPDATE', { deck: this.deckOf(slot) }, slot)
-      }
+      if (p.drawResolved) continue
+      p.drawResolved = true
+      if (isDeckFull(p)) continue
+      const ability = this.pick(p.drawOptions)
+      p.deck = [...p.deck, ability]
+      p.chosenDraws.push(ability)
+      this.emit('DECK_UPDATE', { deck: this.deckOf(slot) }, slot)
     }
     this.setPhase('PLAYING')
     this.emit('BOARD_UPDATE', { board: this.cells })

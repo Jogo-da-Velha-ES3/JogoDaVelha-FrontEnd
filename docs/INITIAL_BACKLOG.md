@@ -36,7 +36,9 @@ Depois: FE-18 (sala e jogada via STOMP, 21–22/10), FE-19 (habilidades e timer,
 Fora da sequência: FE-46 (ícones neon das 10 habilidades e fim dos emojis na interface, 28/10 ✓),
 aberta na revisão da FE-11. A Loja (FE-31) usa o mesmo `AbilityIcon`. FE-47 (animação própria de
 cada uma das 10 habilidades, 29/10–02/11), aberta na revisão da FE-27; a demonstração em loop da
-Loja (FE-31) pode reusar o `AbilityEffect` e o cenário `abilityDemo`.
+Loja (FE-31) pode reusar o `AbilityEffect` e o cenário `abilityDemo`. FE-50 (08–09/11): o sorteio
+segue a regra nova do back (do round 2 em diante, a carta nova entra no lugar de uma do deck) e o
+back real vira o padrão do front, com o simulado só pela flag.
 
 ## Quando cada pessoa entra
 

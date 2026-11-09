@@ -137,6 +137,20 @@ describe('entrar na sala com o back recusando a conexão', () => {
 })
 
 describe('createGameConnection', () => {
+  it('sem VITE_USE_MOCK_SERVER, o padrão é o back real (FE-50)', async () => {
+    vi.stubEnv('VITE_USE_MOCK_SERVER', undefined)
+    vi.stubEnv('VITE_WEBSOCKET_URL', 'http://localhost:8080')
+    expect(isMockServerEnabled()).toBe(false)
+    expect(await createGameConnection()).toBeInstanceOf(StompConnection)
+  })
+
+  it('com opções do simulado (a vitrine), usa o simulado mesmo desligado', async () => {
+    vi.stubEnv('VITE_USE_MOCK_SERVER', 'false')
+    expect(await createGameConnection({ scenario: SCENARIOS.normal })).toBeInstanceOf(
+      MockConnection,
+    )
+  })
+
   it('com VITE_USE_MOCK_SERVER=false usa o cliente STOMP real', async () => {
     vi.stubEnv('VITE_USE_MOCK_SERVER', 'false')
     vi.stubEnv('VITE_WEBSOCKET_URL', 'http://localhost:8080')
