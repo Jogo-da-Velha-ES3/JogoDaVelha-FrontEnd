@@ -4,9 +4,8 @@ import { motion, useReducedMotion } from 'framer-motion'
 import { Banner, PauseIcon } from '../../components/ui'
 import { CHARACTER_INFO } from '../../constants/characters'
 import { ABILITY_IMPACT_SECONDS } from '../../constants/game'
-import { ABILITY_TEXTS, ARENA_TEXTS as T, joinParts, RESULT_TEXTS } from '../../constants/texts'
+import { ABILITY_TEXTS, ARENA_TEXTS as T, RESULT_TEXTS } from '../../constants/texts'
 import { useIsBefore } from '../../hooks/useIsBefore'
-import { useVoice } from '../../hooks/useLanguageFilter'
 import { useServerTimer } from '../../hooks/useServerTimer'
 import { otherSlot } from '../../lib/match'
 import { PATHS } from '../../routes/paths'
@@ -49,10 +48,12 @@ export interface ArenaProps {
  * Arena (FE-28 + FE-05), em paisagem: jogadores à esquerda, tabuleiro no centro com a
  * altura toda, aviso do turno e deck à direita. Só lê as stores e manda intenções.
  * Precisa de um pai com altura definida (a tela inteira na sala).
+ *
+ * Os banners e avisos daqui ficam só com a informação: as piadas do narrador (FE-40) são do
+ * Vitão (FE-43). O Resultado e a revanche continuam com a piada.
  */
 export function Arena({ onQuit }: ArenaProps) {
   const navigate = useNavigate()
-  const voice = useVoice()
   const [pauseOpen, setPauseOpen] = useState(false)
   const [activeModal, setActiveModal] = useState<ModalKind>(null)
 
@@ -110,13 +111,6 @@ export function Arena({ onQuit }: ArenaProps) {
           ? T.roundLabel.suddenDeath(round)
           : T.roundLabel.normal(round)
 
-  // Banner do fim do round: a fala do narrador (some com o filtro) antes do placar
-  const roundEndLine =
-    roundEnd?.winner === me
-      ? voice(T.roundEnd.mineLine)
-      : roundEnd?.winner === opp
-        ? voice(T.roundEnd.opponentsLine)
-        : null
   const woWon = outcome?.kind === 'WO' && outcome.winner === me
 
   const openModal = (kind: Exclude<ModalKind, null>) => {
@@ -298,7 +292,8 @@ export function Arena({ onQuit }: ArenaProps) {
           {/* Início de round / MATCH POINT: só nos primeiros segundos do round */}
           <RoundStartBanner />
 
-          {/* Fim de round — centralizado verticalmente, largura total */}
+          {/* Fim de round — centralizado verticalmente, largura total. Só o placar no subtítulo:
+              a piada do fim do round é do Vitão */}
           <Banner
             className="absolute inset-x-0 top-1/2 w-full -translate-y-1/2"
             show={phase === 'ROUND_END' && roundEnd !== null && !absoluteDraw}
@@ -309,16 +304,15 @@ export function Arena({ onQuit }: ArenaProps) {
                   ? T.roundEnd.opponents
                   : T.roundEnd.draw
             }
-            subtitle={joinParts(roundEndLine, T.roundEnd.score(score[me], score[opp]))}
+            subtitle={T.roundEnd.score(score[me], score[opp])}
             color={roundEnd?.winner ? colorOf(characters[roundEnd.winner]) : undefined}
           />
 
-          {/* W.O. — largura total, com o mesmo título e a mesma fala do Resultado */}
+          {/* W.O. — largura total, só com o título do Resultado: a fala é do Vitão */}
           <Banner
             className="absolute inset-x-0 top-1/2 w-full -translate-y-1/2"
             show={outcome?.kind === 'WO'}
             title={woWon ? RESULT_TEXTS.titles.WO_WIN : RESULT_TEXTS.titles.WO_LOSS}
-            subtitle={voice(woWon ? RESULT_TEXTS.lines.WO_WIN : RESULT_TEXTS.lines.WO_LOSS)}
             tone="danger"
             color={woWon ? colorOf(characters[me]) : undefined}
           />

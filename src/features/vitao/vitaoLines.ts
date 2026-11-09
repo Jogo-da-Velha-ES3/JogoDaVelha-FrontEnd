@@ -1,7 +1,9 @@
 // Falas do Vitão (FE-43). As frases gravadas pelo Rafik vêm de constants/texts.ts via fromVoice e
-// guardam o nome do áudio (FE-48). Ainda são PROVISÓRIAS as dos momentos sem gravação (jogadas,
-// minha habilidade, empate, estouro do oponente) e todas as do "Diabo".
+// guardam o nome do áudio (FE-48). As dos momentos sem gravação (jogadas, minha habilidade) são
+// escritas aqui, no tom do docs/VOICE_GUIDE.md. Ainda são PROVISÓRIAS as de empate, estouro do
+// oponente e todas as do "Diabo" que não têm gravação.
 // `explicit: true` = fala sem filtro, que some quando o filtro das Configurações está ligado.
+// Fala com xingamento usa fromVoice({ unfiltered, filtered }): a versão [C] só aparece com o filtro.
 // Raiva é sempre MUITO_BRAVO: na cabeça pequena, o BRAVO fica igual ao NORMAL (FE-41).
 import { ABILITY_TEXTS, ARENA_TEXTS, RESULT_TEXTS, type VoiceLine } from '../../constants/texts'
 import type { VitaoExpression, VitaoLine, VitaoLines } from '../../lib/vitao'
@@ -42,26 +44,71 @@ export const VITAO_LINES: VitaoLines = {
     normal: fromVoice(ARENA_TEXTS.opponentDisconnected.line, 'DEBOCHADO', 'oponente-desconectado'),
     devil: [],
   },
+  // Minha jogada de peça (o Vitão comenta 1 em cada 3)
   MOVE_ME: {
     normal: [
       say('Boa, hein? Até eu fiquei surpreso.', 'SURPRESO'),
       say('Jogou assim de propósito?', 'DEBOCHADO'),
+      say('Tá jogando bonito, hein!', 'RINDO'),
+      say('Essa foi na confiança, né?', 'DEBOCHADO'),
+      ...fromVoice(
+        { unfiltered: 'Cê jogou isso aí sério, mané?', filtered: 'Cê jogou isso aí sério?' },
+        'DEBOCHADO',
+      ),
     ],
-    devil: [say('Entregará até a alma.', 'DIABO')],
+    devil: [
+      say('Cada peça sua é uma alma a menos.', 'DIABO'),
+      say('Joga, joga. O inferno espera.', 'DIABO'),
+      ...fromVoice(
+        {
+          unfiltered: 'Joga logo, infeliz. A morte não espera.',
+          filtered: 'Joga logo. A morte não espera.',
+        },
+        'DIABO',
+      ),
+    ],
   },
+  // Jogada de peça do oponente
   MOVE_OPPONENT: {
     normal: [
       say('O rival mexeu. Será que ele sabe o que faz?', 'DEBOCHADO'),
       say('Olha o oponente se achando.', 'RINDO'),
+      say('Ele jogou ali? Ali?!', 'SURPRESO'),
+      say('Esse aí joga de olho fechado.', 'DEBOCHADO'),
+      ...fromVoice(
+        {
+          unfiltered: 'Que jogada de mané, oponente!',
+          filtered: 'Eita, que jogada estranha!',
+        },
+        'RINDO',
+      ),
     ],
-    devil: [say('Ele ainda acha que tem chance.', 'DIABO')],
+    devil: [
+      say('Ele ainda acha que tem chance.', 'DIABO'),
+      say('Mexe, mexe. O fim é o mesmo.', 'DIABO'),
+      say('Que coragem, mortal.', 'DIABO'),
+    ],
   },
+  // Minha habilidade (sem anulada nem sem efeito: essas têm gravação)
   ABILITY_ME: {
     normal: [
       say('Habilidade na mesa! Isso aí!', 'RINDO'),
       say('Olha, sabe usar o deck.', 'SURPRESO'),
+      say('Tirou o coelho da cartola!', 'RINDO'),
+      say('Gastou a carta, hein. Será que valeu?', 'DEBOCHADO'),
+      ...fromVoice(
+        {
+          unfiltered: 'Tomara que isso aí não seja furada, mané.',
+          filtered: 'Tomara que isso aí dê certo.',
+        },
+        'DEBOCHADO',
+      ),
     ],
-    devil: [say('Use tudo. Não vai adiantar.', 'DIABO')],
+    devil: [
+      say('Use tudo. Não vai adiantar.', 'DIABO'),
+      say('Poderes não salvam alma.', 'DIABO'),
+      say('Gaste suas cartas. Eu tenho tempo.', 'DIABO'),
+    ],
   },
   // As falas do Rafik (uma por habilidade) entram em buildVitaoLines
   ABILITY_OPPONENT: {

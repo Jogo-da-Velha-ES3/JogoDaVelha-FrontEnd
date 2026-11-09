@@ -3,7 +3,6 @@ import { Button, Modal } from '../../components/ui'
 import { ABILITY_INFO } from '../../constants/abilities'
 import { DECK_SIZE } from '../../constants/game'
 import { ABILITY_TEXTS } from '../../constants/texts'
-import { useVoice } from '../../hooks/useLanguageFilter'
 import { sendCommand } from '../../sockets/gameClient'
 import { usePowersStore, type Aim } from '../../stores/powersStore'
 import { useRoomStore } from '../../stores/roomStore'
@@ -31,6 +30,7 @@ interface DeckHudProps {
  * envia a intenção [RN-ARN-02]: "Enviando…" não marca a carta como usada, quem marca é o
  * DECK_UPDATE. Habilidade com alvo só inicia a mira (FE-27); sem alvo, pede confirmação e envia.
  * Sem descrição na partida, para caber no celular deitado: ela aparece na Preparação e no sorteio.
+ * Silenciado: só a informação ("Silenciado!"); a fala do narrador é do Vitão (FE-43).
  */
 export function DeckHud({
   deck,
@@ -43,7 +43,6 @@ export function DeckHud({
   color,
 }: DeckHudProps) {
   const descriptionId = useId()
-  const voice = useVoice()
   const lastError = useRoomStore((s) => s.lastError)
   const startAim = usePowersStore((s) => s.startAim)
   const cancelAim = usePowersStore((s) => s.cancelAim)
@@ -174,7 +173,7 @@ export function DeckHud({
         )}
         {silenced && canUse && (
           <p role="status" className="text-center text-xs text-danger">
-            {voice(ABILITY_TEXTS.deck.silenced)}
+            Silenciado!
           </p>
         )}
         {pending && (
