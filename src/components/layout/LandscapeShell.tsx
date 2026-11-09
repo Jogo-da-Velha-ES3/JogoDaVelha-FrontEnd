@@ -2,11 +2,12 @@ import { MotionConfig } from 'framer-motion'
 import type { ReactNode } from 'react'
 import { Toaster } from '../ui/Toast'
 import { RotateDeviceModal } from './RotateDeviceModal'
+import { ServerWakeNotice } from './ServerWakeNotice'
 
 /**
  * Moldura de toda tela: ocupa a altura visível, respeita o notch nas laterais
  * (env(safe-area-inset-left/right)) e não deixa overflow horizontal.
- * Também monta os toasts e o aviso "Gire o celular".
+ * Também monta os toasts, o aviso "Gire o celular" e o "Acordando o servidor…" (FE-51).
  */
 export function LandscapeShell({ children }: { children: ReactNode }) {
   return (
@@ -17,6 +18,7 @@ export function LandscapeShell({ children }: { children: ReactNode }) {
       </div>
       <Toaster />
       <RotateDeviceModal />
+      <ServerWakeNotice />
     </MotionConfig>
   )
 }

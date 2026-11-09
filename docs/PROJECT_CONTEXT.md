@@ -389,6 +389,13 @@ Abrir o jogo → [sem sessão] Acesso → Hub (Jogar; abas Loja / Perfil)
   cima.
 - Respeitar `env(safe-area-inset-left/right)`.
 
+### Servidor acordando (decidido em 09/11, FE-51)
+
+O back de produção dorme sem uso e levou de 2 a 3,5 minutos para acordar nos testes de 08/11.
+Quando uma chamada ao servidor passa de 4s sem resposta, aparece no alto da tela, até por cima
+dos modais, "Acordando o servidor…" com "O velhinho tá levantando da cadeira · pode levar uns
+minutinhos". O aviso some quando o servidor responde. Nenhuma chamada é cortada nesse tempo.
+
 ### Arena
 
 - Coluna esquerda: pausa, placar do round, faixa do oponente, espaço reservado do Vitão, faixa do

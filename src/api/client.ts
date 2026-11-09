@@ -1,5 +1,6 @@
 // Cliente REST fino: conta, perfil, loja, Coins e salas. Partida e sala em tempo real vão por STOMP.
 import { APP_TEXTS } from '../constants/texts'
+import { watchServerCall } from '../stores/serverWakeStore'
 import { clearAuthToken, getAuthToken } from './session'
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? ''
@@ -55,12 +56,16 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 
   let response: Response
   try {
-    response = await fetch(`${BASE_URL}${path}`, {
-      method,
-      headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
-      signal,
-    })
+    // Sem limite de tempo: o back dormindo leva minutos para acordar, e o aviso "Acordando o
+    // servidor…" aparece se a resposta demorar (FE-51)
+    response = await watchServerCall(
+      fetch(`${BASE_URL}${path}`, {
+        method,
+        headers,
+        body: body === undefined ? undefined : JSON.stringify(body),
+        signal,
+      }),
+    )
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') throw error
     throw new ApiError(0, APP_TEXTS.errors.network, 'NETWORK')

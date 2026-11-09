@@ -39,6 +39,11 @@ export const APP_TEXTS = {
   rotateBody: 'O Jogo do Velho é jogado com o celular deitado.',
   notFoundTitle: 'Página não encontrada',
   notFoundBody: 'Esse endereço não existe ou o link da sala está errado.',
+  /** Aviso global quando o servidor demora a responder (FE-51): a piada vem antes, o tempo depois */
+  serverWaking: {
+    title: 'Acordando o servidor…',
+    detail: 'O velhinho tá levantando da cadeira · pode levar uns minutinhos',
+  },
   errors: {
     network: 'Não foi possível falar com o servidor. Verifique sua conexão.',
     httpStatus: (status: number) => `Erro ${status} ao falar com o servidor.`,

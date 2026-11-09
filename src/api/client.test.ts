@@ -5,6 +5,8 @@ vi.mock('./session', () => ({
   clearAuthToken: vi.fn<() => void>(),
 }))
 
+import { SERVER_SLOW_SECONDS } from '../constants/game'
+import { useServerWakeStore } from '../stores/serverWakeStore'
 import { ApiError, apiRequest, onUnauthorized } from './client'
 import { clearAuthToken, getAuthToken } from './session'
 
@@ -89,5 +91,26 @@ describe('apiRequest', () => {
     fetchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'))
 
     await expect(apiRequest('/me')).rejects.toMatchObject({ status: 0, code: 'NETWORK' })
+  })
+
+  it('back dormindo: avisa que está acordando e espera, sem cortar a chamada (FE-51)', async () => {
+    vi.useFakeTimers()
+    useServerWakeStore.setState({ slowCalls: 0 })
+    // O back do Render leva minutos para acordar
+    fetchMock.mockImplementationOnce(
+      () =>
+        new Promise((resolve) =>
+          setTimeout(() => resolve(new Response(JSON.stringify({ coinsBalance: 0 }))), 180_000),
+        ),
+    )
+
+    const request = apiRequest<{ coinsBalance: number }>('/coins/balance')
+    await vi.advanceTimersByTimeAsync(SERVER_SLOW_SECONDS * 1000)
+    expect(useServerWakeStore.getState().slowCalls).toBe(1)
+
+    await vi.advanceTimersByTimeAsync(180_000)
+    await expect(request).resolves.toEqual({ coinsBalance: 0 })
+    expect(useServerWakeStore.getState().slowCalls).toBe(0)
+    vi.useRealTimers()
   })
 })
