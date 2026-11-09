@@ -16,6 +16,7 @@ import type { AbilityId, CharacterId } from '../../types/game'
 import { Character } from '../characters'
 import { AbilityIcon } from '../powers/AbilityIcon'
 import { SkillDemo } from './SkillDemo'
+import { BuyCoinsModal } from './BuyCoinsModal'
 
 type Tab = 'characters' | 'skills' | 'cosmetics'
 const TABS: Tab[] = ['characters', 'skills', 'cosmetics']
@@ -30,6 +31,7 @@ export function ShopScreen({ initialTab = 'characters' }: { initialTab?: Tab }) 
   const [tab, setTab] = useState<Tab>(initialTab)
   const [details, setDetails] = useState<AnyItem | null>(null)
   const [confirming, setConfirming] = useState<AnyItem | null>(null)
+  const [buyCoinsOpen, setBuyCoinsOpen] = useState(false)
   const id = useId()
   const tabId = (t: Tab) => `${id}-aba-${t}`
   const panelId = `${id}-painel`
@@ -104,13 +106,12 @@ export function ShopScreen({ initialTab = 'characters' }: { initialTab?: Tab }) 
             </button>
           ))}
         </div>
-        {/* A FE-32 (Manotega) liga este botão ao modal de compra simbólica de Coins */}
+        {/* Comprar Coins (FE-32): abre o modal de pacotes simbólicos */}
         <Button
           variant="secondary"
           size="sm"
           className="ml-auto"
-          disabled
-          title={SHOP_TEXTS.buyCoinsSoon}
+          onClick={() => setBuyCoinsOpen(true)}
         >
           + {SHOP_TEXTS.buyCoins}
         </Button>
@@ -181,6 +182,7 @@ export function ShopScreen({ initialTab = 'characters' }: { initialTab?: Tab }) 
         onBuy={(item) => setConfirming(item)}
       />
       <ConfirmModal item={fresh(confirming)} balance={balance} onDone={() => setConfirming(null)} />
+      <BuyCoinsModal open={buyCoinsOpen} onClose={() => setBuyCoinsOpen(false)} />
     </section>
   )
 }

@@ -1,4 +1,4 @@
-import { act, render, screen } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -16,6 +16,7 @@ const STATS = { matchesPlayed: 0, wins: 0, currentWinStreak: 0, longestWinStreak
 function backResponse(url: string): unknown {
   if (url.endsWith('/profile')) return PROFILE
   if (url.endsWith('/profile/stats')) return STATS
+  if (url.endsWith('/coins/packages')) return [{ id: 'p500', coins: 500, priceInReais: 19.99 }]
   return [] // catálogo de personagens e de habilidades
 }
 
@@ -48,6 +49,21 @@ describe('topo do Hub', () => {
 
     expect(await screen.findByText('vini')).toBeInTheDocument()
     expect(screen.getByText(/150 Coins/)).toBeInTheDocument()
+  })
+
+  it('o saldo abre o Comprar Coins (FE-32), mas só depois de chegar', async () => {
+    renderHub()
+    const balance = screen.getByRole('button', { name: 'Saldo: … Coins. Comprar Coins' })
+    expect(balance).toBeDisabled()
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Saldo: 150 Coins. Comprar Coins' }),
+    )
+
+    const dialog = await screen.findByRole('dialog', { name: 'Comprar Coins' })
+    expect(
+      await within(dialog).findByRole('button', { name: /^Pacote de 500 Coins/ }),
+    ).toBeInTheDocument()
   })
 
   it('perfil que nunca chegou: avisa e deixa tentar de novo', async () => {

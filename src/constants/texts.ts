@@ -168,8 +168,6 @@ export const SHOP_TEXTS = {
   soon: 'Em breve',
   cosmeticsSoon: 'Skins, molduras e estilos de tabuleiro chegam depois. Por enquanto, é só jogar.',
   buyCoins: 'Comprar Coins',
-  /** Até a FE-32 (modal de Coins) chegar */
-  buyCoinsSoon: 'Chega com a FE-32',
   loading: 'Carregando a Loja…',
   loadError: 'Não foi possível abrir a Loja agora.',
   retry: 'Tentar de novo',
@@ -206,6 +204,34 @@ export const SHOP_TEXTS = {
     notOwned: 'Compre o personagem antes de usar como favorito.',
     generic: 'Não foi possível concluir agora. Tente de novo.',
   },
+} as const
+
+// ── Comprar Coins (FE-32) ──
+export const COINS_TEXTS = {
+  title: 'Comprar Coins',
+  /**
+   * Chamada de marketing + aviso fixo [RN-LOJ-04]. A parte "compra simbólica, nada é cobrado" é o
+   * critério de aceite da FE-32 e fica: com o preço em reais na tela, sem ela pareceria cobrança
+   * (VOICE_GUIDE, regra 1: a piada vem antes e nunca come a informação)
+   */
+  notice: 'As moedas caem na hora! · Compra simbólica, nada é cobrado.',
+  loading: 'Carregando pacotes…',
+  loadError: 'Não foi possível carregar os pacotes agora.',
+  retry: 'Tentar de novo',
+  coins: 'Coins',
+  /** Preço simbólico do pacote, em reais (decidido em 08/11: aparece, com o aviso de que nada é cobrado) */
+  price: (reais: number) => reais.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+  packageLabel: (coins: number, price: string) =>
+    `Pacote de ${coins.toLocaleString('pt-BR')} Coins, ${price}`,
+  /** Saldo no topo do Hub, que também abre o Comprar Coins */
+  balanceLabel: (balance: string) => `Saldo: ${balance} Coins. Comprar Coins`,
+  /** "Receber" reforça o caráter simbólico (esboço de telas, modal de Coins) */
+  receive: (coins: number) => `Receber ${coins.toLocaleString('pt-BR')} Coins`,
+  buying: 'Comprando…',
+  /** Erro de rede ou do servidor: o crédito pode ter ocorrido; não soma nada no front */
+  buyError: 'Não foi possível concluir agora. Tente de novo.',
+  /** Toast de sucesso, só depois da resposta da API */
+  received: (coins: number) => `+${coins.toLocaleString('pt-BR')} Coins`,
 } as const
 
 // ── Sala: criar, entrar, Sala de Espera e "Match feito" ──
