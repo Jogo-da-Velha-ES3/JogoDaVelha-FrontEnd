@@ -74,11 +74,16 @@ describe('Comprar Coins (FE-32)', () => {
     })
   })
 
-  it('não tem campo de pagamento ou cartão e mostra o aviso fixo', async () => {
+  it('não tem campo de pagamento ou cartão e mostra o aviso fixo e o preço simbólico', async () => {
     render(<BuyCoinsModal open onClose={() => {}} />)
 
-    // Pacotes carregam e o aviso fixo aparece
-    expect(await screen.findByText(/Compra simbólica: nada é cobrado/)).toBeInTheDocument()
+    // Pacotes carregam com o preço simbólico em reais, e o aviso fixo aparece
+    expect(
+      await screen.findByRole('button', { name: /^Pacote de 500 Coins, R\$\s19,99$/ }),
+    ).toHaveTextContent(/R\$\s19,99/)
+    expect(
+      screen.getByText(/As moedas caem na hora! · Compra simbólica, nada é cobrado\./),
+    ).toBeInTheDocument()
 
     // Nenhum campo de pagamento, cartão ou dados pessoais
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
@@ -99,5 +104,40 @@ describe('Comprar Coins (FE-32)', () => {
 
     // Pode tentar de novo: o botão voltou ao normal
     expect(screen.getByRole('button', { name: 'Receber 500 Coins' })).toBeEnabled()
+  })
+
+  it('reabrir começa do zero: pacote do meio e sem o erro da vez anterior', async () => {
+    mocks.buyCoins.mockRejectedValueOnce(new Error('network'))
+    const { rerender } = render(<BuyCoinsModal open onClose={() => {}} />)
+
+    await userEvent.click(await screen.findByRole('button', { name: /^Pacote de 1\.000 Coins/ }))
+    await userEvent.click(screen.getByRole('button', { name: 'Receber 1.000 Coins' }))
+    await screen.findByRole('alert')
+
+    rerender(<BuyCoinsModal open={false} onClose={() => {}} />)
+    rerender(<BuyCoinsModal open onClose={() => {}} />)
+
+    // Antes de os pacotes chegarem de novo, nada da vez anterior aparece
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Receber 500 Coins' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: /^Pacote de 500 Coins/ })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+  })
+
+  it('pacotes que não carregam: mostra o erro e deixa tentar de novo', async () => {
+    mocks.getCoinPackages.mockRejectedValueOnce(new Error('network'))
+    render(<BuyCoinsModal open onClose={() => {}} />)
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Não foi possível carregar os pacotes agora.',
+    )
+    expect(screen.queryByRole('button', { name: /^Receber/ })).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Tentar de novo' }))
+
+    expect(await screen.findByRole('button', { name: 'Receber 500 Coins' })).toBeEnabled()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 })

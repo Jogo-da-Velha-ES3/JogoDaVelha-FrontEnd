@@ -343,7 +343,9 @@ A ERS não define a regra; o back decidiu usar a mesma do W.O. por tempo `[RN-AR
   | Cada habilidade (as 7 não iniciais) | 350    |
 
 - Pacotes simbólicos de Coins (os do back, fechados na FE-49): **100** (R$ 4,99), **500**
-  (R$ 19,99) e **1000** (R$ 34,99).
+  (R$ 19,99) e **1000** (R$ 34,99). O modal Comprar Coins (FE-32) mostra o preço em reais em cada
+  pacote, junto do aviso fixo de que nada é cobrado (decidido em 08/11). Ele abre pela Loja e pelo
+  saldo do topo do Hub.
 
 ## 9. Interface
 

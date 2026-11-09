@@ -58,6 +58,16 @@ describe('Loja (FE-31)', () => {
     ).toHaveLength(7)
   })
 
+  it('"+ Comprar Coins" abre o modal de pacotes simbólicos (FE-32)', async () => {
+    await renderShop()
+    await userEvent.click(screen.getByRole('button', { name: '+ Comprar Coins' }))
+
+    const dialog = await screen.findByRole('dialog', { name: 'Comprar Coins' })
+    expect(
+      await within(dialog).findByRole('button', { name: /^Pacote de 500 Coins/ }),
+    ).toHaveAttribute('aria-pressed', 'true')
+  })
+
   it('Cosméticos aparece como "em breve", sem itens', async () => {
     await renderShop()
     await userEvent.click(tab('Cosméticos'))

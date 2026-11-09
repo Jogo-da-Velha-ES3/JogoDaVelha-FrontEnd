@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { Button, GearIcon, Modal } from '../components/ui'
-import { HUB_TEXTS, PROFILE_TEXTS, SETTINGS_TEXTS } from '../constants/texts'
+import { COINS_TEXTS, HUB_TEXTS, PROFILE_TEXTS, SETTINGS_TEXTS } from '../constants/texts'
 import { Character } from '../features/characters'
+import { BuyCoinsModal } from '../features/shop/BuyCoinsModal'
 import { SettingsModal } from '../features/settings/SettingsModal'
 import { playMusic } from '../features/sound/soundManager'
 import { useAuthStore } from '../stores/authStore'
@@ -115,6 +116,8 @@ function HubTopBar() {
   // Só quando o perfil nunca chegou: se uma recarga falhar, o topo fica com o último confirmado
   const neverLoaded = useProfileStore((s) => s.status === 'error' && s.profile === null)
   const loadProfile = useProfileStore((s) => s.loadProfile)
+  const [buyCoinsOpen, setBuyCoinsOpen] = useState(false)
+  const balance = coins === null ? '…' : coins.toLocaleString('pt-BR')
   return (
     <header className="flex items-center gap-3">
       <Character
@@ -142,12 +145,21 @@ function HubTopBar() {
           <span className="truncate font-display text-lg font-bold tracking-wide short:text-base">
             {nickname ?? PROFILE_TEXTS.loadingNickname}
           </span>
-          <span className="ml-auto font-display text-lg font-bold text-coin short:text-base">
-            <span className="sr-only">Saldo: </span>
-            {coins === null ? '…' : coins.toLocaleString('pt-BR')} Coins
-          </span>
+          {/* O saldo também abre o Comprar Coins (FE-32); só depois de o saldo chegar */}
+          <button
+            type="button"
+            onClick={() => setBuyCoinsOpen(true)}
+            disabled={coins === null}
+            aria-label={COINS_TEXTS.balanceLabel(balance)}
+            className="ml-auto rounded-lg font-display text-lg font-bold text-coin transition hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coin short:text-base"
+          >
+            <span aria-hidden>
+              {balance} {COINS_TEXTS.coins}
+            </span>
+          </button>
         </>
       )}
+      <BuyCoinsModal open={buyCoinsOpen} onClose={() => setBuyCoinsOpen(false)} />
     </header>
   )
 }
