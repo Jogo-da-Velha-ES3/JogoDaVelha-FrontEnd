@@ -143,19 +143,20 @@ balão caber no espaço sem cobrir as faixas. O `VitaoSlot` liga o motor ao `Vit
 
 ## 3. Stores (Zustand)
 
-| Store           | Guarda                                                                                                 |
-| --------------- | ------------------------------------------------------------------------------------------------------ |
-| `authStore`     | token, usuário logado, status da sessão                                                                |
-| `profileStore`  | apelido, personagem favorito, Coins, inventário (personagens e habilidades), stats                     |
-| `roomStore`     | código da sala, `phase`, jogadores, meu lado (`mySlot`), conexão, queda do oponente, link pendente     |
-| `draftStore`    | personagens reservados por lado, quem está pronto, prazo dos 20s                                       |
-| `matchStore`    | round, placar MD3, Morte Súbita, quem começa, estouros (0–3), fim do round, resultado, Coins, revanche |
-| `boardStore`    | as 16 casas com efeitos e contadores, linha vencedora, última habilidade resolvida                     |
-| `powersStore`   | opções do sorteio, meu deck da rodada, mira em andamento                                               |
-| `timerStore`    | de quem é o turno, prazo do turno (timestamp do servidor), duração (10s/5s)                            |
-| `clockStore`    | diferença entre o relógio do servidor e o do aparelho (`syncWithServer` a cada msg)                    |
-| `toastStore`    | fila de toasts na tela (só interface, não reflete o servidor)                                          |
-| `settingsStore` | preferências das Configurações, guardadas no aparelho (só interface, FE-39)                            |
+| Store             | Guarda                                                                                                 |
+| ----------------- | ------------------------------------------------------------------------------------------------------ |
+| `authStore`       | token, usuário logado, status da sessão                                                                |
+| `profileStore`    | apelido, personagem favorito, Coins, inventário (personagens e habilidades), stats                     |
+| `roomStore`       | código da sala, `phase`, jogadores, meu lado (`mySlot`), conexão, queda do oponente, link pendente     |
+| `draftStore`      | personagens reservados por lado, quem está pronto, prazo dos 20s                                       |
+| `matchStore`      | round, placar MD3, Morte Súbita, quem começa, estouros (0–3), fim do round, resultado, Coins, revanche |
+| `boardStore`      | as 16 casas com efeitos e contadores, linha vencedora, última habilidade resolvida                     |
+| `powersStore`     | opções do sorteio, meu deck da rodada, mira em andamento                                               |
+| `timerStore`      | de quem é o turno, prazo do turno (timestamp do servidor), duração (10s/5s)                            |
+| `clockStore`      | diferença entre o relógio do servidor e o do aparelho (`syncWithServer` a cada msg)                    |
+| `toastStore`      | fila de toasts na tela (só interface, não reflete o servidor)                                          |
+| `serverWakeStore` | chamadas ao servidor lentas, para o aviso "Acordando o servidor…" (só interface, FE-51)                |
+| `settingsStore`   | preferências das Configurações, guardadas no aparelho (só interface, FE-39)                            |
 
 Regras:
 
@@ -232,6 +233,14 @@ A fonte é o `docs/contrato-integracao-v2.md` do repositório do back. Ele foi v
 | POST   | `/coins/packages/{id}/purchase` | compra simbólica → 200 `{ coinsBalance }` `[RN-LOJ-04]`             |
 | POST   | `/rooms`                        | criar sala → código de 4 dígitos `[RF-HUB-04]`                      |
 | POST   | `/rooms/{code}/join`            | entrar; erros `ROOM_NOT_FOUND`, `ROOM_FULL`, `ROOM_ALREADY_STARTED` |
+
+**Back dormindo (FE-51):** o back de produção (Render) dorme sem uso e leva minutos para acordar.
+As chamadas REST não têm limite de tempo. Cada uma passa pelo `watchServerCall`
+(`src/stores/serverWakeStore.ts`), e o mesmo vale para o `connect` do STOMP no `joinRoom`. Uma
+chamada sem resposta depois de `SERVER_SLOW_SECONDS` (4s) liga o `ServerWakeNotice`
+(`src/components/layout/`), que some quando todas respondem. Ele fica na camada de cima do
+navegador (Popover API), por cima dos modais, e não recebe toque. Sem a API, vira uma camada
+fixa comum.
 
 Erro único: `{ code, message, status, timestamp, path, fields? }`. Ids das habilidades no campo
 `code`, iguais aos do front. O 401 de token vencido ou inválido vem com `code: "UNAUTHORIZED"`. O

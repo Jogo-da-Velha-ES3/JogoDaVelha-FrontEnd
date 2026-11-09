@@ -4,6 +4,7 @@
 // só quando alguém entra numa sala.
 import { isSessionValid } from '../api/auth'
 import { applyServerEvent, resetGameStores } from '../stores/serverEvents'
+import { watchServerCall } from '../stores/serverWakeStore'
 import { useRoomStore } from '../stores/roomStore'
 import type { ClientCommand, ServerEnvelope } from '../types/events'
 import type { MockConnectionOptions, MockControls } from './mock/mockConnection'
@@ -62,7 +63,8 @@ export async function joinRoom(roomCode: string, options: JoinRoomOptions = {}) 
     conn.onStatus((status) => useRoomStore.getState().setConnectionStatus(status)),
   ]
   try {
-    await conn.connect(roomCode)
+    // Quem recarrega a página já na sala acorda o back pelo STOMP: o aviso aparece aqui também (FE-51)
+    await watchServerCall(conn.connect(roomCode))
   } catch (error) {
     // O back recusa o CONNECT sem dizer o motivo, e o mais comum é o token vencido (ex: link direto
     // da sala depois de muito tempo). Sessão caída já foi para o Acesso, com o aviso dela

@@ -44,6 +44,11 @@ export const ROUND_INTRO_SECONDS = 2.5
 /** Habilidade resolvida (FE-27): o efeito na casa e o aviso ("Oponente usou…", "Anulada…") */
 export const ABILITY_IMPACT_SECONDS = 1
 export const ABILITY_NOTICE_SECONDS = 2.5
+/**
+ * Servidor acordando (FE-51): uma chamada sem resposta depois disso mostra o aviso. O back no
+ * Render dorme sem uso e leva minutos para acordar; abaixo disso, é só uma resposta lenta
+ */
+export const SERVER_SLOW_SECONDS = 4
 
 export const INITIAL_ABILITIES_TO_PICK = 2
 export const DECK_SIZE = 3 // 2 iniciais + 1 sorteada [RN-DRAFT-02]
