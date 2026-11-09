@@ -1,0 +1,534 @@
+import { beforeEach, describe, expect, it } from 'vitest'
+import type { Cell, DeckSlot, PlayerSlot, PlayerState, RoomSnapshot } from '../types/game'
+import type { ServerEvent } from '../types/events'
+import { useBoardStore } from './boardStore'
+import { useClockStore } from './clockStore'
+import { useDraftStore } from './draftStore'
+import { useMatchStore } from './matchStore'
+import { usePowersStore } from './powersStore'
+import { useRoomStore } from './roomStore'
+import { applyServerEvent, resetGameStores } from './serverEvents'
+import { useTimerStore } from './timerStore'
+
+let clock = 1_000_000
+
+/** Manda um evento como se viesse do servidor, avançando o relógio */
+function send<T extends ServerEvent['type']>(
+  type: T,
+  payload: Extract<ServerEvent, { type: T }>['payload'],
+) {
+  clock += 1000
+  applyServerEvent({ type, payload, serverTime: clock } as never, clock)
+}
+
+const player = (slot: PlayerSlot, patch: Partial<PlayerState> = {}): PlayerState => ({
+  slot,
+  userId: `u-${slot}`,
+  nickname: slot === 'P1' ? 'Rafa' : 'Vini',
+  character: null,
+  roundsWon: 0,
+  consecutiveTimeouts: 0,
+  forceFieldTurnsLeft: 0,
+  silenced: false,
+  connected: true,
+  ...patch,
+})
+
+const cells = (owners: string): Cell[] =>
+  owners.split('').map((c, index) => ({
+    index,
+    owner: c === 'X' ? 'P1' : c === 'O' ? 'P2' : null,
+    effects: [],
+  }))
+
+const turn = (p: PlayerSlot, timeouts = { P1: 0, P2: 0 }, durationSeconds = 10) => ({
+  player: p,
+  startedAt: clock,
+  durationSeconds,
+  consecutiveTimeouts: timeouts,
+})
+
+const match = () => useMatchStore.getState()
+
+beforeEach(() => {
+  resetGameStores()
+  useRoomStore.setState({ pendingRoomCode: null })
+  send('PLAYER_JOINED', { player: player('P1') })
+  send('PLAYER_JOINED', { player: player('P2') })
+})
+
+describe('partida completa', () => {
+  it('2×1 com Morte Súbita: placar só vem do ROUND_END', () => {
+    send('ROUND_START', { round: 1, startingPlayer: 'P2', suddenDeath: false })
+    expect(match()).toMatchObject({ round: 1, startingPlayer: 'P2', suddenDeath: false })
+
+    send('ROUND_END', {
+      round: 1,
+      winner: 'P1',
+      winningLine: [0, 1, 2, 3],
+      score: { P1: 1, P2: 0 },
+    })
+    expect(match().score).toEqual({ P1: 1, P2: 0 })
+    expect(useBoardStore.getState().winningLine).toEqual([0, 1, 2, 3])
+
+    send('ROUND_START', { round: 2, startingPlayer: 'P1', suddenDeath: false })
+    expect(useBoardStore.getState().winningLine).toBeNull()
+    send('ROUND_END', {
+      round: 2,
+      winner: 'P2',
+      winningLine: [0, 4, 8, 12],
+      score: { P1: 1, P2: 1 },
+    })
+
+    send('ROUND_START', { round: 3, startingPlayer: 'P2', suddenDeath: true })
+    send('TURN_START', turn('P2', { P1: 0, P2: 0 }, 5))
+    expect(match().suddenDeath).toBe(true)
+    expect(useTimerStore.getState().turn?.durationSeconds).toBe(5)
+
+    send('ROUND_END', {
+      round: 3,
+      winner: 'P2',
+      winningLine: [3, 6, 9, 12],
+      score: { P1: 1, P2: 2 },
+    })
+    send('MATCH_END', {
+      outcome: { kind: 'WIN', winner: 'P2', score: [1, 2] },
+      coins: { P1: 10, P2: 50 },
+    })
+    expect(match().score).toEqual({ P1: 1, P2: 2 })
+    expect(match().outcome).toEqual({ kind: 'WIN', winner: 'P2', score: [1, 2] })
+    expect(match().coins).toEqual({ P1: 10, P2: 50 })
+    expect(useTimerStore.getState().turn).toBeNull()
+  })
+
+  it('o front não calcula o placar: mostra exatamente o que o servidor mandou', () => {
+    send('ROUND_START', { round: 1, startingPlayer: 'P1', suddenDeath: false })
+    // Um placar "estranho" de propósito: se o front somasse vitórias, daria 1×0
+    send('ROUND_END', { round: 1, winner: 'P1', winningLine: null, score: { P1: 0, P2: 1 } })
+    expect(match().score).toEqual({ P1: 0, P2: 1 })
+    expect(useRoomStore.getState().players.map((p) => p.roundsWon)).toEqual([0, 1])
+  })
+
+  it('1×0 depois de um empate (sem round 3)', () => {
+    send('ROUND_START', { round: 1, startingPlayer: 'P1', suddenDeath: false })
+    send('ROUND_END', { round: 1, winner: null, winningLine: null, score: { P1: 0, P2: 0 } })
+    expect(match().roundEnd).toEqual({ round: 1, winner: null, winningLine: null })
+
+    send('ROUND_START', { round: 2, startingPlayer: 'P2', suddenDeath: false })
+    send('ROUND_END', {
+      round: 2,
+      winner: 'P1',
+      winningLine: [0, 5, 10, 15],
+      score: { P1: 1, P2: 0 },
+    })
+    send('MATCH_END', {
+      outcome: { kind: 'WIN', winner: 'P1', score: [1, 0] },
+      coins: { P1: 50, P2: 10 },
+    })
+    expect(match().round).toBe(2)
+    expect(match().outcome).toMatchObject({ kind: 'WIN', score: [1, 0] })
+  })
+
+  it('empate absoluto é representado [RN-ARN-06]', () => {
+    send('ROUND_START', { round: 3, startingPlayer: 'P1', suddenDeath: true })
+    send('ROUND_END', { round: 3, winner: null, winningLine: null, score: { P1: 1, P2: 1 } })
+    send('MATCH_END', { outcome: { kind: 'ABSOLUTE_DRAW' }, coins: { P1: 20, P2: 20 } })
+    expect(match().outcome).toEqual({ kind: 'ABSOLUTE_DRAW' })
+    expect(match().coins).toEqual({ P1: 20, P2: 20 })
+  })
+
+  it('W.O.: estouros 1/3, 2/3 e o fim por W.O. [RN-ARN-01]', () => {
+    send('ROUND_START', { round: 1, startingPlayer: 'P1', suddenDeath: false })
+    for (const n of [1, 2, 3]) {
+      send('TURN_TIMEOUT', { player: 'P1', consecutiveTimeouts: n })
+      expect(match().lastTimeout).toMatchObject({ player: 'P1', consecutiveTimeouts: n })
+    }
+    send('MATCH_END', { outcome: { kind: 'WO', winner: 'P2' }, coins: { P1: 0, P2: 30 } })
+    expect(match().consecutiveTimeouts).toEqual({ P1: 3, P2: 0 })
+    expect(match().outcome).toEqual({ kind: 'WO', winner: 'P2' })
+  })
+
+  it('MATCH_END repetido mantém a hora do primeiro (a Arena não segura o banner de novo)', () => {
+    send('MATCH_END', { outcome: { kind: 'WO', winner: 'P2' }, coins: { P1: 0, P2: 30 } })
+    const first = match().outcomeReceivedAt
+    expect(first).toBe(clock)
+
+    send('MATCH_END', { outcome: { kind: 'WO', winner: 'P2' }, coins: { P1: 0, P2: 30 } })
+    expect(match().outcomeReceivedAt).toBe(first)
+  })
+})
+
+describe('estouros seguidos', () => {
+  it('não zeram na troca de round', () => {
+    send('ROUND_START', { round: 1, startingPlayer: 'P1', suddenDeath: false })
+    send('TURN_TIMEOUT', { player: 'P2', consecutiveTimeouts: 2 })
+    send('ROUND_END', { round: 1, winner: 'P1', winningLine: null, score: { P1: 1, P2: 0 } })
+    send('ROUND_START', { round: 2, startingPlayer: 'P2', suddenDeath: false })
+    expect(match().consecutiveTimeouts).toEqual({ P1: 0, P2: 2 })
+  })
+
+  it('o valor oficial chega no TURN_START (inclusive quando zera)', () => {
+    send('TURN_TIMEOUT', { player: 'P2', consecutiveTimeouts: 2 })
+    send('TURN_START', turn('P2', { P1: 0, P2: 0 }))
+    expect(match().consecutiveTimeouts).toEqual({ P1: 0, P2: 0 })
+    expect(useRoomStore.getState().players.find((p) => p.slot === 'P2')?.consecutiveTimeouts).toBe(
+      0,
+    )
+  })
+})
+
+describe('reconexão', () => {
+  it('ROOM_SNAPSHOT monta tudo de uma vez', () => {
+    const deck: DeckSlot[] = [{ ability: 'BOMBA', source: 'INITIAL', usedThisRound: true }]
+    const snapshot: RoomSnapshot = {
+      code: '4821',
+      phase: 'PLAYING',
+      players: [
+        player('P1', { character: 'X', roundsWon: 1, consecutiveTimeouts: 1 }),
+        player('P2', { character: 'ESTRELA' }),
+      ],
+      mySlot: 'P1',
+      round: 2,
+      suddenDeath: false,
+      board: cells('XO..............'),
+      turn: { player: 'P2', startedAt: clock, durationSeconds: 10 },
+      myDeck: deck,
+      outcome: null,
+      serverTime: clock,
+    }
+    send('ROOM_SNAPSHOT', snapshot)
+
+    expect(useRoomStore.getState()).toMatchObject({ code: '4821', phase: 'PLAYING', mySlot: 'P1' })
+    expect(match()).toMatchObject({
+      round: 2,
+      score: { P1: 1, P2: 0 },
+      consecutiveTimeouts: { P1: 1, P2: 0 },
+    })
+    expect(useBoardStore.getState().cells[1].owner).toBe('P2')
+    expect(useTimerStore.getState().turn?.player).toBe('P2')
+    expect(usePowersStore.getState().deck).toEqual(deck)
+  })
+
+  it('snapshot completo restaura Preparação, sorteio, Coins e revanche (FE-20)', () => {
+    const base: RoomSnapshot = {
+      code: '4821',
+      phase: 'DRAFT',
+      players: [player('P1', { character: 'X' }), player('P2')],
+      mySlot: 'P1',
+      round: 0,
+      suddenDeath: false,
+      board: cells('................'),
+      turn: null,
+      myDeck: [],
+      outcome: null,
+      serverTime: clock,
+      draft: { deadline: clock + 12_000, ready: { P1: false, P2: true } },
+    }
+    send('ROOM_SNAPSHOT', base)
+    expect(useDraftStore.getState()).toMatchObject({
+      deadline: clock - 1000 + 12_000,
+      ready: { P1: false, P2: true },
+      characters: { P1: 'X' },
+    })
+
+    const draw = { options: ['TORNADO', 'CONGELAR', 'REFORCO'] as const, deadline: clock + 5000 }
+    send('ROOM_SNAPSHOT', {
+      ...base,
+      phase: 'ROUND_DRAW',
+      draft: null,
+      drawOptions: { ...draw, options: [...draw.options] },
+    })
+    expect(usePowersStore.getState().drawOptions?.options).toEqual(draw.options)
+    expect(useDraftStore.getState().deadline).toBeNull()
+
+    send('ROOM_SNAPSHOT', {
+      ...base,
+      phase: 'RESULT',
+      draft: null,
+      outcome: { kind: 'WIN', winner: 'P1', score: [2, 0] },
+      coins: { P1: 50, P2: 10 },
+      rematch: { by: 'P2', deadline: clock + 9000 },
+    })
+    expect(match()).toMatchObject({
+      coins: { P1: 50, P2: 10 },
+      rematch: { requestedBy: 'P2' },
+      outcomeReceivedAt: null, // reconectou: vai direto ao Resultado, sem segurar o banner
+    })
+    expect(usePowersStore.getState().drawOptions).toBeNull()
+  })
+
+  it('oponente cai e volta: só muda o "conectado" (os estouros seguem a regra normal)', () => {
+    const p2 = () => useRoomStore.getState().players.find((p) => p.slot === 'P2')
+    send('PLAYER_DISCONNECTED', { slot: 'P2' })
+    expect(p2()?.connected).toBe(false)
+    send('PLAYER_RECONNECTED', { slot: 'P2' })
+    expect(p2()?.connected).toBe(true)
+  })
+})
+
+describe('Preparação, sorteio e habilidades', () => {
+  it('DRAFT_UPDATE bloqueia o personagem de cada lado', () => {
+    send('DRAFT_UPDATE', {
+      deadline: clock + 20_000,
+      characters: { P1: 'CORACAO' },
+      ready: { P1: true, P2: false },
+    })
+    expect(useDraftStore.getState()).toMatchObject({
+      characters: { P1: 'CORACAO' },
+      ready: { P1: true, P2: false },
+    })
+    expect(useRoomStore.getState().players[0].character).toBe('CORACAO')
+  })
+
+  it('sorteio e deck vêm do servidor; o deck novo fecha o sorteio', () => {
+    send('DRAW_OPTIONS', { options: ['TORNADO', 'SILENCIO', 'CONGELAR'], deadline: clock + 8000 })
+    expect(usePowersStore.getState().drawOptions?.options).toHaveLength(3)
+
+    const deck: DeckSlot[] = [
+      { ability: 'BOMBA', source: 'INITIAL', usedThisRound: false },
+      { ability: 'ESCUDO', source: 'INITIAL', usedThisRound: false },
+      { ability: 'SILENCIO', source: 'DRAWN', usedThisRound: false },
+    ]
+    send('DECK_UPDATE', { deck })
+    expect(usePowersStore.getState()).toMatchObject({ deck, drawOptions: null })
+  })
+
+  it('a mira é local, mas qualquer resolução do servidor a encerra', () => {
+    const powers = () => usePowersStore.getState()
+    powers().startAim('TORNADO')
+    powers().selectAimCell(5)
+    expect(powers().aim).toEqual({ ability: 'TORNADO', selectedCell: 5 })
+
+    send('ABILITY_RESOLVED', {
+      by: 'P1',
+      ability: 'TORNADO',
+      targetCell: 5,
+      destinationCell: 6,
+      absorbed: false,
+      noEffect: false,
+    })
+    expect(powers().aim).toBeNull()
+    expect(useBoardStore.getState().lastAbility).toMatchObject({ ability: 'TORNADO', by: 'P1' })
+
+    powers().startAim('BOMBA')
+    send('TURN_START', turn('P2'))
+    expect(powers().aim).toBeNull()
+  })
+
+  describe('Silêncio', () => {
+    const silence = (absorbed = false) =>
+      send('ABILITY_RESOLVED', {
+        by: 'P2',
+        ability: 'SILENCIO',
+        targetCell: null,
+        destinationCell: null,
+        absorbed,
+        noEffect: false,
+      })
+    const silenced = () => useRoomStore.getState().players.find((p) => p.slot === 'P1')?.silenced
+
+    it('cala o oponente até o fim do próximo turno dele', () => {
+      silence()
+      expect(silenced()).toBe(true)
+
+      send('TURN_START', turn('P1'))
+      expect(silenced()).toBe(true)
+      send('TURN_START', turn('P2'))
+      expect(silenced()).toBe(false)
+    })
+
+    it('anulado pelo Campo de Força não cala ninguém', () => {
+      silence(true)
+      expect(silenced()).toBe(false)
+    })
+
+    it('não passa para o round seguinte', () => {
+      silence()
+      send('ROUND_START', { round: 2, startingPlayer: 'P1', suddenDeath: false })
+      expect(silenced()).toBe(false)
+    })
+  })
+
+  it('BOARD_UPDATE troca as casas', () => {
+    send('BOARD_UPDATE', { board: cells('X...............') })
+    expect(useBoardStore.getState().cells[0].owner).toBe('P1')
+  })
+})
+
+describe('fase, revanche e sala', () => {
+  it('PHASE_CHANGE para DRAFT (revanche aceita) recomeça a partida do zero', () => {
+    send('ROUND_END', { round: 1, winner: 'P1', winningLine: null, score: { P1: 1, P2: 0 } })
+    send('PHASE_CHANGE', { phase: 'DRAFT' })
+    expect(useRoomStore.getState().phase).toBe('DRAFT')
+    expect(match().score).toEqual({ P1: 0, P2: 0 })
+    expect(useRoomStore.getState().players).toHaveLength(2)
+  })
+
+  it('pedido de revanche e cancelamento guardam quem tinha pedido', () => {
+    send('REMATCH_REQUESTED', { by: 'P2', deadline: clock + 15_000 })
+    expect(match().rematch).toMatchObject({ requestedBy: 'P2' })
+    send('REMATCH_CANCELLED', { reason: 'TIMEOUT' })
+    expect(match()).toMatchObject({
+      rematch: null,
+      rematchCancelled: { reason: 'TIMEOUT', requestedBy: 'P2' },
+    })
+  })
+
+  it('sala encerrada, erro e saída do jogador', () => {
+    send('ERROR', { code: 'NOT_YOUR_TURN', message: 'Não é a sua vez' })
+    expect(useRoomStore.getState().lastError).toMatchObject({ code: 'NOT_YOUR_TURN' })
+    send('PLAYER_LEFT', { slot: 'P2' })
+    expect(useRoomStore.getState().players.map((p) => p.slot)).toEqual(['P1'])
+    send('ROOM_CLOSED', { reason: 'RETURN_TO_LOBBY' })
+    expect(useRoomStore.getState().closedReason).toBe('RETURN_TO_LOBBY')
+  })
+
+  it.each([
+    ['REMATCH_DECLINED', 'DECLINED'],
+    ['REMATCH_EXPIRED', 'TIMEOUT'],
+    ['RETURN_TO_LOBBY', 'LEFT'],
+    ['REMATCH_DISCONNECTED', 'LEFT'],
+  ] as const)(
+    'o back cancela a revanche encerrando a sala: %s vira %s, com quem tinha pedido',
+    (closed, cancelled) => {
+      send('REMATCH_REQUESTED', { by: 'P1', deadline: clock + 15_000 })
+      send('ROOM_CLOSED', { reason: closed })
+      expect(match()).toMatchObject({
+        rematch: null,
+        rematchCancelled: { reason: cancelled, requestedBy: 'P1' },
+      })
+      expect(useRoomStore.getState().closedReason).toBe(closed)
+    },
+  )
+
+  it('sala encerrada sem pedido de revanche não inventa um cancelamento', () => {
+    send('ROOM_CLOSED', { reason: 'RETURN_TO_LOBBY' })
+    expect(match().rematchCancelled).toBeNull()
+  })
+})
+
+describe('contrato do back (FE-18, FE-19)', () => {
+  const snapshot = (patch: Partial<RoomSnapshot> = {}): RoomSnapshot => ({
+    code: '4821',
+    phase: 'PLAYING',
+    players: [player('P1', { character: 'X' }), player('P2', { character: 'O' })],
+    mySlot: 'P1',
+    round: 3,
+    suddenDeath: true,
+    board: cells('................'),
+    turn: null,
+    myDeck: [],
+    outcome: null,
+    serverTime: clock,
+    ...patch,
+  })
+
+  it('DRAFT_UPDATE mais antigo que o último aplicado é descartado', () => {
+    const update = (version: number, characters: object) =>
+      send('DRAFT_UPDATE', {
+        deadline: clock + 20_000,
+        characters,
+        ready: { P1: false, P2: false },
+        version,
+      })
+    update(2, { P1: 'X', P2: 'O' })
+    update(1, { P2: 'O' })
+    expect(useDraftStore.getState()).toMatchObject({ characters: { P1: 'X', P2: 'O' }, version: 2 })
+
+    // Uma revanche começa outra Preparação, com a versão de novo em 0
+    send('PHASE_CHANGE', { phase: 'DRAFT' })
+    update(0, {})
+    expect(useDraftStore.getState()).toMatchObject({ characters: {}, version: 0 })
+  })
+
+  it('snapshot mais antigo que o último aplicado é descartado', () => {
+    send('ROOM_SNAPSHOT', snapshot({ round: 2, serverTime: clock + 5000 }))
+    send('ROOM_SNAPSHOT', snapshot({ round: 1, serverTime: clock - 5000 }))
+    expect(match().round).toBe(2)
+  })
+
+  it('o snapshot depois do MATCH_END não apaga o fim da partida que a tela ainda mostra', () => {
+    send('ROOM_SNAPSHOT', snapshot())
+    send('ROUND_END', { round: 3, winner: null, winningLine: null, score: { P1: 1, P2: 1 } })
+    send('MATCH_END', { outcome: { kind: 'ABSOLUTE_DRAW' }, coins: { P1: 20, P2: 20 } })
+    const receivedAt = match().outcomeReceivedAt
+    expect(receivedAt).not.toBeNull()
+
+    send(
+      'ROOM_SNAPSHOT',
+      snapshot({ phase: 'RESULT', outcome: { kind: 'ABSOLUTE_DRAW' }, coins: { P1: 20, P2: 20 } }),
+    )
+    expect(match()).toMatchObject({
+      outcome: { kind: 'ABSOLUTE_DRAW' },
+      outcomeReceivedAt: receivedAt,
+      roundEnd: { round: 3, winner: null },
+    })
+  })
+
+  it('quem reconecta no Resultado vê o estado final, sem replay', () => {
+    send(
+      'ROOM_SNAPSHOT',
+      snapshot({
+        phase: 'RESULT',
+        outcome: { kind: 'WO', winner: 'P1' },
+        coins: { P1: 30, P2: 0 },
+      }),
+    )
+    expect(match().outcomeReceivedAt).toBeNull()
+  })
+
+  it('o Silêncio oficial do TURN_START vale no lugar da dedução', () => {
+    send('TURN_START', { ...turn('P2'), silenced: { P1: false, P2: true } })
+    const silencedOf = (slot: PlayerSlot) =>
+      useRoomStore.getState().players.find((p) => p.slot === slot)?.silenced
+    expect(silencedOf('P2')).toBe(true)
+    send('TURN_START', { ...turn('P1'), silenced: { P1: false, P2: false } })
+    expect(silencedOf('P2')).toBe(false)
+  })
+})
+
+describe('infraestrutura', () => {
+  it('cada evento sincroniza o relógio com o servidor', () => {
+    useClockStore.getState().reset() // o beforeEach já mandou eventos sem diferença de relógio
+    applyServerEvent(
+      { type: 'BOARD_UPDATE', payload: { board: cells('................') }, serverTime: 5000 },
+      7000,
+    )
+    expect(useClockStore.getState().offsetMs).toBe(-2000)
+  })
+
+  it('evento local (gerado no front) não sincroniza o relógio', () => {
+    useClockStore.getState().reset()
+    applyServerEvent(
+      {
+        type: 'ERROR',
+        payload: { code: 'NOT_CONNECTED', message: 'Sem conexão' },
+        serverTime: 999_999,
+        local: true,
+      },
+      1000,
+    )
+    expect(useClockStore.getState().offsetMs).toBe(0)
+    expect(useRoomStore.getState().lastError?.code).toBe('NOT_CONNECTED')
+  })
+
+  it('as stores de jogo não expõem setters para os componentes', () => {
+    for (const state of [
+      useMatchStore.getState(),
+      useBoardStore.getState(),
+      useDraftStore.getState(),
+      useTimerStore.getState(),
+    ]) {
+      expect(Object.values(state).some((v) => typeof v === 'function')).toBe(false)
+    }
+  })
+
+  it('resetGameStores limpa a partida, mas mantém o link direto pendente', () => {
+    useRoomStore.getState().setPendingRoomCode('4821')
+    send('ROUND_START', { round: 2, startingPlayer: 'P1', suddenDeath: false })
+    resetGameStores()
+    expect(match().round).toBe(0)
+    expect(useRoomStore.getState().players).toEqual([])
+    expect(useRoomStore.getState().pendingRoomCode).toBe('4821')
+  })
+})

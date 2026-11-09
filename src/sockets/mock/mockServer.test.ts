@@ -1,0 +1,746 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  DECK_SIZE,
+  PREPARATION_SECONDS,
+  REMATCH_WINDOW_SECONDS,
+  ROUND_INTRO_SECONDS,
+  TURN_DURATION_SECONDS,
+} from '../../constants/game'
+import type { AbilityId, PlayerSlot } from '../../types/game'
+import type { ClientCommand, ServerEnvelope, ServerEvent } from '../../types/events'
+import { MOCK_TIMINGS, MockGameServer, type MockServerOptions } from './mockServer'
+import { type BotRematch, resolveBotRematch, type Scenario, SCENARIOS } from './scenarios'
+
+type Payload<T extends ServerEvent['type']> = Extract<ServerEvent, { type: T }>['payload']
+
+/** Bot parado: os testes controlam o P2 na mão, com receive('P2', …) */
+const MANUAL: Scenario = { id: 'normal', scriptedRounds: [], botIdle: true }
+
+/** Gerador pseudoaleatório com semente, para o sorteio ser sempre o mesmo */
+function seeded(seed: number) {
+  let s = seed
+  return () => {
+    s = (s * 1103515245 + 12345) % 2 ** 31
+    return s / 2 ** 31
+  }
+}
+
+function setup(
+  scenario: Scenario = MANUAL,
+  seed = 7,
+  extra: Pick<MockServerOptions, 'botRematch' | 'botDrop'> = {},
+) {
+  const events: ServerEnvelope[] = []
+  const server = new MockGameServer({
+    roomCode: '4821',
+    emit: (e) => events.push(e),
+    scenario,
+    random: seeded(seed),
+    ...extra,
+  })
+  server.start()
+  const all = <T extends ServerEvent['type']>(type: T) =>
+    events.filter((e) => e.type === type).map((e) => e.payload as Payload<T>)
+  const last = <T extends ServerEvent['type']>(type: T) => all(type).at(-1)
+  const phases = () => all('PHASE_CHANGE').map((p) => p.phase)
+  const send = (cmd: ClientCommand, slot: PlayerSlot = 'P1') => server.receive(slot, cmd)
+  const move = (cell: number, slot: PlayerSlot = 'P1') =>
+    send({ type: 'MOVE', payload: { cell } }, slot)
+  const turnOf = () => last('TURN_START')?.player
+  return { server, events, all, last, phases, send, move, turnOf }
+}
+
+type Ctx = ReturnType<typeof setup>
+
+/** Da sala até o primeiro turno do round 1. Opcional: escolhas do bot na Preparação. */
+function toFirstTurn(ctx: Ctx, botAbilities?: [AbilityId, AbilityId]) {
+  vi.advanceTimersByTime(MOCK_TIMINGS.botJoin + MOCK_TIMINGS.matched)
+  if (botAbilities) {
+    ctx.send({ type: 'DRAFT_CHARACTER', payload: { character: 'O' } }, 'P2')
+    ctx.send({ type: 'DRAFT_ABILITIES', payload: { abilities: botAbilities } }, 'P2')
+  }
+  ctx.send({ type: 'DRAFT_CHARACTER', payload: { character: 'X' } })
+  ctx.send({ type: 'DRAFT_ABILITIES', payload: { abilities: ['BOMBA', 'SILENCIO'] } })
+  vi.advanceTimersByTime(MOCK_TIMINGS.botDraft + MOCK_TIMINGS.versus)
+  pickDraws(ctx)
+}
+
+/**
+ * Os dois escolhem a carta do sorteio e passa a apresentação do round: começa o primeiro turno.
+ * Com o deck completo (do round 2 em diante), a carta nova entra no lugar da primeira do deck
+ */
+function pickDraws(ctx: Ctx) {
+  const deck = ctx.last('DECK_UPDATE')?.deck ?? []
+  ctx.send({
+    type: 'DRAW_PICK',
+    payload: {
+      ability: ctx.last('DRAW_OPTIONS')!.options[0],
+      abilityToRemove: deck.length === DECK_SIZE ? deck[0].ability : undefined,
+    },
+  })
+  vi.advanceTimersByTime(MOCK_TIMINGS.botDraw + ROUND_INTRO_SECONDS * 1000)
+}
+
+/** Joga o round 1 até você vencer e chega ao sorteio do round 2 */
+function toSecondDraw(ctx: Ctx) {
+  toFirstTurn(ctx)
+  ensureMyTurn(ctx, 15)
+  for (const [mine, bot] of [
+    [0, 8],
+    [1, 9],
+    [2, 10],
+  ]) {
+    ctx.move(mine)
+    ctx.move(bot, 'P2')
+  }
+  ctx.move(3)
+  expect(ctx.last('ROUND_END')?.winner).toBe('P1')
+  vi.advanceTimersByTime(MOCK_TIMINGS.roundEnd)
+  expect(ctx.last('ROUND_START')?.round).toBe(2)
+  expect(ctx.phases().at(-1)).toBe('ROUND_DRAW')
+}
+
+/** Se a vez for do P2, ele joga numa casa inofensiva para devolver a vez ao P1 */
+function ensureMyTurn(ctx: Ctx, botCell = 15) {
+  if (ctx.turnOf() === 'P2') ctx.move(botCell, 'P2')
+  expect(ctx.turnOf()).toBe('P1')
+}
+
+beforeEach(() => {
+  vi.useFakeTimers()
+})
+
+afterEach(() => {
+  vi.useRealTimers()
+})
+
+describe('sala e Preparação', () => {
+  it('você entra, o bot chega, MATCH FEITO e Preparação de 20s', () => {
+    const ctx = setup()
+    expect(ctx.events[0]).toMatchObject({ type: 'ROOM_SNAPSHOT' })
+    expect(ctx.last('ROOM_SNAPSHOT')).toMatchObject({ phase: 'WAITING', mySlot: 'P1' })
+
+    vi.advanceTimersByTime(MOCK_TIMINGS.botJoin)
+    expect(ctx.last('PLAYER_JOINED')?.player.slot).toBe('P2')
+    expect(ctx.phases()).toEqual(['MATCHED'])
+
+    vi.advanceTimersByTime(MOCK_TIMINGS.matched)
+    expect(ctx.phases()).toEqual(['MATCHED', 'DRAFT'])
+    expect(ctx.last('DRAFT_UPDATE')?.deadline).toBe(Date.now() + PREPARATION_SECONDS * 1000)
+  })
+
+  it('personagem do oponente fica bloqueado [RN-DRAFT-01]', () => {
+    const ctx = setup()
+    vi.advanceTimersByTime(MOCK_TIMINGS.botJoin + MOCK_TIMINGS.matched)
+    ctx.send({ type: 'DRAFT_CHARACTER', payload: { character: 'ESTRELA' } }, 'P2')
+    ctx.send({ type: 'DRAFT_CHARACTER', payload: { character: 'ESTRELA' } })
+    expect(ctx.last('ERROR')?.code).toBe('CHARACTER_TAKEN')
+  })
+
+  it('sem escolha em 20s, o servidor escolhe por você e segue para o VS', () => {
+    const ctx = setup()
+    vi.advanceTimersByTime(MOCK_TIMINGS.botJoin + MOCK_TIMINGS.matched)
+    vi.advanceTimersByTime(PREPARATION_SECONDS * 1000)
+    const draft = ctx.last('DRAFT_UPDATE')!
+    expect(draft.ready).toEqual({ P1: true, P2: true })
+    expect(draft.characters.P1).not.toBe(draft.characters.P2)
+    expect(ctx.phases().at(-1)).toBe('VERSUS')
+  })
+})
+
+describe('round', () => {
+  it('sorteio de 3 cartas sem as iniciais, deck privado e primeiro turno', () => {
+    const ctx = setup()
+    vi.advanceTimersByTime(MOCK_TIMINGS.botJoin + MOCK_TIMINGS.matched)
+    ctx.send({ type: 'DRAFT_CHARACTER', payload: { character: 'X' } })
+    ctx.send({ type: 'DRAFT_ABILITIES', payload: { abilities: ['BOMBA', 'SILENCIO'] } })
+    vi.advanceTimersByTime(MOCK_TIMINGS.botDraft + MOCK_TIMINGS.versus)
+
+    expect(ctx.last('ROUND_START')).toMatchObject({ round: 1, suddenDeath: false })
+    expect(ctx.last('DECK_UPDATE')?.deck.map((d) => d.ability)).toEqual(['BOMBA', 'SILENCIO'])
+    const { options } = ctx.last('DRAW_OPTIONS')!
+    expect(options).toHaveLength(3)
+    expect(options).not.toContain('BOMBA')
+    expect(options).not.toContain('SILENCIO')
+
+    pickDraws(ctx)
+    expect(ctx.last('DECK_UPDATE')?.deck).toHaveLength(3)
+    expect(ctx.phases().at(-1)).toBe('PLAYING')
+    expect(ctx.last('TURN_START')).toMatchObject({
+      durationSeconds: TURN_DURATION_SECONDS,
+      consecutiveTimeouts: { P1: 0, P2: 0 },
+    })
+  })
+
+  it('depois do sorteio, a apresentação do round vem antes do primeiro turno', () => {
+    const ctx = setup()
+    vi.advanceTimersByTime(MOCK_TIMINGS.botJoin + MOCK_TIMINGS.matched)
+    ctx.send({ type: 'DRAFT_CHARACTER', payload: { character: 'X' } })
+    ctx.send({ type: 'DRAFT_ABILITIES', payload: { abilities: ['BOMBA', 'SILENCIO'] } })
+    vi.advanceTimersByTime(MOCK_TIMINGS.botDraft + MOCK_TIMINGS.versus)
+    ctx.send({ type: 'DRAW_PICK', payload: { ability: ctx.last('DRAW_OPTIONS')!.options[0] } })
+    vi.advanceTimersByTime(MOCK_TIMINGS.botDraw)
+
+    // Já está em jogo, mas ninguém tem a vez: jogar agora é recusado
+    expect(ctx.phases().at(-1)).toBe('PLAYING')
+    expect(ctx.last('TURN_START')).toBeUndefined()
+    ctx.move(0)
+    expect(ctx.last('BOARD_UPDATE')?.board.every((c) => c.owner === null)).toBe(true)
+
+    vi.advanceTimersByTime(ROUND_INTRO_SECONDS * 1000)
+    expect(ctx.last('TURN_START')?.startedAt).toBe(Date.now())
+  })
+
+  it('jogada válida, fora da vez e em casa ocupada', () => {
+    const ctx = setup()
+    toFirstTurn(ctx)
+    ensureMyTurn(ctx)
+
+    ctx.move(0)
+    expect(ctx.last('BOARD_UPDATE')?.board[0].owner).toBe('P1')
+    expect(ctx.turnOf()).toBe('P2')
+
+    ctx.move(1)
+    expect(ctx.last('ERROR')?.code).toBe('NOT_YOUR_TURN')
+
+    // Erros do bot são privados dele: o cliente não vê, mas nada muda
+    const boards = ctx.all('BOARD_UPDATE').length
+    ctx.move(0, 'P2')
+    expect(ctx.all('BOARD_UPDATE')).toHaveLength(boards)
+    expect(ctx.turnOf()).toBe('P2')
+
+    ctx.move(7, 'P2')
+    ctx.move(7)
+    expect(ctx.last('ERROR')?.code).toBe('CELL_TAKEN')
+  })
+
+  it('4 em linha vence o round e o placar vem do servidor', () => {
+    const ctx = setup()
+    toFirstTurn(ctx)
+    ensureMyTurn(ctx, 7)
+    for (const [mine, bot] of [
+      [0, 12],
+      [1, 13],
+      [2, 14],
+    ]) {
+      ctx.move(mine)
+      ctx.move(bot, 'P2')
+    }
+    ctx.move(3)
+    expect(ctx.last('ROUND_END')).toEqual({
+      round: 1,
+      winner: 'P1',
+      winningLine: [0, 1, 2, 3],
+      score: { P1: 1, P2: 0 },
+    })
+    expect(ctx.phases().at(-1)).toBe('ROUND_END')
+
+    vi.advanceTimersByTime(MOCK_TIMINGS.roundEnd)
+    expect(ctx.last('ROUND_START')?.round).toBe(2)
+  })
+})
+
+describe('sorteio da 3ª carta (FE-50, regra do back)', () => {
+  it('no round 1 a carta entra no deck: pedir para tirar outra é recusado', () => {
+    const ctx = setup()
+    vi.advanceTimersByTime(MOCK_TIMINGS.botJoin + MOCK_TIMINGS.matched)
+    ctx.send({ type: 'DRAFT_CHARACTER', payload: { character: 'X' } })
+    ctx.send({ type: 'DRAFT_ABILITIES', payload: { abilities: ['BOMBA', 'SILENCIO'] } })
+    vi.advanceTimersByTime(MOCK_TIMINGS.botDraft + MOCK_TIMINGS.versus)
+    const [card] = ctx.last('DRAW_OPTIONS')!.options
+
+    ctx.send({ type: 'DRAW_PICK', payload: { ability: card, abilityToRemove: 'BOMBA' } })
+    expect(ctx.last('ERROR')?.code).toBe('INVALID_DRAW')
+    expect(ctx.last('DECK_UPDATE')?.deck).toHaveLength(2)
+
+    ctx.send({ type: 'DRAW_PICK', payload: { ability: card } })
+    expect(ctx.last('DECK_UPDATE')?.deck.map((d) => [d.ability, d.source])).toEqual([
+      ['BOMBA', 'INITIAL'],
+      ['SILENCIO', 'INITIAL'],
+      [card, 'DRAWN'],
+    ])
+  })
+
+  it('do round 2 em diante, a carta nova entra no lugar da que você escolher, até uma inicial', () => {
+    const ctx = setup()
+    toSecondDraw(ctx)
+
+    // O deck continua o do round 1, com as cartas liberadas para o round novo
+    const deck = ctx.last('DECK_UPDATE')!.deck
+    expect(deck.map((d) => [d.ability, d.source, d.usedThisRound])).toEqual([
+      ['BOMBA', 'INITIAL', false],
+      ['SILENCIO', 'INITIAL', false],
+      [deck[2].ability, 'DRAWN', false],
+    ])
+    // As opções nunca repetem o deck atual
+    const { options } = ctx.last('DRAW_OPTIONS')!
+    expect(options.filter((a) => deck.some((d) => d.ability === a))).toEqual([])
+
+    // Sem dizer qual sai, é recusado (como no back)
+    ctx.send({ type: 'DRAW_PICK', payload: { ability: options[0] } })
+    expect(ctx.last('ERROR')?.code).toBe('INVALID_DRAW')
+
+    ctx.send({ type: 'DRAW_PICK', payload: { ability: options[0], abilityToRemove: 'BOMBA' } })
+    expect(ctx.last('DECK_UPDATE')?.deck.map((d) => [d.ability, d.source])).toEqual([
+      [options[0], 'DRAWN'],
+      ['SILENCIO', 'INITIAL'],
+      [deck[2].ability, 'DRAWN'],
+    ])
+
+    // Uma escolha por sorteio; quem volta não recebe mais as cartas
+    ctx.send({ type: 'DRAW_PICK', payload: { ability: options[1], abilityToRemove: 'SILENCIO' } })
+    expect(ctx.last('ERROR')?.code).toBe('DRAW_RESOLVED')
+    ctx.server.disconnect('P1')
+    ctx.server.reconnect('P1')
+    expect(ctx.last('ROOM_SNAPSHOT')).toMatchObject({ phase: 'ROUND_DRAW', drawOptions: null })
+    expect(ctx.last('ROOM_SNAPSHOT')?.myDeck.map((d) => d.ability)).toContain(options[0])
+  })
+
+  it('tempo esgotado do round 2 em diante: o sorteio é pulado e o deck fica como está', () => {
+    const ctx = setup()
+    toSecondDraw(ctx)
+    const decks = ctx.all('DECK_UPDATE').length
+    const deck = ctx.last('DECK_UPDATE')!.deck
+
+    vi.advanceTimersByTime(ctx.last('DRAW_OPTIONS')!.deadline - Date.now())
+    expect(ctx.phases().at(-1)).toBe('PLAYING')
+    expect(ctx.all('DECK_UPDATE')).toHaveLength(decks) // nenhum deck mudou
+    vi.advanceTimersByTime(ROUND_INTRO_SECONDS * 1000)
+    ctx.server.disconnect('P1')
+    ctx.server.reconnect('P1')
+    expect(ctx.last('ROOM_SNAPSHOT')?.myDeck).toEqual(deck)
+  })
+})
+
+describe('estouros e W.O. [RN-ARN-01]', () => {
+  it('3 estouros seguidos = derrota por W.O.', () => {
+    const ctx = setup()
+    toFirstTurn(ctx)
+    ensureMyTurn(ctx)
+    for (let i = 1; i <= 3; i++) {
+      vi.advanceTimersByTime(TURN_DURATION_SECONDS * 1000) // meu tempo acaba
+      expect(ctx.last('TURN_TIMEOUT')).toEqual({ player: 'P1', consecutiveTimeouts: i })
+      if (i < 3) ctx.move(10 + i, 'P2')
+    }
+    expect(ctx.last('MATCH_END')).toEqual({
+      outcome: { kind: 'WO', winner: 'P2' },
+      coins: { P1: 0, P2: 30 },
+    })
+    expect(ctx.phases().at(-1)).toBe('RESULT')
+  })
+
+  it('o contador zera quando o jogador age e o valor vai no TURN_START', () => {
+    const ctx = setup()
+    toFirstTurn(ctx)
+    ensureMyTurn(ctx)
+    vi.advanceTimersByTime(TURN_DURATION_SECONDS * 1000)
+    expect(ctx.last('TURN_START')?.consecutiveTimeouts.P1).toBe(1)
+    ctx.move(12, 'P2')
+    ctx.move(0)
+    ctx.move(13, 'P2')
+    expect(ctx.last('TURN_START')).toMatchObject({ player: 'P1', consecutiveTimeouts: { P1: 0 } })
+  })
+
+  it('o contador não zera na troca de round', () => {
+    const ctx = setup()
+    toFirstTurn(ctx)
+    ensureMyTurn(ctx, 15)
+    for (const [mine, bot] of [
+      [8, 0],
+      [9, 1],
+      [10, 2],
+    ]) {
+      ctx.move(mine)
+      ctx.move(bot, 'P2')
+    }
+    vi.advanceTimersByTime(TURN_DURATION_SECONDS * 1000) // P1: 1/3, sem agir depois
+    ctx.move(3, 'P2') // bot completa a linha
+    expect(ctx.last('ROUND_END')?.winner).toBe('P2')
+    vi.advanceTimersByTime(MOCK_TIMINGS.roundEnd)
+    pickDraws(ctx)
+    expect(ctx.last('TURN_START')?.consecutiveTimeouts.P1).toBe(1)
+  })
+
+  it('cenário "wo": o bot não joga e perde por W.O.', () => {
+    const ctx = setup(SCENARIOS.wo)
+    toFirstTurn(ctx)
+    ensureMyTurn(ctx)
+    for (const cell of [5, 6, 9]) {
+      ctx.move(cell)
+      vi.advanceTimersByTime(TURN_DURATION_SECONDS * 1000) // o bot estoura
+    }
+    expect(ctx.last('MATCH_END')?.outcome).toEqual({ kind: 'WO', winner: 'P1' })
+  })
+})
+
+describe('habilidades no servidor', () => {
+  it('uma vez por round, consome o turno e atualiza o deck', () => {
+    const ctx = setup()
+    toFirstTurn(ctx)
+    ensureMyTurn(ctx, 15)
+    ctx.move(0)
+    ctx.move(5, 'P2')
+    ctx.send({ type: 'USE_ABILITY', payload: { ability: 'BOMBA', targetCell: 5 } })
+    expect(ctx.last('ABILITY_RESOLVED')).toMatchObject({
+      by: 'P1',
+      ability: 'BOMBA',
+      targetCell: 5,
+    })
+    expect(ctx.last('BOARD_UPDATE')?.board[5].owner).toBeNull()
+    expect(ctx.last('DECK_UPDATE')?.deck.find((d) => d.ability === 'BOMBA')?.usedThisRound).toBe(
+      true,
+    )
+    expect(ctx.turnOf()).toBe('P2')
+
+    ctx.move(6, 'P2')
+    ctx.send({ type: 'USE_ABILITY', payload: { ability: 'BOMBA', targetCell: 6 } })
+    expect(ctx.last('ERROR')?.code).toBe('ABILITY_UNAVAILABLE')
+  })
+
+  it('Silêncio do oponente impede você de usar habilidade só no turno seguinte', () => {
+    const ctx = setup()
+    toFirstTurn(ctx, ['SILENCIO', 'ESCUDO'])
+    if (ctx.turnOf() === 'P1') ctx.move(0)
+    ctx.move(5, 'P2')
+    ctx.move(1)
+    ctx.send({ type: 'USE_ABILITY', payload: { ability: 'SILENCIO' } }, 'P2')
+    expect(ctx.last('ABILITY_RESOLVED')).toMatchObject({ by: 'P2', ability: 'SILENCIO' })
+
+    ctx.send({ type: 'USE_ABILITY', payload: { ability: 'BOMBA', targetCell: 5 } })
+    expect(ctx.last('ERROR')?.code).toBe('SILENCED')
+    ctx.move(2) // jogar peça continua valendo
+
+    ctx.move(6, 'P2')
+    ctx.send({ type: 'USE_ABILITY', payload: { ability: 'BOMBA', targetCell: 5 } })
+    expect(ctx.last('ABILITY_RESOLVED')).toMatchObject({ by: 'P1', ability: 'BOMBA' })
+  })
+})
+
+describe('cenários prontos', () => {
+  /** Deixa a Preparação acabar sozinha e os rounds automáticos rodarem */
+  const finish = () => {
+    vi.advanceTimersByTime(MOCK_TIMINGS.botJoin + MOCK_TIMINGS.matched)
+    vi.advanceTimersByTime(PREPARATION_SECONDS * 1000 + MOCK_TIMINGS.versus)
+    vi.advanceTimersByTime(3 * (2 * MOCK_TIMINGS.scriptedStep + MOCK_TIMINGS.roundEnd))
+  }
+
+  it('vitoria: 2×0 sem jogar', () => {
+    const ctx = setup(SCENARIOS.vitoria)
+    finish()
+    expect(ctx.last('MATCH_END')).toEqual({
+      outcome: { kind: 'WIN', winner: 'P1', score: [2, 0] },
+      coins: { P1: 50, P2: 10 },
+    })
+  })
+
+  it('empate-absoluto: 1×1 e empate na Morte Súbita [RN-ARN-06]', () => {
+    const ctx = setup(SCENARIOS['empate-absoluto'])
+    finish()
+    expect(ctx.all('ROUND_START').map((r) => r.suddenDeath)).toEqual([false, false, true])
+    expect(ctx.last('MATCH_END')).toEqual({
+      outcome: { kind: 'ABSOLUTE_DRAW' },
+      coins: { P1: 20, P2: 20 },
+    })
+  })
+
+  it('morte-subita: 1×1 automático e o round 3 é seu, com turnos de 5s', () => {
+    const ctx = setup(SCENARIOS['morte-subita'])
+    finish()
+    pickDraws(ctx)
+    expect(ctx.last('ROUND_START')).toMatchObject({ round: 3, suddenDeath: true })
+    expect(ctx.last('TURN_START')?.durationSeconds).toBe(5)
+    expect(ctx.last('MATCH_END')).toBeUndefined()
+  })
+
+  it('virada: dois empates (0×0) levam ao round 3, que decide', () => {
+    const ctx = setup(SCENARIOS.virada)
+    finish()
+    pickDraws(ctx)
+    expect(ctx.all('ROUND_END').map((r) => r.score)).toEqual([
+      { P1: 0, P2: 0 },
+      { P1: 0, P2: 0 },
+    ])
+    expect(ctx.last('ROUND_START')).toMatchObject({ round: 3, suddenDeath: true })
+    expect(ctx.last('MATCH_END')).toBeUndefined()
+  })
+})
+
+describe('queda e volta (FE-20)', () => {
+  /** Joga casas que não fecham linha até o fim da partida (ou acabar as tentativas) */
+  function playUntilMatchEnd(ctx: Ctx) {
+    const mine = [0, 5, 10, 3, 6]
+    for (let i = 0; i < 12 && !ctx.last('MATCH_END'); i++) {
+      if (ctx.turnOf() === 'P1') ctx.move(mine.shift()!)
+      else vi.advanceTimersByTime(TURN_DURATION_SECONDS * 1000)
+    }
+  }
+
+  it('?queda=wo: o bot cai no primeiro turno dele, os turnos estouram e ele perde por W.O.', () => {
+    const ctx = setup(SCENARIOS.normal, 7, { botDrop: 'wo' })
+    toFirstTurn(ctx)
+    playUntilMatchEnd(ctx)
+
+    expect(ctx.all('PLAYER_DISCONNECTED')).toEqual([{ slot: 'P2' }])
+    expect(ctx.all('BOARD_UPDATE').some((b) => b.board.some((c) => c.owner === 'P2'))).toBe(false)
+    expect(ctx.all('TURN_TIMEOUT').map((t) => t.consecutiveTimeouts)).toEqual([1, 2, 3])
+    expect(ctx.last('MATCH_END')?.outcome).toEqual({ kind: 'WO', winner: 'P1' })
+    expect(ctx.last('PLAYER_RECONNECTED')).toBeUndefined()
+  })
+
+  it('?queda=volta: perde o turno em que caiu, volta e joga de novo', () => {
+    const ctx = setup(SCENARIOS.normal, 7, { botDrop: 'volta' })
+    toFirstTurn(ctx)
+    if (ctx.turnOf() === 'P1') ctx.move(0) // o bot cai quando chega o primeiro turno dele
+    expect(ctx.last('PLAYER_DISCONNECTED')).toEqual({ slot: 'P2' })
+
+    vi.advanceTimersByTime(MOCK_TIMINGS.botReconnect)
+    expect(ctx.last('TURN_TIMEOUT')).toEqual({ player: 'P2', consecutiveTimeouts: 1 })
+    expect(ctx.last('PLAYER_RECONNECTED')).toEqual({ slot: 'P2' })
+
+    // De volta, ele age no turno seguinte (jogada ou habilidade) e a vez volta sem estouro
+    ctx.move(5)
+    expect(ctx.turnOf()).toBe('P2')
+    vi.advanceTimersByTime(MOCK_TIMINGS.botThinkMax)
+    expect(ctx.turnOf()).toBe('P1')
+    expect(ctx.all('TURN_TIMEOUT')).toHaveLength(1)
+  })
+
+  it('você cai e volta: o servidor manda o estado completo da partida', () => {
+    const ctx = setup()
+    toFirstTurn(ctx)
+    ensureMyTurn(ctx)
+    ctx.move(0)
+    ctx.server.disconnect('P1')
+    expect(ctx.last('PLAYER_DISCONNECTED')).toEqual({ slot: 'P1' })
+
+    ctx.server.reconnect('P1')
+    expect(ctx.last('PLAYER_RECONNECTED')).toEqual({ slot: 'P1' })
+    const snapshot = ctx.last('ROOM_SNAPSHOT')!
+    expect(snapshot).toMatchObject({
+      phase: 'PLAYING',
+      mySlot: 'P1',
+      round: 1,
+      turn: { player: 'P2' },
+      draft: null,
+      drawOptions: null,
+    })
+    expect(snapshot.board[0].owner).toBe('P1')
+    expect(snapshot.myDeck.map((d) => d.ability)).toEqual(
+      expect.arrayContaining(['BOMBA', 'SILENCIO']),
+    )
+    expect(snapshot.players.find((p) => p.slot === 'P1')?.connected).toBe(true)
+  })
+
+  it('o snapshot leva a Preparação e as cartas do sorteio de quem volta', () => {
+    const ctx = setup()
+    vi.advanceTimersByTime(MOCK_TIMINGS.botJoin + MOCK_TIMINGS.matched)
+    ctx.server.disconnect('P1')
+    ctx.server.reconnect('P1')
+    expect(ctx.last('ROOM_SNAPSHOT')?.draft).toMatchObject({ ready: { P1: false, P2: false } })
+
+    ctx.send({ type: 'DRAFT_CHARACTER', payload: { character: 'X' } })
+    ctx.send({ type: 'DRAFT_ABILITIES', payload: { abilities: ['BOMBA', 'SILENCIO'] } })
+    vi.advanceTimersByTime(MOCK_TIMINGS.botDraft + MOCK_TIMINGS.versus)
+    ctx.server.disconnect('P1')
+    ctx.server.reconnect('P1')
+    expect(ctx.last('ROOM_SNAPSHOT')?.drawOptions).toEqual(ctx.last('DRAW_OPTIONS'))
+  })
+})
+
+describe('revanche e saída', () => {
+  /** Cenário "vitoria" até o Resultado, com o comportamento do bot no fim */
+  function toResult(botRematch?: BotRematch) {
+    const ctx = setup(SCENARIOS.vitoria, 7, { botRematch })
+    vi.advanceTimersByTime(MOCK_TIMINGS.botJoin + MOCK_TIMINGS.matched)
+    vi.advanceTimersByTime(PREPARATION_SECONDS * 1000 + MOCK_TIMINGS.versus)
+    vi.advanceTimersByTime(2 * (2 * MOCK_TIMINGS.scriptedStep + MOCK_TIMINGS.roundEnd))
+    expect(ctx.phases().at(-1)).toBe('RESULT')
+    return ctx
+  }
+
+  const requestRematch = (ctx: Ctx, slot: PlayerSlot = 'P1') =>
+    ctx.send({ type: 'REMATCH_REQUEST', payload: {} }, slot)
+  const respond = (ctx: Ctx, accept: boolean, slot: PlayerSlot = 'P1') =>
+    ctx.send({ type: 'REMATCH_RESPOND', payload: { accept } }, slot)
+
+  it('aceita: volta para a Preparação do zero [RN-POS-03]', () => {
+    const ctx = toResult()
+    requestRematch(ctx)
+    expect(ctx.last('REMATCH_REQUESTED')).toEqual({
+      by: 'P1',
+      deadline: Date.now() + REMATCH_WINDOW_SECONDS * 1000,
+    })
+    vi.advanceTimersByTime(MOCK_TIMINGS.rematchAccept)
+    expect(ctx.phases().at(-1)).toBe('DRAFT')
+    expect(ctx.last('DRAFT_UPDATE')?.characters).toEqual({})
+    expect(ctx.last('REMATCH_CANCELLED')).toBeUndefined()
+  })
+
+  it('recusa: pedido cancelado e sala encerrada', () => {
+    const ctx = toResult('recusa')
+    requestRematch(ctx)
+    vi.advanceTimersByTime(MOCK_TIMINGS.rematchAccept)
+    expect(ctx.last('REMATCH_CANCELLED')).toEqual({ reason: 'DECLINED' })
+    expect(ctx.last('ROOM_CLOSED')).toBeDefined()
+
+    requestRematch(ctx)
+    expect(ctx.last('ERROR')?.code).toBe('ROOM_CLOSED')
+  })
+
+  it('ignora: o pedido cai depois de 15s [RN-POS-01]', () => {
+    const ctx = toResult('ignora')
+    requestRematch(ctx)
+    vi.advanceTimersByTime(REMATCH_WINDOW_SECONDS * 1000 - 1)
+    expect(ctx.last('REMATCH_CANCELLED')).toBeUndefined()
+    vi.advanceTimersByTime(1)
+    expect(ctx.last('REMATCH_CANCELLED')).toEqual({ reason: 'TIMEOUT' })
+    expect(ctx.last('ROOM_CLOSED')).toBeDefined()
+  })
+
+  it('pede: o bot pede e você aceita, recusa ou pede junto', () => {
+    const accept = toResult('pede')
+    vi.advanceTimersByTime(MOCK_TIMINGS.botRematch)
+    expect(accept.last('REMATCH_REQUESTED')?.by).toBe('P2')
+    respond(accept, true)
+    expect(accept.phases().at(-1)).toBe('DRAFT')
+
+    const decline = toResult('pede')
+    vi.advanceTimersByTime(MOCK_TIMINGS.botRematch)
+    respond(decline, false)
+    expect(decline.last('REMATCH_CANCELLED')).toEqual({ reason: 'DECLINED' })
+
+    // Os dois pediram: vale como aceite
+    const both = toResult('pede')
+    vi.advanceTimersByTime(MOCK_TIMINGS.botRematch)
+    requestRematch(both)
+    expect(both.phases().at(-1)).toBe('DRAFT')
+  })
+
+  it('responder sem pedido (ou ao próprio pedido) é erro', () => {
+    const ctx = toResult('ignora')
+    respond(ctx, true)
+    expect(ctx.last('ERROR')?.code).toBe('NO_REMATCH')
+    requestRematch(ctx)
+    respond(ctx, true)
+    expect(ctx.last('ERROR')?.code).toBe('NO_REMATCH')
+    requestRematch(ctx)
+    expect(ctx.last('ERROR')?.code).toBe('REMATCH_PENDING')
+  })
+
+  it('sai: o bot volta ao Lobby e cancela o seu pedido', () => {
+    const ctx = toResult('sai')
+    requestRematch(ctx)
+    vi.advanceTimersByTime(MOCK_TIMINGS.botRematch)
+    expect(ctx.last('REMATCH_CANCELLED')).toEqual({ reason: 'LEFT' })
+    expect(ctx.last('PLAYER_LEFT')).toEqual({ slot: 'P2' })
+    expect(ctx.last('ROOM_CLOSED')).toBeDefined()
+
+    // Nada mais acontece: o prazo dos 15s também foi cancelado
+    const count = ctx.events.length
+    vi.advanceTimersByTime(60_000)
+    expect(ctx.events).toHaveLength(count)
+  })
+
+  it('cair no Resultado conta como sair da sala', () => {
+    const ctx = toResult('ignora')
+    requestRematch(ctx)
+    ctx.server.disconnect('P2')
+    expect(ctx.last('REMATCH_CANCELLED')).toEqual({ reason: 'LEFT' })
+    expect(ctx.last('PLAYER_LEFT')).toEqual({ slot: 'P2' })
+    expect(ctx.last('ROOM_CLOSED')).toBeDefined()
+  })
+
+  it('bot que caiu durante a partida e não voltou sai da sala no Resultado (sem revanche)', () => {
+    const ctx = setup(SCENARIOS.vitoria)
+    vi.advanceTimersByTime(MOCK_TIMINGS.botJoin + MOCK_TIMINGS.matched)
+    ctx.server.disconnect('P2') // "Robô cai" na Preparação: os rounds seguem sem ele
+    vi.advanceTimersByTime(PREPARATION_SECONDS * 1000 + MOCK_TIMINGS.versus)
+    vi.advanceTimersByTime(2 * (2 * MOCK_TIMINGS.scriptedStep + MOCK_TIMINGS.roundEnd))
+
+    expect(ctx.phases().at(-1)).toBe('RESULT')
+    expect(ctx.last('PLAYER_LEFT')).toEqual({ slot: 'P2' })
+    expect(ctx.last('ROOM_CLOSED')).toBeDefined()
+
+    // A revanche não começa uma partida nova com ele caído
+    requestRematch(ctx)
+    vi.advanceTimersByTime(MOCK_TIMINGS.rematchAccept)
+    expect(ctx.last('ERROR')?.code).toBe('ROOM_CLOSED')
+    expect(ctx.phases().filter((p) => p === 'DRAFT')).toHaveLength(1)
+  })
+
+  it('?revanche= na URL tem prioridade sobre a variável de ambiente', () => {
+    expect(resolveBotRematch('?revanche=sai', 'recusa')).toBe('sai')
+    expect(resolveBotRematch('?revanche=xyz', 'recusa')).toBe('recusa')
+    expect(resolveBotRematch('', undefined)).toBe('aceita')
+  })
+
+  it('sair encerra a sala e para tudo', () => {
+    const ctx = setup()
+    ctx.send({ type: 'LEAVE', payload: {} })
+    expect(ctx.last('ROOM_CLOSED')).toBeDefined()
+    const count = ctx.events.length
+    vi.advanceTimersByTime(60_000)
+    expect(ctx.events).toHaveLength(count)
+  })
+})
+
+describe('cenários de derrota (FE-15)', () => {
+  it('derrota: o robô vence os 2 rounds sozinho (0×2) e os Coins vêm do servidor (10/50)', () => {
+    const ctx = setup(SCENARIOS.derrota)
+    vi.advanceTimersByTime(MOCK_TIMINGS.botJoin + MOCK_TIMINGS.matched)
+    vi.advanceTimersByTime(PREPARATION_SECONDS * 1000 + MOCK_TIMINGS.versus)
+    vi.advanceTimersByTime(2 * (2 * MOCK_TIMINGS.scriptedStep + MOCK_TIMINGS.roundEnd))
+
+    expect(ctx.all('ROUND_END').map((r) => [r.winner, r.score])).toEqual([
+      ['P2', { P1: 0, P2: 1 }],
+      ['P2', { P1: 0, P2: 2 }],
+    ])
+    expect(ctx.all('ROUND_START')).toHaveLength(2) // acaba em 0×2, sem round 3
+    expect(ctx.last('MATCH_END')).toEqual({
+      outcome: { kind: 'WIN', winner: 'P2', score: [0, 2] },
+      coins: { P1: 10, P2: 50 },
+    })
+    expect(ctx.phases().at(-1)).toBe('RESULT')
+  })
+
+  it('derrota-wo: você fica ocioso, estoura 3 vezes seguidas e o robô vence por W.O. (0/30)', () => {
+    const ctx = setup(SCENARIOS['derrota-wo'])
+    vi.advanceTimersByTime(MOCK_TIMINGS.botJoin + MOCK_TIMINGS.matched)
+    vi.advanceTimersByTime(PREPARATION_SECONDS * 1000 + MOCK_TIMINGS.versus)
+    vi.advanceTimersByTime(ctx.last('DRAW_OPTIONS')!.deadline - Date.now()) // sorteio automático
+    for (let i = 0; i < 80 && !ctx.last('MATCH_END'); i++) vi.advanceTimersByTime(500)
+
+    expect(ctx.all('TURN_TIMEOUT')).toEqual([
+      { player: 'P1', consecutiveTimeouts: 1 },
+      { player: 'P1', consecutiveTimeouts: 2 },
+      { player: 'P1', consecutiveTimeouts: 3 },
+    ])
+    expect(ctx.all('BOARD_UPDATE').some((b) => b.board.some((c) => c.owner === 'P1'))).toBe(false)
+    expect(ctx.last('MATCH_END')).toEqual({
+      outcome: { kind: 'WO', winner: 'P2' },
+      coins: { P1: 0, P2: 30 },
+    })
+    expect(ctx.phases().at(-1)).toBe('RESULT')
+  })
+
+  it('derrota-wo: só os seus turnos são curtos; os do robô mantêm a duração normal', () => {
+    const ctx = setup(SCENARIOS['derrota-wo'])
+    vi.advanceTimersByTime(MOCK_TIMINGS.botJoin + MOCK_TIMINGS.matched)
+    vi.advanceTimersByTime(PREPARATION_SECONDS * 1000 + MOCK_TIMINGS.versus)
+    vi.advanceTimersByTime(ctx.last('DRAW_OPTIONS')!.deadline - Date.now())
+    for (let i = 0; i < 80 && !ctx.last('MATCH_END'); i++) vi.advanceTimersByTime(500)
+
+    const starts = ctx.all('TURN_START')
+    const durationsOf = (slot: PlayerSlot) =>
+      new Set(starts.filter((t) => t.player === slot).map((t) => t.durationSeconds))
+    expect(durationsOf('P1')).toEqual(new Set([MOCK_TIMINGS.youIdleTurn / 1000]))
+    expect(durationsOf('P2')).toEqual(new Set([TURN_DURATION_SECONDS]))
+  })
+
+  it('os cenários antigos não mudam: o seu turno continua com a duração normal', () => {
+    const ctx = setup(SCENARIOS.normal)
+    toFirstTurn(ctx)
+    ensureMyTurn(ctx)
+    expect(ctx.last('TURN_START')?.durationSeconds).toBe(TURN_DURATION_SECONDS)
+  })
+})

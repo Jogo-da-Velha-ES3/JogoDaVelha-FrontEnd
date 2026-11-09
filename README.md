@@ -7,10 +7,10 @@ Front-end do jogo multiplayer Jogo do Velho, desenvolvido com React, TypeScript 
 - React + TypeScript + Vite
 - Tailwind CSS + Framer Motion
 - Zustand
-- Socket.IO Client
+- STOMP sobre WebSocket (`@stomp/stompjs`)
 - React Router
 - Howler.js
-- Vitest (testes unitários) + oxlint + Prettier
+- Vitest + Testing Library (jsdom) + oxlint + Prettier
 
 ## Desenvolvimento
 
@@ -31,8 +31,108 @@ npm test              # Vitest (src/**/*.test.ts[x])
 npm run build
 ```
 
+Os testes rodam no jsdom com `@testing-library/react`; o setup fica em `src/test/setup.ts`
+e `src/test/matchMedia.ts` simula a orientação da tela.
+
 O pre-commit (Husky + lint-staged) roda oxlint e Prettier nos arquivos alterados. O CI
 (`.github/workflows/ci.yml`) roda a validação completa em todo PR para `dev` e `master`.
+
+## Tokens visuais
+
+As cores, fontes e brilhos neon são tokens do Tailwind, definidos no `@theme` de
+`src/index.css`: `text-char-x`, `bg-danger`, `text-coin`, `bg-primary`, `bg-bg-panel`,
+`font-display`, `shadow-glow shadow-char-o/50`... O variant `short:` vale para o celular
+deitado (altura até 430px) e `px-safe` respeita o notch nas laterais. Componentes base em
+`src/components/ui` (Button, Modal, Toaster/`showToast`, Banner) e moldura de tela em
+`src/components/layout/LandscapeShell`. Tudo isso aparece em `/vitrine`.
+
+## Personagens
+
+Os 6 personagens no Estilo A (letreiro neon) ficam em `src/features/characters`:
+
+```tsx
+<Character id="ESTRELA" />                                  // versão grande, animada
+<Character id="X" variant="avatar" className="size-10" />   // avatar no círculo
+<Character id="O" variant="piece" className="size-8" />     // peça do tabuleiro
+```
+
+A cor vem do `CHARACTER_INFO`; o tamanho, do `className`. Só a versão grande anima por
+padrão (`animated` muda isso) e tudo para com `prefers-reduced-motion`. Use `decorative`
+quando o nome do personagem já aparece ao lado. Cada desenho fica em `designs/<personagem>.tsx`.
+
+O tabuleiro fica em `src/features/board`. O `<Board>` recebe as casas do servidor, os
+personagens de cada lado, a linha vencedora e a mira, e só emite a intenção
+(`onCellSelect(índice)`). Ele ocupa o maior quadrado que cabe no pai, que precisa ter altura
+definida. Cada casa é um `<Cell>`; a peça congelada usa o token `ice`.
+
+## Timer
+
+O tempo vem sempre do servidor: o front só desenha. O `<TimerBar deadline={{ startedAt,
+durationSeconds }} />` (em `src/components/ui`) serve para turno, Morte Súbita, Preparação,
+sorteio e revanche, e não tem callback de "acabou": timeout e W.O. são do servidor. A diferença
+de relógio do aparelho é corrigida pelo `clockStore`; o cliente STOMP deve chamar
+`syncWithServer(serverTime)` a cada mensagem. A conta fica em `src/lib/timer.ts`.
+
+## Servidor simulado
+
+O front tem um servidor simulado, com um oponente automático, para trabalhar nas telas sem o
+back. Desde a FE-50 ele vem **desligado**: sem variável, o front usa o back de verdade (seção
+abaixo). Para jogar contra o robô, `VITE_USE_MOCK_SERVER=true` no `.env.local`. A vitrine
+(`/vitrine`) e os testes usam o simulado sempre.
+
+- **Telas:** usam `joinRoom(código)`, `sendCommand(intenção)` e `leaveRoom()` de
+  `src/sockets/gameClient.ts`, e leem o estado das stores. O estado só muda com a resposta do
+  servidor.
+- **Cenários:** `?cenario=` na URL (ou `VITE_MOCK_SCENARIO`):
+
+  | Cenário           | O que acontece                                                   |
+  | ----------------- | ---------------------------------------------------------------- |
+  | `normal`          | partida inteira contra o bot (padrão)                            |
+  | `vitoria`         | rounds automáticos: você vence por 2×0                           |
+  | `empate-absoluto` | rounds automáticos 1×1 e empate na Morte Súbita (+20 para cada)  |
+  | `morte-subita`    | 1×1 automático; o round 3 é seu, com 5s por turno                |
+  | `virada`          | dois empates automáticos (0×0); o round 3 decide e é seu         |
+  | `wo`              | o bot não joga e perde por W.O. (para ver o seu W.O., não jogue) |
+
+- **Revanche:** `?revanche=` na URL (ou `VITE_MOCK_REMATCH`) diz o que o bot faz no Resultado,
+  em qualquer cenário: `aceita` (padrão), `recusa`, `ignora` (o pedido cai em 15s), `pede` (ele
+  pede e você responde) ou `sai` (volta ao Lobby). Ex: `/vitrine?cenario=vitoria&revanche=pede`.
+- **Quedas:** `?queda=volta` (o bot cai no primeiro turno dele e volta) ou `?queda=wo` (não volta
+  e perde por W.O.). Na vitrine, os botões "Minha conexão cai" e "Robô cai" simulam a qualquer
+  momento.
+- **Para testar:** abra `/vitrine` (sem login). A aba "Jogar contra o robô" guia a partida
+  passo a passo; `/vitrine?cenario=vitoria` (ou outro) já começa a partida. As outras abas mostram
+  os personagens, o tabuleiro e os componentes. `?aba=` abre direto numa aba.
+- **Criar e entrar em sala (Hub):** `createRoom()` e `joinRoomByCode(código)` de
+  `src/api/rooms.ts`. No simulado, criar só sorteia o código e entrar sempre funciona; no real,
+  os erros já vêm prontos para a tela ("Sala 4821 não encontrada", sala cheia, partida começada).
+
+### Back de verdade (padrão)
+
+O cliente STOMP real (`src/sockets/stompConnection.ts`) é o padrão. Ele precisa das URLs do back
+(na Vercel, nas variáveis de Production e Preview; na sua máquina, no `.env.local`):
+
+```bash
+VITE_API_URL=https://<back>/api     # o REST do back usa o prefixo /api
+VITE_WEBSOCKET_URL=https://<back>   # a raiz do back; vira wss://<back>/ws
+```
+
+Para o back local: `http://localhost:8080/api` e `http://localhost:8080`.
+
+Ele conecta com o token no `CONNECT`, assina a sala e a fila privada, reconecta sozinho
+("Reconectando…" na tela) e pede o estado completo de novo ao voltar. Os destinos ficam em
+`src/sockets/destinations.ts` e a tradução das mensagens em `src/sockets/envelope.ts`: ajustes do
+contrato com o back (FE-17) mudam só esses arquivos.
+
+Para subir o back na sua máquina, ligar o front nele e depurar a integração, siga o
+[docs/LOCAL_INTEGRATION.md](docs/LOCAL_INTEGRATION.md).
+
+## Rotas
+
+Tabela em `src/routes/routes.tsx` e caminhos em `src/routes/paths.ts` (detalhes no
+[ARCHITECTURE.md §2](docs/ARCHITECTURE.md)). Cada rota ainda é uma página vazia que diz qual
+card a preenche. Enquanto a tela de Acesso (FE-25) não existe, o botão **Entrar (simulado)** em
+`/entrar` cria uma sessão falsa para navegar pelo Hub e pela sala.
 
 ## Fluxo de branches
 
