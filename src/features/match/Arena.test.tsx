@@ -19,6 +19,12 @@ import type { ShopItem } from '../../api/shop'
 import { usePowersStore } from '../../stores/powersStore'
 import { resetProfile, useProfileStore } from '../../stores/profileStore'
 
+/** O aviso de turno perdido: o contador 1/3 também aparece na faixa do jogador */
+const timeoutToast = () =>
+  screen
+    .getByText(/^(Tempo esgotado!|Oponente perdeu a vez)$/)
+    .closest('[role="status"]') as HTMLElement
+
 vi.mock('../../sockets/gameClient', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../sockets/gameClient')>()
   return { ...actual, sendCommand: vi.fn<typeof actual.sendCommand>() }
@@ -111,11 +117,11 @@ describe('aviso de turno perdido (TURN_TIMEOUT)', () => {
     renderArena()
     send('TURN_TIMEOUT', { player: 'P1', consecutiveTimeouts: 1 })
     expect(screen.getByText('Tempo esgotado!')).toBeInTheDocument()
-    expect(screen.getByText('1/3')).toBeInTheDocument()
+    expect(within(timeoutToast()).getByText('1/3')).toBeInTheDocument()
     expect(screen.queryByText(/Tá dormindo na rede/)).not.toBeInTheDocument()
 
     send('TURN_TIMEOUT', { player: 'P1', consecutiveTimeouts: 2 })
-    expect(screen.getByText('2/3')).toBeInTheDocument()
+    expect(within(timeoutToast()).getByText('2/3')).toBeInTheDocument()
     expect(screen.queryByText(/Acorda pra vida/)).not.toBeInTheDocument()
     await tick(4000)
     expect(screen.queryByText('Tempo esgotado!')).not.toBeInTheDocument()
@@ -589,9 +595,8 @@ describe('mira e efeitos das habilidades (FE-27)', () => {
 
     resolved({ ability: 'TORNADO', noEffect: true })
     expect(screen.getByText('Sem efeito!')).toBeInTheDocument()
-    expect(
-      screen.getByText('Oponente usou Tornado · Cê tá cego ou tá se fazendo, hein?!'),
-    ).toBeInTheDocument()
+    expect(screen.getByText('Oponente usou Tornado')).toBeInTheDocument()
+    expect(screen.queryByText(/Cê tá cego/)).not.toBeInTheDocument()
   })
 
   it('habilidade minha com efeito não tem aviso, só o efeito na casa', () => {
@@ -706,7 +711,7 @@ describe('filtro de linguagem (FE-40)', () => {
     renderArena()
 
     send('TURN_TIMEOUT', { player: 'P1', consecutiveTimeouts: 2 })
-    expect(screen.getByText('2/3')).toBeInTheDocument()
+    expect(within(timeoutToast()).getByText('2/3')).toBeInTheDocument()
     expect(screen.queryByText(/Mais um e é W\.O\./)).not.toBeInTheDocument()
     send('ABILITY_RESOLVED', {
       by: 'P1',
