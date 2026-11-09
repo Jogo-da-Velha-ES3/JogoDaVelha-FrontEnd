@@ -143,19 +143,20 @@ balão caber no espaço sem cobrir as faixas. O `VitaoSlot` liga o motor ao `Vit
 
 ## 3. Stores (Zustand)
 
-| Store           | Guarda                                                                                                 |
-| --------------- | ------------------------------------------------------------------------------------------------------ |
-| `authStore`     | token, usuário logado, status da sessão                                                                |
-| `profileStore`  | apelido, personagem favorito, Coins, inventário (personagens e habilidades), stats                     |
-| `roomStore`     | código da sala, `phase`, jogadores, meu lado (`mySlot`), conexão, queda do oponente, link pendente     |
-| `draftStore`    | personagens reservados por lado, quem está pronto, prazo dos 20s                                       |
-| `matchStore`    | round, placar MD3, Morte Súbita, quem começa, estouros (0–3), fim do round, resultado, Coins, revanche |
-| `boardStore`    | as 16 casas com efeitos e contadores, linha vencedora, última habilidade resolvida                     |
-| `powersStore`   | opções do sorteio, meu deck da rodada, mira em andamento                                               |
-| `timerStore`    | de quem é o turno, prazo do turno (timestamp do servidor), duração (10s/5s)                            |
-| `clockStore`    | diferença entre o relógio do servidor e o do aparelho (`syncWithServer` a cada msg)                    |
-| `toastStore`    | fila de toasts na tela (só interface, não reflete o servidor)                                          |
-| `settingsStore` | preferências das Configurações, guardadas no aparelho (só interface, FE-39)                            |
+| Store             | Guarda                                                                                                 |
+| ----------------- | ------------------------------------------------------------------------------------------------------ |
+| `authStore`       | token, usuário logado, status da sessão                                                                |
+| `profileStore`    | apelido, personagem favorito, Coins, inventário (personagens e habilidades), stats                     |
+| `roomStore`       | código da sala, `phase`, jogadores, meu lado (`mySlot`), conexão, queda do oponente, link pendente     |
+| `draftStore`      | personagens reservados por lado, quem está pronto, prazo dos 20s                                       |
+| `matchStore`      | round, placar MD3, Morte Súbita, quem começa, estouros (0–3), fim do round, resultado, Coins, revanche |
+| `boardStore`      | as 16 casas com efeitos e contadores, linha vencedora, última habilidade resolvida                     |
+| `powersStore`     | opções do sorteio, meu deck da rodada, mira em andamento                                               |
+| `timerStore`      | de quem é o turno, prazo do turno (timestamp do servidor), duração (10s/5s)                            |
+| `clockStore`      | diferença entre o relógio do servidor e o do aparelho (`syncWithServer` a cada msg)                    |
+| `toastStore`      | fila de toasts na tela (só interface, não reflete o servidor)                                          |
+| `serverWakeStore` | chamadas ao servidor lentas, para o aviso "Acordando o servidor…" (só interface, FE-51)                |
+| `settingsStore`   | preferências das Configurações, guardadas no aparelho (só interface, FE-39)                            |
 
 Regras:
 
@@ -233,6 +234,14 @@ A fonte é o `docs/contrato-integracao-v2.md` do repositório do back. Ele foi v
 | POST   | `/rooms`                        | criar sala → código de 4 dígitos `[RF-HUB-04]`                      |
 | POST   | `/rooms/{code}/join`            | entrar; erros `ROOM_NOT_FOUND`, `ROOM_FULL`, `ROOM_ALREADY_STARTED` |
 
+**Back dormindo (FE-51):** o back de produção (Render) dorme sem uso e leva minutos para acordar.
+As chamadas REST não têm limite de tempo. Cada uma passa pelo `watchServerCall`
+(`src/stores/serverWakeStore.ts`), e o mesmo vale para o `connect` do STOMP no `joinRoom`. Uma
+chamada sem resposta depois de `SERVER_SLOW_SECONDS` (4s) liga o `ServerWakeNotice`
+(`src/components/layout/`), que some quando todas respondem. Ele fica na camada de cima do
+navegador (Popover API), por cima dos modais, e não recebe toque. Sem a API, vira uma camada
+fixa comum.
+
 Erro único: `{ code, message, status, timestamp, path, fields? }`. Ids das habilidades no campo
 `code`, iguais aos do front. O 401 de token vencido ou inválido vem com `code: "UNAUTHORIZED"`. O
 ajuste da recuperação de senha (código `INVALID_RESET_TOKEN`) é a FE-36.
@@ -260,7 +269,7 @@ a tradução em `src/api/shop.ts` muda:
   | ------------------------------------ | ----------------------------------------------------------------- |
   | entrar ou voltar                     | `/connect` → responde com o `ROOM_SNAPSHOT` privado               |
   | `DRAFT_CHARACTER`, `DRAFT_ABILITIES` | `/draft/character` `{ character }`, `/draft/abilities`            |
-  | `DRAW_PICK`                          | `/draw/pick` `{ ability }` (sai a sorteada anterior)              |
+  | `DRAW_PICK`                          | `/draw/pick` `{ ability, abilityToRemove? }` (abaixo)             |
   | `MOVE` `{ cell }`                    | `/move` `{ position }`                                            |
   | `USE_ABILITY`                        | `/ability` `{ skillCode, targetPosition?, destinationPosition? }` |
   | `REMATCH_REQUEST`                    | `/rematch/request`                                                |
@@ -294,14 +303,24 @@ a tradução em `src/api/shop.ts` muda:
   (`ROUND_INTRO_SECONDS`) e 2,5s depois do `ROUND_END`. O `MATCH_END` chega antes do
   `PHASE_CHANGE` para `RESULT`; no W.O., na hora.
 - **Regras:** MD3 da ERS (depois do round 2 quem está na frente vence; round 3 só com placar
-  igual), "casa adjacente" com diagonais, desconexão pela regra dos 3 estouros, e o deck do round
-  = 2 iniciais + 1 sorteada (a nova entra no lugar da anterior).
+  igual), "casa adjacente" com diagonais e desconexão pela regra dos 3 estouros.
+- **Sorteio (mudou no back em 07/11, FE-50):** o deck tem sempre 3 habilidades e continua de um
+  round para o outro. No round 1 vai só `{ ability }`, que completa o deck; sem escolha, o back
+  escolhe uma carta. Do round 2 em diante, `abilityToRemove` é obrigatório (sem ele, o back
+  recusa) e pode ser qualquer carta do deck, inclusive uma inicial; sem escolha, o sorteio é pulado
+  e **nenhum `DECK_UPDATE` chega**. Por isso o `serverEvents` tira as cartas do sorteio quando a
+  fase sai de `ROUND_DRAW`. O `DrawPicker` decide pelo tamanho do deck: incompleto, a carta entra;
+  completo, pede a carta nova e depois qual sai. O "Manter meu deck" só esconde as cartas, porque
+  o back não tem comando para isso.
 
 ### Servidor simulado (FE-35)
 
-Enquanto o back não está pronto, o front roda contra um **servidor simulado** que vive no próprio
-front (`src/sockets/mock/`). Ele fica **ligado por padrão** e desliga com
-`VITE_USE_MOCK_SERVER=false`, que liga o front no back de verdade (`docs/LOCAL_INTEGRATION.md`).
+O front tem um **servidor simulado** que vive no próprio front (`src/sockets/mock/`). Desde a
+FE-50 (08/11) ele fica **desligado por padrão**: sem variável, o front usa o back de verdade
+(`VITE_API_URL` e `VITE_WEBSOCKET_URL`, `docs/LOCAL_INTEGRATION.md`). Ele liga com
+`VITE_USE_MOCK_SERVER=true`. A vitrine (`joinRoom` com `mock`) e os testes (`test.env` do
+`vite.config.ts`) usam o simulado sempre; os testes da integração desligam com
+`vi.stubEnv('VITE_USE_MOCK_SERVER', 'false')`.
 
 - Implementa a mesma `GameConnection` do cliente STOMP real e emite os eventos do contrato acima.
   Faz o papel do servidor autoritativo: decide jogada, vitória, placar, timeout e as 10
@@ -315,6 +334,10 @@ front (`src/sockets/mock/`). Ele fica **ligado por padrão** e desliga com
 - As telas usam só `src/sockets/gameClient.ts` (`joinRoom`, `sendCommand`, `leaveRoom`) e as
   stores. Nunca sabem se estão falando com o simulado ou com o real.
 - "Casa adjacente" (Tornado, Troca Rápida) inclui as diagonais, como no back.
+- O sorteio segue a regra do back (FE-50): o deck continua de um round para o outro, as opções
+  excluem o deck, as iniciais e as cartas já escolhidas, e o robô tira uma carta qualquer do deck
+  do round 2 em diante. Nos cenários com rounds automáticos (que pulam o sorteio), o deck chega
+  incompleto ao primeiro round jogado, e a carta só entra, como no round 1.
 - Conta do jogador (FE-30): `src/api/profile.ts` e `src/api/shop.ts` usam as rotas reais do back
   (BE-027, `ShopController` e `CoinController`, conferidas contra o back na FE-49); no
   simulado, respondem pela conta guardada no aparelho (`src/api/mockAccount.ts`, no

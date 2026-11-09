@@ -35,8 +35,9 @@ Antes de dar uma tarefa como pronta: `npm run lint`, `npm run format:check`, `np
 - **Comunicação:** REST (`src/api/`) para conta, perfil, loja e Coins; STOMP (`src/sockets/`)
   para sala e partida. Não usar Socket.IO. O contrato V2 com o back foi validado em 06/11
   (ARCHITECTURE.md §6): os nomes do back ficam só em `src/sockets/destinations.ts` e
-  `src/sockets/envelope.ts`. O servidor simulado continua o padrão até o back ser publicado; para
-  testar contra o back local, `docs/LOCAL_INTEGRATION.md`.
+  `src/sockets/envelope.ts`. Desde a FE-50 (08/11) o padrão é o back real (`VITE_API_URL` e
+  `VITE_WEBSOCKET_URL`); o servidor simulado liga com `VITE_USE_MOCK_SERVER=true` e continua na
+  vitrine e nos testes. Para testar contra o back local, `docs/LOCAL_INTEGRATION.md`.
 - **Paisagem:** toda tela precisa funcionar no celular deitado (~330–390px de altura) e no
   desktop, sem overflow horizontal.
 - **Vitão atrás da flag:** desde 15/10 o Vitão entra no MVP 1 pelos cards FE-41 a FE-45 (grupo de

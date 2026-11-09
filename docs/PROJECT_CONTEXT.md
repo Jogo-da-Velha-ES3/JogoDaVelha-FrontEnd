@@ -131,19 +131,30 @@ estratégico e competitivo, **sem pay-to-win**.
 - Comprar uma habilidade é comprar o direito de escolhê-la como **habilidade inicial** na
   Preparação, sem depender da sorte. Ex: quem compra Tornado passa a ter 4 opções e continua
   escolhendo só 2.
-- O sorteio da 3ª habilidade usa o **pool completo, menos as 2 iniciais que o jogador escolheu**, e
-  pode trazer habilidades que ele ainda não comprou `[RF-DRAFT-03]`.
+- O sorteio usa o **catálogo completo**, menos o deck atual, as 2 iniciais e as cartas que o
+  jogador já escolheu em sorteios anteriores da partida, e pode trazer habilidades que ele ainda
+  não comprou `[RF-DRAFT-03]` (regra do back, 07/11).
 - **Nomenclatura na interface:** "Habilidades Iniciais" (a ERS também chama de "fixas" em
   `[RF-DRAFT-01]`; é a mesma coisa).
 
-### Deck da rodada: 2 iniciais + 1 sorteada `[RN-DRAFT-02]`
+### Deck da rodada: 3 habilidades `[RN-DRAFT-02]`
+
+> Em 07/11 o back (Victor) mudou o sorteio a partir do round 2: a carta nova entra no lugar de
+> uma habilidade que o jogador escolhe, e o tempo esgotado deixa o deck como está. A equipe segue
+> o back (FE-50, 08/11). A ERS falava em "2 iniciais + 1 sorteada" em todo round.
 
 1. **Iniciais (fixas):** na Preparação, o jogador escolhe 2 habilidades entre as que já
    desbloqueou.
-2. **Sorteio da 3ª:** **no início de cada rodada**, o servidor mostra 3 cartas visíveis
-   `[RN-DRAFT-03]` e o jogador escolhe 1. São **8 segundos**; se não escolher, uma carta é
-   escolhida automaticamente `[RN-DRAFT-05]`. Esse tempo não faz parte dos 20s da Preparação.
-3. O deck de cada rodada tem exatamente 3 habilidades.
+2. **Sorteio:** **no início de cada round**, o servidor mostra 3 cartas visíveis
+   `[RN-DRAFT-03]` e o jogador escolhe 1 em **8 segundos**. Esse tempo não faz parte dos 20s da
+   Preparação.
+   - **Round 1:** a carta escolhida completa o deck (2 iniciais + 1 sorteada). Sem escolha, uma
+     carta é escolhida automaticamente `[RN-DRAFT-05]`.
+   - **Do round 2 em diante:** o jogador escolhe a carta nova e depois qual habilidade do deck
+     sai, que pode ser qualquer uma das 3, inclusive uma inicial. **Sem escolha, o deck fica como
+     está.** O botão "Manter meu deck" só esconde as cartas: o servidor não recebe nada e mantém
+     o deck quando o tempo acaba.
+3. O deck de cada round tem exatamente 3 habilidades e continua de um round para o outro.
 
 ### Regras de uso
 
@@ -332,7 +343,9 @@ A ERS não define a regra; o back decidiu usar a mesma do W.O. por tempo `[RN-AR
   | Cada habilidade (as 7 não iniciais) | 350    |
 
 - Pacotes simbólicos de Coins (os do back, fechados na FE-49): **100** (R$ 4,99), **500**
-  (R$ 19,99) e **1000** (R$ 34,99).
+  (R$ 19,99) e **1000** (R$ 34,99). O modal Comprar Coins (FE-32) mostra o preço em reais em cada
+  pacote, junto do aviso fixo de que nada é cobrado (decidido em 08/11). Ele abre pela Loja e pelo
+  saldo do topo do Hub.
 
 ## 9. Interface
 
@@ -375,6 +388,13 @@ Abrir o jogo → [sem sessão] Acesso → Hub (Jogar; abas Loja / Perfil)
 - O teclado cobre metade da tela: em login, cadastro e código, campo e botão ficam na metade de
   cima.
 - Respeitar `env(safe-area-inset-left/right)`.
+
+### Servidor acordando (decidido em 09/11, FE-51)
+
+O back de produção dorme sem uso e levou de 2 a 3,5 minutos para acordar nos testes de 08/11.
+Quando uma chamada ao servidor passa de 4s sem resposta, aparece no alto da tela, até por cima
+dos modais, "Acordando o servidor…" com "O velhinho tá levantando da cadeira · pode levar uns
+minutinhos". O aviso some quando o servidor responde. Nenhuma chamada é cortada nesse tempo.
 
 ### Arena
 

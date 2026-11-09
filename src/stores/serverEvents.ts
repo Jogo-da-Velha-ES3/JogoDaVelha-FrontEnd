@@ -139,6 +139,9 @@ export function applyServerEvent(envelope: ServerEnvelope, receivedAt = Date.now
       if (event.payload.phase === 'DRAFT') resetMatchStores()
       // Fim do sorteio: começa a apresentação do round, antes do primeiro turno
       if (event.payload.phase === 'PLAYING') useMatchStore.setState({ introStartedAt: receivedAt })
+      // As cartas do sorteio valem só nele. Do round 2 em diante, o tempo esgotado não manda
+      // DECK_UPDATE (o deck fica como está), então nada mais as tiraria
+      if (event.payload.phase !== 'ROUND_DRAW') usePowersStore.setState({ drawOptions: null })
       useRoomStore.setState({ phase: event.payload.phase })
       return
 

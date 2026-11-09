@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { SERVER_SLOW_SECONDS } from '../constants/game'
+import { useServerWakeStore } from '../stores/serverWakeStore'
 import { useMatchStore } from '../stores/matchStore'
 import { useRoomStore } from '../stores/roomStore'
 import { resetGameStores } from '../stores/serverEvents'
@@ -96,6 +98,27 @@ describe('gameClient + servidor simulado', () => {
   })
 })
 
+describe('entrar na sala com o back dormindo (FE-51)', () => {
+  it('o connect demorado mostra "Acordando o servidor…" até a conexão abrir', async () => {
+    useServerWakeStore.setState({ slowCalls: 0 })
+    const slow: GameConnection = {
+      connect: () => new Promise((resolve) => setTimeout(resolve, 8000)),
+      disconnect: () => {},
+      send: () => {},
+      onEvent: () => () => {},
+      onStatus: () => () => {},
+    }
+
+    const joined = joinRoom('4821', { connection: slow })
+    await vi.advanceTimersByTimeAsync(SERVER_SLOW_SECONDS * 1000)
+    expect(useServerWakeStore.getState().slowCalls).toBe(1)
+
+    await vi.advanceTimersByTimeAsync(8000)
+    await joined
+    expect(useServerWakeStore.getState().slowCalls).toBe(0)
+  })
+})
+
 describe('entrar na sala com o back recusando a conexão', () => {
   const fetchMock = vi.fn<typeof fetch>()
 
@@ -137,6 +160,20 @@ describe('entrar na sala com o back recusando a conexão', () => {
 })
 
 describe('createGameConnection', () => {
+  it('sem VITE_USE_MOCK_SERVER, o padrão é o back real (FE-50)', async () => {
+    vi.stubEnv('VITE_USE_MOCK_SERVER', undefined)
+    vi.stubEnv('VITE_WEBSOCKET_URL', 'http://localhost:8080')
+    expect(isMockServerEnabled()).toBe(false)
+    expect(await createGameConnection()).toBeInstanceOf(StompConnection)
+  })
+
+  it('com opções do simulado (a vitrine), usa o simulado mesmo desligado', async () => {
+    vi.stubEnv('VITE_USE_MOCK_SERVER', 'false')
+    expect(await createGameConnection({ scenario: SCENARIOS.normal })).toBeInstanceOf(
+      MockConnection,
+    )
+  })
+
   it('com VITE_USE_MOCK_SERVER=false usa o cliente STOMP real', async () => {
     vi.stubEnv('VITE_USE_MOCK_SERVER', 'false')
     vi.stubEnv('VITE_WEBSOCKET_URL', 'http://localhost:8080')

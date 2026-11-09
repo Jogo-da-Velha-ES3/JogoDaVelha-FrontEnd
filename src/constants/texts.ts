@@ -39,6 +39,11 @@ export const APP_TEXTS = {
   rotateBody: 'O Jogo do Velho é jogado com o celular deitado.',
   notFoundTitle: 'Página não encontrada',
   notFoundBody: 'Esse endereço não existe ou o link da sala está errado.',
+  /** Aviso global quando o servidor demora a responder (FE-51): a piada vem antes, o tempo depois */
+  serverWaking: {
+    title: 'Acordando o servidor…',
+    detail: 'O velhinho tá levantando da cadeira · pode levar uns minutinhos',
+  },
   errors: {
     network: 'Não foi possível falar com o servidor. Verifique sua conexão.',
     httpStatus: (status: number) => `Erro ${status} ao falar com o servidor.`,
@@ -168,8 +173,6 @@ export const SHOP_TEXTS = {
   soon: 'Em breve',
   cosmeticsSoon: 'Skins, molduras e estilos de tabuleiro chegam depois. Por enquanto, é só jogar.',
   buyCoins: 'Comprar Coins',
-  /** Até a FE-32 (modal de Coins) chegar */
-  buyCoinsSoon: 'Chega com a FE-32',
   loading: 'Carregando a Loja…',
   loadError: 'Não foi possível abrir a Loja agora.',
   retry: 'Tentar de novo',
@@ -206,6 +209,34 @@ export const SHOP_TEXTS = {
     notOwned: 'Compre o personagem antes de usar como favorito.',
     generic: 'Não foi possível concluir agora. Tente de novo.',
   },
+} as const
+
+// ── Comprar Coins (FE-32) ──
+export const COINS_TEXTS = {
+  title: 'Comprar Coins',
+  /**
+   * Chamada de marketing + aviso fixo [RN-LOJ-04]. A parte "compra simbólica, nada é cobrado" é o
+   * critério de aceite da FE-32 e fica: com o preço em reais na tela, sem ela pareceria cobrança
+   * (VOICE_GUIDE, regra 1: a piada vem antes e nunca come a informação)
+   */
+  notice: 'As moedas caem na hora! · Compra simbólica, nada é cobrado.',
+  loading: 'Carregando pacotes…',
+  loadError: 'Não foi possível carregar os pacotes agora.',
+  retry: 'Tentar de novo',
+  coins: 'Coins',
+  /** Preço simbólico do pacote, em reais (decidido em 08/11: aparece, com o aviso de que nada é cobrado) */
+  price: (reais: number) => reais.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+  packageLabel: (coins: number, price: string) =>
+    `Pacote de ${coins.toLocaleString('pt-BR')} Coins, ${price}`,
+  /** Saldo no topo do Hub, que também abre o Comprar Coins */
+  balanceLabel: (balance: string) => `Saldo: ${balance} Coins. Comprar Coins`,
+  /** "Receber" reforça o caráter simbólico (esboço de telas, modal de Coins) */
+  receive: (coins: number) => `Receber ${coins.toLocaleString('pt-BR')} Coins`,
+  buying: 'Comprando…',
+  /** Erro de rede ou do servidor: o crédito pode ter ocorrido; não soma nada no front */
+  buyError: 'Não foi possível concluir agora. Tente de novo.',
+  /** Toast de sucesso, só depois da resposta da API */
+  received: (coins: number) => `+${coins.toLocaleString('pt-BR')} Coins`,
 } as const
 
 // ── Sala: criar, entrar, Sala de Espera e "Match feito" ──
@@ -399,14 +430,37 @@ export const ABILITY_TEXTS = {
     destination: 'agora escolha a casa de destino',
     step: (ability: string, step: string) => `${ability}: ${step}`,
   },
+  /**
+   * Sorteio (FE-10; regra do back na FE-50): no round 1 a carta completa o deck; do round 2 em
+   * diante ela entra no lugar de uma habilidade do deck, e sem escolha o deck fica como está
+   */
   draw: {
     title: 'Sorteio da 3ª habilidade',
+    titleSwap: 'Sorteio: troca de habilidade',
     choose: 'Escolha uma carta para completar seu deck.',
+    chooseSwap: 'Escolha uma carta nova para entrar no lugar de uma do seu deck.',
+    chooseOut: 'Qual habilidade do seu deck sai?',
+    incomingLabel: 'Entra',
+    removeLabel: (name: string, tag: string) => `Tirar ${name}, ${tag.toLowerCase()}`,
+    back: 'Escolher outra carta',
+    keepHint: 'Se o tempo acabar, seu deck continua o mesmo.',
+    keep: 'Manter meu deck',
+    keptTitle: 'Seu deck fica como está.',
+    kept: 'O round começa quando o tempo do sorteio acabar.',
+    showCards: 'Ver as cartas de novo',
+    deckLabel: 'Seu deck',
     chosen: 'Esta é a sua 3ª habilidade nesta rodada.',
+    entered: 'Esta habilidade entrou no seu deck.',
+    swapped: (name: string) => `Saiu ${name}.`,
     waitingOpponent: 'Aguardando o oponente…',
     waitingCards: 'Aguardando as cartas do servidor…',
+    waitingEnd: 'Aguardando o fim do sorteio…',
     sending: 'Enviando escolha ao servidor…',
     expired: 'Tempo esgotado. Aguardando a escolha automática do servidor…',
+    expiredSwap: 'Tempo esgotado. Seu deck continua o mesmo.',
+    initialTag: 'Inicial',
+    drawnTag: 'Sorteada',
+    experimentTag: 'Experimente',
   },
 } as const
 

@@ -1,8 +1,10 @@
 // O que as telas usam para falar com a sala: entrar, mandar intenções e sair. Escolhe entre o
-// servidor simulado (FE-35) e o cliente STOMP real (FE-18) pela variável de ambiente. Os dois
-// são carregados sob demanda, só quando alguém entra numa sala.
+// servidor simulado (FE-35) e o cliente STOMP real (FE-18) pela variável de ambiente; quem passa
+// opções do simulado (vitrine, testes) usa o simulado sempre. Os dois são carregados sob demanda,
+// só quando alguém entra numa sala.
 import { isSessionValid } from '../api/auth'
 import { applyServerEvent, resetGameStores } from '../stores/serverEvents'
+import { watchServerCall } from '../stores/serverWakeStore'
 import { useRoomStore } from '../stores/roomStore'
 import type { ClientCommand, ServerEnvelope } from '../types/events'
 import type { MockConnectionOptions, MockControls } from './mock/mockConnection'
@@ -12,9 +14,9 @@ import type { GameConnection, Unsubscribe } from './types'
 export { isMockServerEnabled }
 
 export async function createGameConnection(
-  mockOptions: MockConnectionOptions = {},
+  mockOptions?: MockConnectionOptions,
 ): Promise<GameConnection> {
-  if (isMockServerEnabled()) {
+  if (mockOptions || isMockServerEnabled()) {
     const [{ MockConnection }, { resolveBotDrop, resolveBotRematch, resolveScenario }] =
       await Promise.all([import('./mock/mockConnection'), import('./mock/scenarios')])
     const { search } = window.location
@@ -41,7 +43,7 @@ const debugListeners = new Set<(event: ServerEnvelope) => void>()
 export interface JoinRoomOptions {
   /** Conexão pronta (testes); sem isto, cria a do ambiente */
   connection?: GameConnection
-  /** Opções do simulado (ex: cenário da vitrine) */
+  /** Usa o simulado com estas opções, mesmo com ele desligado (ex: cenário da vitrine) */
   mock?: MockConnectionOptions
 }
 
@@ -61,7 +63,8 @@ export async function joinRoom(roomCode: string, options: JoinRoomOptions = {}) 
     conn.onStatus((status) => useRoomStore.getState().setConnectionStatus(status)),
   ]
   try {
-    await conn.connect(roomCode)
+    // Quem recarrega a página já na sala acorda o back pelo STOMP: o aviso aparece aqui também (FE-51)
+    await watchServerCall(conn.connect(roomCode))
   } catch (error) {
     // O back recusa o CONNECT sem dizer o motivo, e o mais comum é o token vencido (ex: link direto
     // da sala depois de muito tempo). Sessão caída já foi para o Acesso, com o aviso dela

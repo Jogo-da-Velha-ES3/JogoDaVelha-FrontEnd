@@ -15,7 +15,9 @@ import type { ServerEvent } from '../../types/events'
 import type { PlayerSlot, PlayerState, RoomSnapshot } from '../../types/game'
 import { Arena } from './Arena'
 import { sendCommand } from '../../sockets/gameClient'
+import type { ShopItem } from '../../api/shop'
 import { usePowersStore } from '../../stores/powersStore'
+import { resetProfile, useProfileStore } from '../../stores/profileStore'
 
 vi.mock('../../sockets/gameClient', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../sockets/gameClient')>()
@@ -314,6 +316,123 @@ describe('sorteio da 3ª habilidade (FE-10)', () => {
 
     endDraw()
     expect(screen.getByText('A cobra vai fumar… · 5 segundos por jogada')).toBeInTheDocument()
+  })
+
+  it('"Experimente" só nas habilidades que o jogador não comprou', () => {
+    const skill = (code: string, owned: boolean): ShopItem => ({
+      id: code,
+      category: 'SKILLS',
+      code,
+      name: code,
+      description: '',
+      priceCoins: 350,
+      owned,
+      equipped: false,
+    })
+    useProfileStore.setState({ skills: [skill('BOMBA', true), skill('TORNADO', true)] })
+    renderArena()
+    startRound(1, 'P1')
+    send('DRAW_OPTIONS', {
+      options: ['TORNADO', 'SILENCIO', 'ESCUDO'],
+      deadline: Date.now() + 8000,
+    })
+
+    expect(screen.getByRole('button', { name: /^Tornado\./ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Silêncio, experimente/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Escudo, experimente/i })).toBeInTheDocument()
+    resetProfile()
+  })
+})
+
+describe('sorteio do round 2 em diante: troca de habilidade (FE-50)', () => {
+  /** Round 2 com o deck do round 1 completo (Bomba, Escudo e Tornado) e as cartas novas */
+  function toSwapDraw() {
+    renderArena()
+    startRound(2, 'P1')
+    send('DECK_UPDATE', {
+      deck: [
+        { ability: 'BOMBA', source: 'INITIAL', usedThisRound: false },
+        { ability: 'ESCUDO', source: 'INITIAL', usedThisRound: false },
+        { ability: 'TORNADO', source: 'DRAWN', usedThisRound: false },
+      ],
+    })
+    send('DRAW_OPTIONS', {
+      options: ['CONGELAR', 'AMPULHETA', 'SILENCIO'],
+      deadline: Date.now() + 8000,
+    })
+  }
+
+  it('escolhe a carta nova, depois qual sai, e só então envia a intenção', () => {
+    toSwapDraw()
+    expect(
+      screen.getByRole('heading', { name: 'Sorteio: troca de habilidade' }),
+    ).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /Congelar, experimente/i }))
+    expect(sendCommand).not.toHaveBeenCalled()
+    expect(screen.getByText('Qual habilidade do seu deck sai?')).toBeInTheDocument()
+
+    // Dá para trocar a carta nova antes de escolher qual sai
+    fireEvent.click(screen.getByRole('button', { name: 'Escolher outra carta' }))
+    fireEvent.click(screen.getByRole('button', { name: /Silêncio, experimente/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Tirar Bomba, inicial' }))
+
+    expect(sendCommand).toHaveBeenCalledExactlyOnceWith({
+      type: 'DRAW_PICK',
+      payload: { ability: 'SILENCIO', abilityToRemove: 'BOMBA' },
+    })
+    expect(screen.getByText('Enviando escolha ao servidor…')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Tirar Escudo, inicial' })).toBeDisabled()
+
+    // O servidor confirma a troca
+    send('DECK_UPDATE', {
+      deck: [
+        { ability: 'ESCUDO', source: 'INITIAL', usedThisRound: false },
+        { ability: 'SILENCIO', source: 'DRAWN', usedThisRound: false },
+        { ability: 'TORNADO', source: 'DRAWN', usedThisRound: false },
+      ],
+    })
+    const region = screen.getByRole('region', { name: 'Sorteio da terceira habilidade' })
+    expect(region).toHaveTextContent('Silêncio')
+    expect(screen.getByText('Saiu Bomba.')).toBeInTheDocument()
+    expect(screen.getByText('Aguardando o oponente…')).toBeInTheDocument()
+  })
+
+  it('"Manter meu deck" só esconde as cartas, sem mandar nada, e dá para voltar a elas', async () => {
+    toSwapDraw()
+    fireEvent.click(screen.getByRole('button', { name: 'Manter meu deck' }))
+
+    const deck = screen.getByRole('list', { name: 'Seu deck' })
+    expect(within(deck).getByText('Tornado')).toBeInTheDocument()
+    expect(screen.getByText('O round começa quando o tempo do sorteio acabar.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Congelar/ })).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ver as cartas de novo' }))
+    expect(screen.getByRole('button', { name: /Congelar, experimente/i })).toBeEnabled()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Manter meu deck' }))
+    await tick(8100)
+    expect(screen.queryByRole('button', { name: 'Ver as cartas de novo' })).not.toBeInTheDocument()
+    expect(sendCommand).not.toHaveBeenCalled()
+  })
+
+  it('tempo esgotado: avisa que o deck continua o mesmo e não escolhe nada localmente', async () => {
+    toSwapDraw()
+    fireEvent.click(screen.getByRole('button', { name: /Congelar, experimente/i }))
+    await tick(8100)
+
+    expect(screen.getByText('Tempo esgotado. Seu deck continua o mesmo.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Tirar Bomba, inicial' })).toBeDisabled()
+    expect(sendCommand).not.toHaveBeenCalled()
+
+    // O back não manda DECK_UPDATE: o fim do sorteio tira as cartas
+    endDraw()
+    expect(usePowersStore.getState().drawOptions).toBeNull()
+    expect(usePowersStore.getState().deck.map((slot) => slot.ability)).toEqual([
+      'BOMBA',
+      'ESCUDO',
+      'TORNADO',
+    ])
   })
 })
 

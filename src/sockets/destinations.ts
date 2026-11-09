@@ -33,8 +33,12 @@ export function toBackCommand(roomCode: string, command: ClientCommand): BackCom
     case 'DRAFT_ABILITIES':
       return to('/draft/abilities', command.payload)
     case 'DRAW_PICK':
-      // Sem `abilityToRemove`: a carta nova entra no lugar da sorteada anterior [RN-DRAFT-02]
-      return to('/draw/pick', command.payload)
+      // Round 1: só `{ ability }`. Do round 2 em diante, o back exige `abilityToRemove`, a
+      // habilidade do deck que sai (sem ele, recusa); o JSON omite o campo quando não vem
+      return to('/draw/pick', {
+        ability: command.payload.ability,
+        abilityToRemove: command.payload.abilityToRemove,
+      })
     case 'MOVE':
       return to('/move', { position: command.payload.cell })
     case 'USE_ABILITY': {

@@ -10,7 +10,7 @@
 
 | Ambiente                            | Para quê                                                                              |
 | ----------------------------------- | ------------------------------------------------------------------------------------- |
-| Servidor simulado (padrão do front) | telas, animações e regras do front, sem depender do back                              |
+| Servidor simulado                   | telas, animações e regras do front, sem depender do back                              |
 | **Front + back locais (este guia)** | integração: contrato, ordem dos eventos, erros; dá para pôr breakpoint nos dois       |
 | Preview da Vercel + back no Render  | conferir o que só existe no deploy: HTTPS/`wss`, CORS, cold start, celular de verdade |
 
@@ -107,13 +107,13 @@ Não rode o modo simples e o de depuração juntos: os dois querem a porta 8080.
 No `.env.local` do front (não vai para o git):
 
 ```
-VITE_USE_MOCK_SERVER=false
 VITE_API_URL=http://localhost:8080/api
 VITE_WEBSOCKET_URL=http://localhost:8080
 ```
 
-`npm run dev` e abra `http://localhost:5173`. Para voltar ao servidor simulado, apague essas
-linhas (ou `VITE_USE_MOCK_SERVER=true`) e reinicie o `npm run dev`.
+`npm run dev` e abra `http://localhost:5173`. Desde a FE-50, o back real é o padrão do front; para
+jogar contra o servidor simulado, acrescente `VITE_USE_MOCK_SERVER=true` e reinicie o
+`npm run dev`.
 
 **Dois jogadores:** a sessão fica no `localStorage`, então use uma janela normal e uma anônima
 (ou dois navegadores), cada uma com a sua conta. Conta nova já vem com X, O, Bomba, Escudo e
@@ -173,5 +173,5 @@ mudar. Sem a variável, eles ficam pulados (`npm test` e CI).
 | Login funciona, mas a sala não conecta                               | `VITE_WEBSOCKET_URL` errado (é a raiz do back, sem `/api`) ou API fora do ar                       |
 | Erro de CORS no console                                              | `CORS_ALLOWED_ORIGINS` sem `http://localhost:5173`                                                 |
 | PostgreSQL recusa a senha depois de mudar o `.env`                   | O volume guardou a senha antiga: `docker compose down -v` (apaga os dados)                         |
-| O front continua jogando contra o robô                               | `VITE_USE_MOCK_SERVER` não está `false`, ou o `npm run dev` não foi reiniciado                     |
+| O front continua jogando contra o robô                               | `VITE_USE_MOCK_SERVER=true` no `.env.local`, ou o `npm run dev` não foi reiniciado                 |
 | Testes do back com `NoClassDefFound` ou "Mockito cannot mock"        | Outra ferramenta compilando na mesma `target/` (extensão Java do VS Code): desligue e rode de novo |
