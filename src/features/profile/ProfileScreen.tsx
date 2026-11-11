@@ -118,7 +118,10 @@ export function ProfileScreen() {
     )
   }
 
-  const matches = stats?.matchesPlayed ?? 0
+  // Até as estatísticas chegarem, "–" em vez de um 0 que depois muda
+  const statValue = (value: (s: NonNullable<typeof stats>) => string) =>
+    stats ? value(stats) : T.loadingStat
+  const count = (n: number) => n.toLocaleString('pt-BR')
 
   return (
     <section className="flex min-h-0 flex-1 flex-col" aria-labelledby="profile-page-title">
@@ -201,15 +204,15 @@ export function ProfileScreen() {
           <section aria-label={T.statistics}>
             <SectionTitle title={T.statistics} />
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 short:grid-cols-4 short:gap-1.5">
-              <StatCard label={T.matches} value={matches.toLocaleString('pt-BR')} />
-              <StatCard label={T.wins} value={(stats?.wins ?? 0).toLocaleString('pt-BR')} />
+              <StatCard label={T.matches} value={statValue((s) => count(s.matchesPlayed))} />
+              <StatCard label={T.wins} value={statValue((s) => count(s.wins))} />
               <StatCard
                 label={T.winRate}
-                value={formatRate(matches === 0 ? 0 : (stats?.winRate ?? 0))}
+                value={statValue((s) => formatRate(s.matchesPlayed === 0 ? 0 : s.winRate))}
               />
               <StatCard
                 label={T.longestStreak}
-                value={(stats?.longestWinStreak ?? 0).toLocaleString('pt-BR')}
+                value={statValue((s) => count(s.longestWinStreak))}
               />
             </div>
           </section>

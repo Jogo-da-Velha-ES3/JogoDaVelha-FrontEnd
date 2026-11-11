@@ -125,6 +125,8 @@ export const SETTINGS_TEXTS = {
 export const PROFILE_TEXTS = {
   /** Apelido mostrado enquanto o perfil não carregou */
   loadingNickname: 'Carregando…',
+  /** Estatística que ainda não chegou do servidor (no lugar de um 0 que não é verdade) */
+  loadingStat: '–',
   /** Topo do Hub quando o perfil não chegou nem uma vez (ex: back fora do ar) */
   loadError: 'Não foi possível carregar seu perfil.',
   retry: 'Tentar de novo',
@@ -253,6 +255,11 @@ export const ROOM_TEXTS = {
   preparationIn: 'Preparação em',
   preparing: 'Preparando…',
   reconnecting: 'Reconectando…',
+  /** Entrada na sala, enquanto o servidor não manda o estado dela */
+  title: (code: string) => `Sala ${code}`,
+  entering: 'Entrando na sala…',
+  retry: 'Tentar de novo',
+  backToHub: 'Voltar ao Hub',
   /** Sala encerrada pelo servidor (ROOM_CLOSED), para quem ficou */
   closed: {
     opponentLeft: 'O oponente saiu da sala.',

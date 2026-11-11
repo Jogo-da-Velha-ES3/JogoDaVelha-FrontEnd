@@ -10,7 +10,7 @@ src/
 ├── api/                # cliente REST fino (fetch): auth, perfil, inventário, loja, salas
 ├── assets/             # sons (Howler), imagens, ícones, fontes
 ├── components/         # componentes reutilizáveis e "burros" (sem lógica de negócio)
-│   ├── ui/              # botões, modais, inputs, toast, banner, ícones (cadeado, pausa) — puramente visuais
+│   ├── ui/              # botões, modais, inputs, toast, banner, carregando (`Spinner`), ícones (cadeado, pausa) — puramente visuais
 │   └── layout/          # LandscapeShell (safe-area, sem overflow) e o aviso "Gire o celular"
 ├── features/           # lógica de domínio, isolada por área do jogo
 │   ├── auth/            # login, cadastro, sessão
@@ -99,11 +99,14 @@ switch (room.phase) {
 ```
 
 Implementado na FE-28 em `src/routes/RoomPage.tsx`: ao abrir `/sala/:codigo`, a página chama
-`joinRoom` (pelo link, depois do `POST /join`, acima) e, ao sair, `leaveRoom`. Sala de Espera e Preparação ainda são placeholders
-(`src/routes/room/RoomPlaceholders.tsx`) que a FE-26 e a FE-09 substituem; o Resultado (FE-15) já é
-tela de verdade. No W.O., a
-Arena segura o banner por `RESULT_HOLD_SECONDS` antes do Resultado; no empate absoluto também
-(PROJECT_CONTEXT §9). Os efeitos da Morte Súbita ficam em `SuddenDeathLayer` (FE-13).
+`joinRoom` (pelo link, depois do `POST /join`, acima) e, ao sair, `leaveRoom`. Até o servidor
+mandar a fase, aparece o `RoomLoading` (`src/features/lobby/`): "Entrando na sala…" com o
+"Voltar ao Hub", porque o back acordando pode levar minutos. Se a conexão falhar, o `RoomPage` para
+o cliente STOMP (que tentaria de novo sozinho, sem parar) e a tela mostra o erro com "Tentar de
+novo" (11/11). A Sala de Espera é a FE-26, a Preparação (FE-09) entra pelo `PreparationPlaceholder`
+(`src/routes/room/RoomPlaceholders.tsx`), que só carrega o inventário, e o Resultado é a FE-15. No
+W.O., a Arena segura o banner por `RESULT_HOLD_SECONDS` antes do Resultado; no empate absoluto
+também (PROJECT_CONTEXT §9). Os efeitos da Morte Súbita ficam em `SuddenDeathLayer` (FE-13).
 A Arena fica em `src/features/match/Arena.tsx`, com as regiões prontas para as faixas e banners
 (FE-05), o deck (FE-11) e a mira (FE-27).
 

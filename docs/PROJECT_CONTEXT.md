@@ -396,6 +396,15 @@ Quando uma chamada ao servidor passa de 4s sem resposta, aparece no alto da tela
 dos modais, "Acordando o servidor…" com "O velhinho tá levantando da cadeira · pode levar uns
 minutinhos". O aviso some quando o servidor responde. Nenhuma chamada é cortada nesse tempo.
 
+### Esperando o servidor (decidido em 11/11)
+
+- Toda espera por uma resposta do back mostra o anel neon de carregamento (`Spinner`) com o texto
+  do que está carregando ("Carregando a Loja…"). Onde o formato já é conhecido, a tela mostra o
+  formato vazio no lugar: os cartões dos pacotes de Coins pulsando e "–" nas estatísticas do Perfil
+  (nunca um 0 que depois muda). Botões que mandam algo trocam o texto ("Criando sala…").
+- **Entrada na sala:** "Sala 4821" com "Entrando na sala…" e o botão "Voltar ao Hub" até o servidor
+  mandar o estado da sala. Se a conexão falhar, o erro fica na tela com "Tentar de novo".
+
 ### Arena
 
 - Coluna esquerda: pausa, placar do round, faixa do oponente, espaço reservado do Vitão, faixa do

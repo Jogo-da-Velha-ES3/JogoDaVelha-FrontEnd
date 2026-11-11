@@ -1,6 +1,7 @@
 // Entrada na sala: pelo link, o POST /join vem antes do STOMP, porque o back só deixa assinar a
 // sala depois dele. Criar Sala e o modal do código já fizeram o /join e pulam esse passo.
 import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '../api/client'
@@ -23,7 +24,7 @@ vi.mock('../sockets/gameClient', async (importOriginal) => {
 })
 
 import { enterRoomByLink } from '../api/rooms'
-import { joinRoom } from '../sockets/gameClient'
+import { joinRoom, leaveRoom } from '../sockets/gameClient'
 
 function renderRoom(state?: RoomLocationState) {
   const router = createMemoryRouter(
@@ -90,5 +91,37 @@ describe('entrar na sala depois de Criar Sala ou do código', () => {
 
     await waitFor(() => expect(joinRoom).toHaveBeenCalledWith('4821'))
     expect(enterRoomByLink).not.toHaveBeenCalled()
+  })
+})
+
+describe('esperando o servidor (tela de entrada)', () => {
+  it('mostra "Entrando na sala…" e deixa voltar ao Hub', async () => {
+    vi.mocked(joinRoom).mockReturnValueOnce(new Promise(() => {})) // o servidor não responde
+    const router = renderRoom(JOINED_ROOM_STATE)
+
+    expect(screen.getByRole('heading', { name: 'Sala 4821' })).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent('Entrando na sala…')
+    expect(screen.queryByText(/Em construção/)).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Voltar ao Hub' }))
+    expect(router.state.location.pathname).toBe('/')
+  })
+
+  it('conexão falha: o erro fica na tela, a conexão para e "Tentar de novo" refaz a entrada', async () => {
+    vi.mocked(joinRoom)
+      .mockRejectedValueOnce(new Error('O servidor recusou a conexão.'))
+      .mockReturnValueOnce(new Promise(() => {}))
+    renderRoom(JOINED_ROOM_STATE)
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Não foi possível entrar na sala agora.',
+    )
+    expect(leaveRoom).toHaveBeenCalled() // o stompjs não fica tentando sozinho
+    expect(toasts()).toHaveLength(0) // o erro está na tela, sem aviso que some
+
+    await userEvent.click(screen.getByRole('button', { name: 'Tentar de novo' }))
+    expect(joinRoom).toHaveBeenCalledTimes(2)
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent('Entrando na sala…')
   })
 })
