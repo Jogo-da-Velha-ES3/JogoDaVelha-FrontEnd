@@ -77,6 +77,12 @@ vencedora que o servidor confirmou.
   sala (FE-49).
 - Link direto: `/sala/4821`. Se não houver sessão, o código fica guardado no `roomStore`
   (`pendingRoomCode`, no `sessionStorage`), o jogador passa pelo Acesso e volta para a sala.
+- Entrar pelo link (11/11, FE-21): o back só deixa assinar a sala no STOMP depois do
+  `POST /rooms/{code}/join`. O `RoomPage` chama o `enterRoomByLink` (`src/api/rooms.ts`) antes do
+  `joinRoom`, menos quando chega com `{ joined: true }` (`JOINED_ROOM_STATE`), que o Criar Sala e o
+  modal do código mandam porque já fizeram o `/join`. Quem já está numa sala ativa (o host, quem
+  recarrega a página) recebe `ROOM_CONFLICT` e segue para o STOMP. Sala inexistente, cheia ou já
+  começada: aviso em vermelho e volta ao Hub.
 - Código de sala inválido (`/sala/abc`, `/sala/12345`) mostra "Página não encontrada".
 - Dentro de `/sala/:codigo`, a tela é escolhida pelo campo `phase` que o servidor manda no
   snapshot da sala (e no `PHASE_CHANGE`), em vez de rotas separadas para jogo e resultado. Assim,
@@ -93,7 +99,7 @@ switch (room.phase) {
 ```
 
 Implementado na FE-28 em `src/routes/RoomPage.tsx`: ao abrir `/sala/:codigo`, a página chama
-`joinRoom` e, ao sair, `leaveRoom`. Sala de Espera e Preparação ainda são placeholders
+`joinRoom` (pelo link, depois do `POST /join`, acima) e, ao sair, `leaveRoom`. Sala de Espera e Preparação ainda são placeholders
 (`src/routes/room/RoomPlaceholders.tsx`) que a FE-26 e a FE-09 substituem; o Resultado (FE-15) já é
 tela de verdade. No W.O., a
 Arena segura o banner por `RESULT_HOLD_SECONDS` antes do Resultado; no empate absoluto também
@@ -216,23 +222,23 @@ A fonte é o `docs/contrato-integracao-v2.md` do repositório do back. Ele foi v
 
 ### REST (`VITE_API_URL`, termina em `/api`)
 
-| Método | Rota                            | Uso                                                                 |
-| ------ | ------------------------------- | ------------------------------------------------------------------- |
-| POST   | `/auth/register`                | criar conta (usuário, e-mail, senha); não devolve token             |
-| POST   | `/auth/login`                   | login com e-mail **ou** usuário + senha → token                     |
-| POST   | `/auth/forgot-password`         | envia o link de recuperação (200, mensagem genérica)                |
-| POST   | `/auth/reset-password`          | `{ token, newPassword, confirmPassword }`                           |
-| GET    | `/profile`                      | apelido, saldo, avatar, personagem mais usado e o equipado          |
-| GET    | `/profile/stats`                | partidas, vitórias, sequências e taxa de vitória                    |
-| PATCH  | `/profile/username`             | trocar apelido → 204                                                |
-| GET    | `/shop/{categoria}`             | catálogo (`characters` ou `skills`) com `owned`/`equipped`          |
-| POST   | `/shop/{cat}/{id}/purchase`     | comprar personagem ou habilidade `[RF-LOJ-02]`                      |
-| PUT    | `/shop/characters/{id}/equip`   | equipar o personagem favorito                                       |
-| GET    | `/coins/balance`                | saldo `{ coinsBalance }`                                            |
-| GET    | `/coins/packages`               | pacotes simbólicos `{ id, coins, priceInReais }`                    |
-| POST   | `/coins/packages/{id}/purchase` | compra simbólica → 200 `{ coinsBalance }` `[RN-LOJ-04]`             |
-| POST   | `/rooms`                        | criar sala → código de 4 dígitos `[RF-HUB-04]`                      |
-| POST   | `/rooms/{code}/join`            | entrar; erros `ROOM_NOT_FOUND`, `ROOM_FULL`, `ROOM_ALREADY_STARTED` |
+| Método | Rota                            | Uso                                                                                                                             |
+| ------ | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| POST   | `/auth/register`                | criar conta (usuário, e-mail, senha); não devolve token                                                                         |
+| POST   | `/auth/login`                   | login com e-mail **ou** usuário + senha → token                                                                                 |
+| POST   | `/auth/forgot-password`         | envia o link de recuperação (200, mensagem genérica)                                                                            |
+| POST   | `/auth/reset-password`          | `{ token, newPassword, confirmPassword }`                                                                                       |
+| GET    | `/profile`                      | apelido, saldo, avatar, personagem mais usado e o equipado                                                                      |
+| GET    | `/profile/stats`                | partidas, vitórias, sequências e taxa de vitória                                                                                |
+| PATCH  | `/profile/username`             | trocar apelido → 204                                                                                                            |
+| GET    | `/shop/{categoria}`             | catálogo (`characters` ou `skills`) com `owned`/`equipped`                                                                      |
+| POST   | `/shop/{cat}/{id}/purchase`     | comprar personagem ou habilidade `[RF-LOJ-02]`                                                                                  |
+| PUT    | `/shop/characters/{id}/equip`   | equipar o personagem favorito                                                                                                   |
+| GET    | `/coins/balance`                | saldo `{ coinsBalance }`                                                                                                        |
+| GET    | `/coins/packages`               | pacotes simbólicos `{ id, coins, priceInReais }`                                                                                |
+| POST   | `/coins/packages/{id}/purchase` | compra simbólica → 200 `{ coinsBalance }` `[RN-LOJ-04]`                                                                         |
+| POST   | `/rooms`                        | criar sala → código de 4 dígitos `[RF-HUB-04]`                                                                                  |
+| POST   | `/rooms/{code}/join`            | entrar, antes do STOMP; erros `ROOM_NOT_FOUND`, `ROOM_FULL`, `ROOM_ALREADY_STARTED` e `ROOM_CONFLICT` (já está numa sala ativa) |
 
 **Back dormindo (FE-51):** o back de produção (Render) dorme sem uso e leva minutos para acordar.
 As chamadas REST não têm limite de tempo. Cada uma passa pelo `watchServerCall`

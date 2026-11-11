@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from './client'
-import { createRoom, joinRoomByCode, roomErrorMessage } from './rooms'
+import { createRoom, enterRoomByLink, joinRoomByCode, roomErrorMessage } from './rooms'
 
 const fetchMock = vi.fn<typeof fetch>()
 
@@ -29,6 +29,11 @@ describe('modo simulado (padrão)', () => {
 
   it('entrar sempre funciona', async () => {
     await expect(joinRoomByCode('4821')).resolves.toEqual({ code: '4821' })
+  })
+
+  it('entrar pelo link não chama o back', async () => {
+    await expect(enterRoomByLink('4821')).resolves.toBeUndefined()
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 })
 
@@ -62,6 +67,29 @@ describe('back de verdade', () => {
   ])('erro %i %o vira "%s" [RN-SAL-01]', async (status, body, message) => {
     respond(status, body)
     await expect(joinRoomByCode('4821')).rejects.toMatchObject({ status, message })
+  })
+
+  describe('entrar pelo link', () => {
+    it('faz o POST /join antes da sala abrir', async () => {
+      respond(200, { id: 'x', code: '4821', status: 'IN_GAME' })
+      await expect(enterRoomByLink('4821')).resolves.toBeUndefined()
+      expect(fetchMock.mock.calls[0][0]).toMatch(/\/rooms\/4821\/join$/)
+      expect(fetchMock.mock.calls[0][1]).toMatchObject({ method: 'POST' })
+    })
+
+    it('quem já está numa sala ativa (host, recarregar a página) segue para o STOMP', async () => {
+      respond(409, { code: 'ROOM_CONFLICT', message: 'Jogador já está em uma sala ativa' })
+      await expect(enterRoomByLink('4821')).resolves.toBeUndefined()
+    })
+
+    it.each([
+      [404, 'ROOM_NOT_FOUND', 'Sala 4821 não encontrada.'],
+      [409, 'ROOM_FULL', 'A sala 4821 já está cheia.'],
+      [409, 'ROOM_ALREADY_STARTED', 'A partida da sala 4821 já começou.'],
+    ])('erro %i %s vira "%s"', async (status, code, message) => {
+      respond(status, { code, message: '…' })
+      await expect(enterRoomByLink('4821')).rejects.toMatchObject({ status, code, message })
+    })
   })
 })
 

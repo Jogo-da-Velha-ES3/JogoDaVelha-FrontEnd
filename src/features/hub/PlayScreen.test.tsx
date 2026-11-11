@@ -36,6 +36,8 @@ describe('PlayScreen', () => {
     const router = renderPlay()
     await userEvent.click(screen.getByRole('button', { name: 'Criar sala' }))
     await waitFor(() => expect(router.state.location.pathname).toBe('/sala/1234'))
+    // O host já está na sala no back: a sala não chama o POST /join de novo
+    expect(router.state.location.state).toEqual({ joined: true })
   })
 
   it('erro ao criar sala avisa e continua no Hub', async () => {
