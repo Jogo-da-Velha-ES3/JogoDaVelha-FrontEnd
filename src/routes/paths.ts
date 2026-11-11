@@ -11,6 +11,15 @@ export const PATHS = {
 
 export const roomPath = (code: string) => `/sala/${code}`
 
+/**
+ * Estado da navegação para a sala. `joined`: quem criou a sala ou entrou pelo código já está nela
+ * no back, e a sala não chama o `POST /join` de novo. Sem ele (link), a sala chama.
+ */
+export interface RoomLocationState {
+  joined?: boolean
+}
+export const JOINED_ROOM_STATE: RoomLocationState = { joined: true }
+
 /** Aba da Loja que dá para abrir pelo link (o Perfil leva o item bloqueado para a aba dele) */
 export type ShopTabParam = 'characters' | 'skills'
 export const SHOP_TAB_PARAM = 'categoria'
