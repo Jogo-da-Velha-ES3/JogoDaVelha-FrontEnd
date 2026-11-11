@@ -2,7 +2,7 @@
 // sem React e sem ler stores: o hook tira os retratos e passa para cá. As stores só mudam por
 // evento do servidor, então tudo o que sai daqui já está confirmado.
 import type { AbilityId, Cell, MatchOutcome, PlayerSlot } from '../types/game'
-import { otherSlot, type Score } from './match'
+import { isMatchPoint, otherSlot, type Score } from './match'
 import type { VitaoMoment, VitaoSide } from './vitao'
 
 export interface VitaoSnapshot {
@@ -91,29 +91,21 @@ export function momentsFromChange(
     })
   }
 
-  // Match point: o round entra em jogo (depois do sorteio) com alguém em 1 vitória. Na Morte
-  // Súbita não, porque é o round decisivo e ela tem a fala própria
-  if (
-    !next.suddenDeath &&
-    next.introStartedAt !== null &&
-    next.introStartedAt !== prev.introStartedAt
-  ) {
+  // O round entra em jogo depois do sorteio (snapshot de reconexão vem sem a hora)
+  const enteredPlay = next.introStartedAt !== null && next.introStartedAt !== prev.introStartedAt
+
+  // Match point: a mesma regra do banner (isMatchPoint). Na Morte Súbita não, porque é o round
+  // decisivo e ela tem a fala própria
+  if (enteredPlay && !next.suddenDeath && isMatchPoint(next.score)) {
     const mine = next.score[me]
     const theirs = next.score[otherSlot(me)]
-    if (mine >= 1 && mine > theirs) moments.push({ kind: 'MATCH_POINT', leader: 'ME' })
-    else if (theirs >= 1 && theirs > mine) {
-      moments.push({ kind: 'MATCH_POINT', leader: 'OPPONENT' })
+    if (mine !== theirs) {
+      moments.push({ kind: 'MATCH_POINT', leader: mine > theirs ? 'ME' : 'OPPONENT' })
     }
   }
 
-  // Entrada da Morte Súbita: o round 3 entra em jogo depois do sorteio
-  if (
-    next.suddenDeath &&
-    next.introStartedAt !== null &&
-    next.introStartedAt !== prev.introStartedAt
-  ) {
-    moments.push({ kind: 'SUDDEN_DEATH_START' })
-  }
+  // Entrada da Morte Súbita: o round 3 entra em jogo
+  if (enteredPlay && next.suddenDeath) moments.push({ kind: 'SUDDEN_DEATH_START' })
 
   // W.O.: só quando o MATCH_END acabou de chegar (repetido ou vindo de snapshot, não)
   const { outcome } = next

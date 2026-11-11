@@ -1,7 +1,10 @@
 // Falas do Vitão (FE-43). As frases gravadas pelo Rafik vêm de constants/texts.ts via fromVoice e
 // guardam o nome do áudio (FE-48). As dos momentos sem gravação (jogadas, minha habilidade) são
 // escritas aqui, no tom do docs/VOICE_GUIDE.md. Ainda são PROVISÓRIAS as de empate, estouro do
-// oponente e todas as do "Diabo" que não têm gravação.
+// oponente e as do "Diabo".
+// Morte Súbita (decidido em 11/11): momento com gravação do Rafik fica sem lista `devil`, então o
+// Vitão fala a frase gravada com a cara de Diabo e a voz toca (FE-48). As falas do Diabo ficam só
+// para os momentos sem gravação (jogadas, minha habilidade, empate, estouro do oponente).
 // `explicit: true` = fala sem filtro, que some quando o filtro das Configurações está ligado.
 // Fala com xingamento usa fromVoice({ unfiltered, filtered }): a versão [C] só aparece com o filtro.
 // Raiva é sempre MUITO_BRAVO: na cabeça pequena, o BRAVO fica igual ao NORMAL (FE-41).
@@ -111,23 +114,17 @@ export const VITAO_LINES: VitaoLines = {
     ],
   },
   // As falas do Rafik (uma por habilidade) entram em buildVitaoLines
-  ABILITY_OPPONENT: {
-    normal: [],
-    devil: [say('Poderes? Aqui embaixo também temos.', 'DIABO')],
-  },
+  ABILITY_OPPONENT: { normal: [], devil: [] },
   ABILITY_ABSORBED: {
     normal: fromVoice(ABILITY_TEXTS.absorbedLine, 'DEBOCHADO', 'anulada'),
-    devil: [say('Nem o escudo te salva aqui.', 'DIABO')],
+    devil: [],
   },
   ABILITY_NO_EFFECT: {
     normal: fromVoice(ABILITY_TEXTS.noEffectLine, 'DEBOCHADO', 'sem-efeito'),
-    devil: [say('Poder jogado fora. Delicioso.', 'DIABO')],
+    devil: [],
   },
   // As falas do Rafik (1º e 2º estouro) entram em buildVitaoLines
-  TIMEOUT_ME: {
-    normal: [],
-    devil: [say('O tempo é meu aliado, não seu.', 'DIABO')],
-  },
+  TIMEOUT_ME: { normal: [], devil: [] },
   TIMEOUT_OPPONENT: {
     normal: [
       say('O rival dormiu! Zzz...', 'DORMINDO'),
@@ -137,11 +134,11 @@ export const VITAO_LINES: VitaoLines = {
   },
   ROUND_WIN_ME: {
     normal: fromVoice(ARENA_TEXTS.roundEnd.mineLine, 'RINDO', 'round-vitoria'),
-    devil: [say('Venceu um round. A sorte acaba.', 'DIABO')],
+    devil: [],
   },
   ROUND_WIN_OPPONENT: {
     normal: fromVoice(ARENA_TEXTS.roundEnd.opponentsLine, 'DEBOCHADO', 'round-derrota'),
-    devil: [say('Entregue-se.', 'DIABO')],
+    devil: [],
   },
   ROUND_DRAW: {
     normal: [
@@ -164,15 +161,15 @@ export const VITAO_LINES: VitaoLines = {
   },
   SUDDEN_DEATH_START: {
     normal: fromVoice(ARENA_TEXTS.suddenDeath.line, 'MUITO_BRAVO', 'morte-subita'),
-    devil: [say('Bem-vindo ao inferno.', 'DIABO'), say('Aqui não tem volta.', 'DIABO')],
+    devil: [],
   },
   WO_WIN_ME: {
     normal: fromVoice(RESULT_TEXTS.lines.WO_WIN, 'RINDO', 'wo-vitoria'),
-    devil: [say('Fugiu da luta. Covarde.', 'DIABO')],
+    devil: [],
   },
   WO_WIN_OPPONENT: {
     normal: fromVoice(RESULT_TEXTS.lines.WO_LOSS, 'MUITO_BRAVO', 'wo-derrota'),
-    devil: [say('Você abandonou o próprio inferno.', 'DIABO')],
+    devil: [],
   },
 }
 

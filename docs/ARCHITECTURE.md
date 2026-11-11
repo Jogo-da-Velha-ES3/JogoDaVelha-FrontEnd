@@ -132,8 +132,10 @@ O motor de reações do Vitão (FE-44) fica em `src/features/vitao/` e `src/lib/
 Morte Súbita, filtro) e a detecção dos momentos também (`lib/vitaoMoments.ts`, pela diferença entre
 dois retratos das stores). O hook `useVitaoReactions` observa as stores, que só mudam por evento do
 servidor, e entrega a fala atual ao `VitaoSlot`. O momento grande fala na hora, mesmo dentro da
-pausa de 6s, no lugar da fala atual. As falas provisórias estão em `features/vitao/vitaoLines.ts` (a
-FE-43 troca pelas frases do Rafik de `constants/texts.ts` e tira as piadas dos banners). A flag
+pausa de 6s, no lugar da fala atual. As falas ficam em `features/vitao/vitaoLines.ts` (FE-43): as
+do Rafik vêm de `constants/texts.ts` pelo `fromVoice`, com o nome do áudio para a FE-48, e o
+`buildVitaoLines` escolhe a da habilidade do oponente e a do 1º ou 2º estouro. Na Morte Súbita, o
+momento com gravação não tem lista `devil` e fala a frase do Rafik com a cara de Diabo. A flag
 `VITAO_ENABLED` foi ligada em 31/10, com a FE-44.
 
 O desenho do Vitão (FE-42) é o `VitaoView`, que não lê store: recebe a expressão, a fala e o `id` da

@@ -416,10 +416,8 @@ export const ABILITY_TEXTS = {
   deck: {
     waitingDeck: 'Aguardando o deck do servidor…',
     waitingConfirmation: 'Aguardando confirmação do servidor…',
-    silenced: {
-      unfiltered: 'Silenciado! Cala a boca e joga!',
-      filtered: 'Silenciado! Sem habilidade pra você neste turno.',
-    } satisfies VoiceLine,
+    // Só a informação: a piada ("Cala a boca e joga!") é do Vitão, na fala do Silêncio (FE-43)
+    silenced: 'Silenciado!',
     confirmTitle: (name: string) => `Usar ${name}?`,
   },
   /** Instrução da mira, ex: "Tornado: agora escolha a casa de destino" */

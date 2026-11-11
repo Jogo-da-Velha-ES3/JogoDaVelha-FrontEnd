@@ -132,12 +132,14 @@ describe('useVitaoReactions', () => {
     expect(result.current?.big).toBe(true)
   })
 
-  it('na entrada da Morte Súbita vira o Diabo', () => {
+  it('na entrada da Morte Súbita vira o Diabo e fala a frase gravada do Rafik', () => {
     const { result } = renderHook(() => useVitaoReactions())
     act(() => useMatchStore.setState({ suddenDeath: true, introStartedAt: 5000 }))
     waitWindow()
     expect(result.current?.devil).toBe(true)
     expect(result.current?.expression).toBe('DIABO')
+    expect(result.current?.text).toBe(ARENA_TEXTS.suddenDeath.line.unfiltered)
+    expect(result.current?.audio).toMatch(/^morte-subita/)
   })
 
   it('tabuleiro recarregado por reconexão não vira jogada', () => {

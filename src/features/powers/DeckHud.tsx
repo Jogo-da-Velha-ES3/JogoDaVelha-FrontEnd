@@ -173,7 +173,7 @@ export function DeckHud({
         )}
         {silenced && canUse && (
           <p role="status" className="text-center text-xs text-danger">
-            Silenciado!
+            {ABILITY_TEXTS.deck.silenced}
           </p>
         )}
         {pending && (
