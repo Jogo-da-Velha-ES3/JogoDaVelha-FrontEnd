@@ -16,6 +16,7 @@ const snap = (over: Partial<VitaoSnapshot> = {}): VitaoSnapshot => ({
   introStartedAt: null,
   roundStartedAt: 1000,
   suddenDeath: false,
+  score: { P1: 0, P2: 0 },
   ...over,
 })
 
@@ -41,17 +42,24 @@ describe('momentsFromChange', () => {
     expect(change({ cells: cells({ 1: 'P1', 2: 'P2', 3: 'P1' }) })).toEqual([]) // várias de uma vez
   })
 
-  it('habilidade nova carrega quem usou e se foi anulada ou sem efeito', () => {
-    const lastAbility = { by: 'P2' as const, absorbed: true, noEffect: false }
+  it('habilidade nova carrega quem usou, qual foi e se foi anulada ou sem efeito', () => {
+    const lastAbility = {
+      by: 'P2' as const,
+      absorbed: true,
+      noEffect: false,
+      ability: 'BOMBA' as const,
+    }
     expect(change({ lastAbility })).toEqual([
-      { kind: 'ABILITY', by: 'OPPONENT', absorbed: true, noEffect: false },
+      { kind: 'ABILITY', by: 'OPPONENT', absorbed: true, noEffect: false, abilityId: 'BOMBA' },
     ])
     // A mesma habilidade, sem objeto novo, não reage de novo
     expect(momentsFromChange(snap({ lastAbility }), snap({ lastAbility }), 'P1')).toEqual([])
   })
 
-  it('estouro de tempo', () => {
-    expect(change({ lastTimeout: { player: 'P1' } })).toEqual([{ kind: 'TIMEOUT', by: 'ME' }])
+  it('estouro de tempo carrega quantos estouros seguidos (a fala do Rafik muda no 2º)', () => {
+    expect(change({ lastTimeout: { player: 'P1', consecutiveTimeouts: 2 } })).toEqual([
+      { kind: 'TIMEOUT', by: 'ME', count: 2 },
+    ])
   })
 
   it('oponente caiu: reage na queda, não enquanto continua fora nem quando volta', () => {
@@ -78,6 +86,26 @@ describe('momentsFromChange', () => {
     ])
     expect(change({ introStartedAt: 5000 })).toEqual([]) // não é Morte Súbita
     expect(change({ suddenDeath: true }, { suddenDeath: true, introStartedAt: 4000 })).toEqual([])
+  })
+
+  it('match point: o round entra em jogo com alguém em 1 vitória', () => {
+    expect(change({ introStartedAt: 5000, score: { P1: 1, P2: 0 } })).toEqual([
+      { kind: 'MATCH_POINT', leader: 'ME' },
+    ])
+    expect(change({ introStartedAt: 5000, score: { P1: 0, P2: 1 } })).toEqual([
+      { kind: 'MATCH_POINT', leader: 'OPPONENT' },
+    ])
+  })
+
+  it('match point: não no 0×0, nem na Morte Súbita, nem fora da entrada do round', () => {
+    expect(change({ introStartedAt: 5000 })).toEqual([]) // round 1 empatou: 0×0
+    expect(change({ introStartedAt: 5000, suddenDeath: true, score: { P1: 1, P2: 1 } })).toEqual([
+      { kind: 'SUDDEN_DEATH_START' },
+    ])
+    // Já em jogo (mesma hora de entrada) ou snapshot de reconexão (sem hora)
+    const base = { introStartedAt: 5000, score: { P1: 1, P2: 0 } }
+    expect(change({}, base)).toEqual([])
+    expect(change({ score: { P1: 1, P2: 0 } })).toEqual([])
   })
 
   it('W.O.: reage uma vez, quando o MATCH_END acaba de chegar', () => {

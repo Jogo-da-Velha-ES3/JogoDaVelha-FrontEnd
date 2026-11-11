@@ -488,7 +488,12 @@ minutinhos". O aviso some quando o servidor responde. Nenhuma chamada é cortada
   - O Resultado não tem o Vitão: a piada continua como subtítulo e a voz do Rafik toca ali.
   - **Vitão desligado nas Configurações:** some o balão e a voz; os banners continuam só com a
     informação.
-  - Até a FE-43, as piadas ainda aparecem nos banners e o Vitão usa falas provisórias.
+  - Feito na FE-43 (11/11): as piadas saíram dos banners e o Vitão fala as frases do Rafik. As
+    falas de jogadas, da minha habilidade, do empate, do estouro do oponente e as do Diabo foram
+    escritas pelo time e continuam provisórias.
+  - **Morte Súbita (decidido em 11/11):** nos momentos com gravação, o Vitão fala a frase do Rafik
+    com a cara de Diabo, para a voz tocar. As falas próprias do Diabo ficam para os momentos sem
+    gravação.
 - **Caricatura em vez de foto (decidido em 25/10, FE-41):** lê melhor em tamanho pequeno e combina
   com o tom do jogo. Expressões: normal, rindo, debochado, bravo, muito bravo, surpreso, dormindo e
   Diabo, todas no mesmo ângulo e enquadramento, em WebP de 256px (~15 KB cada), em
@@ -499,8 +504,8 @@ minutinhos". O aviso some quando o servidor responde. Nenhuma chamada é cortada
   abaixo), balão que nunca cobre o tabuleiro, linguagem sem filtro por padrão (com opção de filtrar
   nas Configurações).
 - **Quando ele fala (decidido em 31/10, FE-44):** comenta só 1 em cada 3 jogadas de peça (sorteio);
-  habilidades, estouros de tempo e os momentos grandes (fim do round, entrada da Morte Súbita e
-  W.O.) ele sempre comenta. Os momentos grandes falam na hora, mesmo dentro da pausa de 6s: tomam o
+  habilidades, estouros de tempo e os momentos grandes (fim do round, match point, entrada da Morte
+  Súbita e W.O.) ele sempre comenta. Os momentos grandes falam na hora, mesmo dentro da pausa de 6s: tomam o
   lugar da fala atual (com a voz, cortam o áudio dela) e a pausa recomeça a partir deles. Esperar a
   pausa acabar pareceria atraso. Na Morte Súbita ele fica Diabo o tempo todo, não só quando fala.
 - **Flag:** a `VITAO_ENABLED` foi ligada em 31/10, com a FE-44, para o time ver o Vitão enquanto
@@ -513,9 +518,9 @@ minutinhos". O aviso some quando o servidor responde. Nenhuma chamada é cortada
   gritados, banners, erros, avisos, Resultado) seguem um guia de tom com humor de narrador estilo
   Mortal Kombat/Cuphead (`docs/VOICE_GUIDE.md`) e ficam num arquivo só, `src/constants/texts.ts`.
   As piadas são as falas que o Rafik gravou: sem filtro é a versão [E] e, com o filtro das
-  Configurações, a [C]; a piada sem versão limpa some. Hoje elas entram como subtítulo, sem tirar a
-  informação (placar, 1/3, os segundos da Morte Súbita); com a FE-43, passam para o balão do Vitão
-  (acima). Ficaram só para o áudio as explicações das 10
+  Configurações, a [C]; a piada sem versão limpa some. Na Arena, desde a FE-43, elas ficam no balão
+  do Vitão (acima), e os banners ficam com a informação (placar, 1/3, os segundos da Morte Súbita).
+  Ficaram só para o áudio as explicações das 10
   habilidades e a narração do Como Jogar, que não segue as 5 páginas. "Vitória implacável",
   como o Rafik gravou, fica "Vitória impecável" no texto, como na ERS `[RF-POS-01]`. O áudio do
   narrador ainda não está no jogo.

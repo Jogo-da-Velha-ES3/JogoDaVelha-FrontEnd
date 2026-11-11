@@ -5,8 +5,13 @@ import {
   VITAO_COOLDOWN_SECONDS,
   VITAO_DECISION_WINDOW_MS,
 } from '../../constants/game'
-import { ARENA_TEXTS } from '../../constants/texts'
-import { emptyCells, initialBoardState, useBoardStore } from '../../stores/boardStore'
+import { ABILITY_TEXTS, ARENA_TEXTS } from '../../constants/texts'
+import {
+  emptyCells,
+  initialBoardState,
+  useBoardStore,
+  type ResolvedAbility,
+} from '../../stores/boardStore'
 import { INITIAL_MATCH_STATE, useMatchStore } from '../../stores/matchStore'
 import { useRoomStore } from '../../stores/roomStore'
 import type { PlayerSlot, PlayerState } from '../../types/game'
@@ -21,6 +26,17 @@ const timeout = (player: PlayerSlot) => ({
   serverTime: 0,
   receivedAt: 0,
 })
+
+const ability = (over: Partial<ResolvedAbility> = {}) =>
+  ({
+    by: 'P2',
+    ability: 'BOMBA',
+    absorbed: false,
+    noEffect: false,
+    serverTime: 0,
+    receivedAt: 0,
+    ...over,
+  }) as ResolvedAbility
 
 const wait = (ms: number) => act(() => void vi.advanceTimersByTime(ms))
 const waitWindow = () => wait(VITAO_DECISION_WINDOW_MS)
@@ -102,7 +118,7 @@ describe('useVitaoReactions', () => {
     wait(1000)
     act(() => useMatchStore.setState({ lastTimeout: timeout('P2') }))
     waitWindow()
-    expect(result.current?.moment).toEqual({ kind: 'TIMEOUT', by: 'OPPONENT' })
+    expect(result.current?.moment).toEqual({ kind: 'TIMEOUT', by: 'OPPONENT', count: 1 })
   })
 
   it('o momento grande ganha da jogada que chegou junto', () => {
@@ -116,12 +132,14 @@ describe('useVitaoReactions', () => {
     expect(result.current?.big).toBe(true)
   })
 
-  it('na entrada da Morte Súbita vira o Diabo', () => {
+  it('na entrada da Morte Súbita vira o Diabo e fala a frase gravada do Rafik', () => {
     const { result } = renderHook(() => useVitaoReactions())
     act(() => useMatchStore.setState({ suddenDeath: true, introStartedAt: 5000 }))
     waitWindow()
     expect(result.current?.devil).toBe(true)
     expect(result.current?.expression).toBe('DIABO')
+    expect(result.current?.text).toBe(ARENA_TEXTS.suddenDeath.line.unfiltered)
+    expect(result.current?.audio).toMatch(/^morte-subita/)
   })
 
   it('tabuleiro recarregado por reconexão não vira jogada', () => {
@@ -169,5 +187,55 @@ describe('useVitaoReactions', () => {
     act(() => useMatchStore.setState({ outcome: { kind: 'WO', winner: 'P2' } })) // mesma hora
     waitWindow()
     expect(result.current).toBeNull()
+  })
+
+  it('habilidade do oponente: fala a frase do Rafik daquela habilidade, com o áudio', () => {
+    const { result } = renderHook(() => useVitaoReactions())
+    act(() => useBoardStore.setState({ lastAbility: ability() }))
+    waitWindow()
+    expect(result.current?.moment).toEqual({
+      kind: 'ABILITY',
+      by: 'OPPONENT',
+      absorbed: false,
+      noEffect: false,
+      abilityId: 'BOMBA',
+    })
+    expect(result.current?.text).toBe(ABILITY_TEXTS.lines.BOMBA.unfiltered)
+    expect(result.current?.audio).toBe('habilidade-bomba-e')
+  })
+
+  it('estouro meu: a fala do Rafik segue o contador (2º estouro)', () => {
+    const { result } = renderHook(() => useVitaoReactions())
+    act(() => useMatchStore.setState({ lastTimeout: { ...timeout('P1'), consecutiveTimeouts: 2 } }))
+    waitWindow()
+    expect(result.current?.moment).toEqual({ kind: 'TIMEOUT', by: 'ME', count: 2 })
+    expect(result.current?.text).toBe(ARENA_TEXTS.timeout.mine(2).unfiltered)
+    expect(result.current?.audio).toBe('tempo-esgotado-2-e')
+  })
+
+  it('match point: o round entra em jogo com alguém na frente', () => {
+    const { result } = renderHook(() => useVitaoReactions())
+    act(() => useMatchStore.setState({ score: { P1: 1, P2: 0 }, introStartedAt: 5000 }))
+    waitWindow()
+    expect(result.current?.moment).toEqual({ kind: 'MATCH_POINT', leader: 'ME' })
+    expect(result.current?.big).toBe(true)
+    expect(result.current?.text).toBe(ARENA_TEXTS.roundIntro.matchPointLine(true).unfiltered)
+  })
+
+  it('match point com o oponente na frente usa a fala do outro lado', () => {
+    const { result } = renderHook(() => useVitaoReactions())
+    act(() => useMatchStore.setState({ score: { P1: 0, P2: 1 }, introStartedAt: 5000 }))
+    waitWindow()
+    expect(result.current?.moment).toEqual({ kind: 'MATCH_POINT', leader: 'OPPONENT' })
+    expect(result.current?.text).toBe(ARENA_TEXTS.roundIntro.matchPointLine(false).unfiltered)
+  })
+
+  it('na Morte Súbita não tem match point: só a entrada', () => {
+    const { result } = renderHook(() => useVitaoReactions())
+    act(() =>
+      useMatchStore.setState({ suddenDeath: true, score: { P1: 1, P2: 0 }, introStartedAt: 5000 }),
+    )
+    waitWindow()
+    expect(result.current?.moment).toEqual({ kind: 'SUDDEN_DEATH_START' })
   })
 })

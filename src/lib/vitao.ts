@@ -1,6 +1,7 @@
 // Motor de reações do Vitão (FE-44)
 // Recebe o que aconteceu, a hora, a última fala e o filtro, e devolve a reação e a fala, ou nada. Quem chama (o hook) é que observa as stores.
 import { VITAO_COOLDOWN_SECONDS, VITAO_MOVE_COMMENT_CHANCE } from '../constants/game'
+import type { AbilityId } from '../types/game'
 
 /** Expressões da arte do Vitão (FE-41) */
 export type VitaoExpression =
@@ -11,10 +12,24 @@ export type VitaoSide = 'ME' | 'OPPONENT'
 
 export type VitaoMoment =
   | { kind: 'MOVE'; by: VitaoSide }
-  | { kind: 'ABILITY'; by: VitaoSide; absorbed: boolean; noEffect: boolean }
-  | { kind: 'TIMEOUT'; by: VitaoSide }
+  | {
+      kind: 'ABILITY'
+      by: VitaoSide
+      absorbed: boolean
+      noEffect: boolean
+      /** Qual habilidade foi usada (para a fala por habilidade do Rafik) */
+      abilityId?: AbilityId
+    }
+  | {
+      kind: 'TIMEOUT'
+      by: VitaoSide
+      /** Estouros seguidos de quem perdeu a vez (1, 2 ou 3) */
+      count?: number
+    }
   | { kind: 'OPPONENT_DISCONNECTED' }
   | { kind: 'ROUND_END'; winner: VitaoSide | 'DRAW' }
+  /** Início do round com alguém em 1 vitória; `leader` é quem está na frente */
+  | { kind: 'MATCH_POINT'; leader: VitaoSide }
   | { kind: 'SUDDEN_DEATH_START' }
   | { kind: 'WO'; winner: VitaoSide }
 
@@ -31,6 +46,8 @@ export type VitaoLineKey =
   | 'ROUND_WIN_ME'
   | 'ROUND_WIN_OPPONENT'
   | 'ROUND_DRAW'
+  | 'MATCH_POINT_ME'
+  | 'MATCH_POINT_OPPONENT'
   | 'SUDDEN_DEATH_START'
   | 'WO_WIN_ME'
   | 'WO_WIN_OPPONENT'
@@ -42,6 +59,8 @@ export interface VitaoLine {
   explicit?: boolean
   /** Versão limpa de uma fala `explicit` (o [C] do Rafik): só aparece com o filtro ligado */
   filteredOnly?: boolean
+  /** Nome do arquivo de áudio do Rafik, usado pela voz (FE-48) */
+  audio?: string
 }
 
 /** Falas por momento: a versão normal e a versão "Diabo" (Morte Súbita) */
@@ -67,9 +86,11 @@ export interface VitaoReaction {
   text: string
   expression: VitaoExpression
   devil: boolean
-  /** Momento grande (fim de round, Morte Súbita, W.O.) */
+  /** Momento grande (fim de round, match point, Morte Súbita, W.O.) */
   big: boolean
   moment: VitaoMoment
+  /** Áudio da fala escolhida (FE-48) */
+  audio?: string
 }
 
 /** Quanto maior, mais importante. Os momentos grandes passam na frente dos pequenos */
@@ -79,6 +100,7 @@ const PRIORITY: Record<VitaoMoment['kind'], number> = {
   TIMEOUT: 2,
   OPPONENT_DISCONNECTED: 2,
   ROUND_END: 3,
+  MATCH_POINT: 3,
   SUDDEN_DEATH_START: 3,
   WO: 3,
 }
@@ -111,6 +133,8 @@ export function lineKey(moment: VitaoMoment): VitaoLineKey {
     case 'ROUND_END':
       if (moment.winner === 'DRAW') return 'ROUND_DRAW'
       return moment.winner === 'ME' ? 'ROUND_WIN_ME' : 'ROUND_WIN_OPPONENT'
+    case 'MATCH_POINT':
+      return moment.leader === 'ME' ? 'MATCH_POINT_ME' : 'MATCH_POINT_OPPONENT'
     case 'SUDDEN_DEATH_START':
       return 'SUDDEN_DEATH_START'
     case 'WO':
@@ -160,5 +184,6 @@ export function decideVitaoReaction(
     devil,
     big: isBigMoment(moment),
     moment,
+    audio: line.audio,
   }
 }

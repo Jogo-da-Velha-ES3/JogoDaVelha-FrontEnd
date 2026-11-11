@@ -79,10 +79,10 @@ describe('DeckHud (FE-11)', () => {
     expect(card(/^Ampulheta, ofensiva, silenciada$/)).toBeDisabled()
     expect(card(/^Bomba/)).toBeDisabled()
     expect(screen.getAllByText('Silenciada')).toHaveLength(3)
-    expect(screen.getByText('Silenciado! Cala a boca e joga!')).toBeInTheDocument()
+    expect(screen.getByText('Silenciado!')).toBeInTheDocument()
 
     rerender({ silenced: true, canUse: false })
-    expect(screen.queryByText('Silenciado! Cala a boca e joga!')).not.toBeInTheDocument()
+    expect(screen.queryByText('Silenciado!')).not.toBeInTheDocument()
   })
 
   it('selecionada: habilidade com alvo só abre a mira, sem enviar nada; tocar de novo cancela', () => {

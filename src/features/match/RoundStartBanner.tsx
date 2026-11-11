@@ -3,7 +3,6 @@ import { CHARACTER_INFO } from '../../constants/characters'
 import { ROUND_COIN_FLIP_SECONDS } from '../../constants/game'
 import { ARENA_TEXTS } from '../../constants/texts'
 import { useIsBefore } from '../../hooks/useIsBefore'
-import { useVoice } from '../../hooks/useLanguageFilter'
 import { isMatchPoint, otherSlot } from '../../lib/match'
 import { useMatchStore } from '../../stores/matchStore'
 import { useRoomStore } from '../../stores/roomStore'
@@ -49,12 +48,13 @@ function Avatar({
  * (o servidor espera ROUND_INTRO_SECONDS antes do primeiro turno). Quem reconecta não vê o banner.
  * No round 1, a moeda gira um pouco antes de revelar quem começa (sorteado pelo servidor).
  *
+ * No match point o banner mostra só a informação ("Match Point · nome"): a piada é do Vitão (FE-43).
+ *
  * A entrada da Morte Súbita (round 3) é tratada pelo SuddenDeathLayer (FE-13);
  * aqui o banner é suprimido quando `suddenDeath === true`.
  */
 export function RoundStartBanner() {
   const reduceMotion = useReducedMotion()
-  const voice = useVoice()
   const players = useRoomStore((s) => s.players)
   const mySlot = useRoomStore((s) => s.mySlot) ?? 'P1'
   const round = useMatchStore((s) => s.round)
@@ -106,20 +106,12 @@ export function RoundStartBanner() {
           </p>
 
           {matchPoint ? (
-            <>
-              <p
-                className="font-display text-6xl leading-none font-bold tracking-[0.08em] uppercase short:text-[30px]"
-                style={{ color: leadColor, textShadow: `0 0 18px ${leadColor}` }}
-              >
-                {T.matchPoint(leadName)}
-              </p>
-              <p
-                className="font-display text-xl font-bold tracking-[0.04em] short:text-[13px]"
-                style={{ color: leadColor }}
-              >
-                {voice(T.matchPointLine(leadSlot === mySlot))}
-              </p>
-            </>
+            <p
+              className="font-display text-6xl leading-none font-bold tracking-[0.08em] uppercase short:text-[30px]"
+              style={{ color: leadColor, textShadow: `0 0 18px ${leadColor}` }}
+            >
+              {T.matchPoint(leadName)}
+            </p>
           ) : (
             <p className="font-display text-6xl leading-none font-bold tracking-[0.08em] text-text uppercase short:text-[30px]">
               {T.title(round)}
