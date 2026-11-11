@@ -5,7 +5,7 @@ import { useId, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { ApiError } from '../../api/client'
 import type { ShopCategory, ShopItem } from '../../api/shop'
-import { Button, HeartIcon, Modal } from '../../components/ui'
+import { Button, HeartIcon, Modal, Spinner } from '../../components/ui'
 import { ABILITY_INFO } from '../../constants/abilities'
 import { ABILITIES, CHARACTERS } from '../../constants/game'
 import { SHOP_TEXTS } from '../../constants/texts'
@@ -140,7 +140,7 @@ export function ShopScreen({ initialTab = 'characters' }: { initialTab?: Tab }) 
                 </Button>
               </>
             ) : (
-              <p role="status">{SHOP_TEXTS.loading}</p>
+              <Spinner label={SHOP_TEXTS.loading} />
             )}
           </div>
         ) : (
