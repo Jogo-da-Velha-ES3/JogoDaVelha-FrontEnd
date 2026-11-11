@@ -6,7 +6,7 @@ import { createRoom } from '../../api/rooms'
 import { ApiError } from '../../api/client'
 import { Button } from '../../components/ui'
 import { ROOM_TEXTS } from '../../constants/texts'
-import { roomPath } from '../../routes/paths'
+import { JOINED_ROOM_STATE, roomPath } from '../../routes/paths'
 import { selectFavoriteCharacter, useProfileStore } from '../../stores/profileStore'
 import { showToast } from '../../stores/toastStore'
 import { Character } from '../characters'
@@ -27,7 +27,7 @@ export function PlayScreen() {
     try {
       // Só vai para a sala com o código que o servidor devolveu
       const room = await createRoom()
-      navigate(roomPath(room.code))
+      navigate(roomPath(room.code), { state: JOINED_ROOM_STATE })
     } catch (error) {
       showToast({
         tone: 'danger',

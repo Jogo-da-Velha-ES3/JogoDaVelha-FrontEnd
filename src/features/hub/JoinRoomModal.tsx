@@ -14,7 +14,7 @@ import {
   typedText,
   type CodeDigits,
 } from '../../lib/roomCodeInput'
-import { roomPath } from '../../routes/paths'
+import { JOINED_ROOM_STATE, roomPath } from '../../routes/paths'
 
 interface JoinRoomModalProps {
   open: boolean
@@ -83,7 +83,7 @@ function JoinRoomForm({ pending, setPending }: JoinRoomFormProps) {
     try {
       // Só navega quando o servidor confirma a entrada (nada otimista)
       const room = await joinRoomByCode(code)
-      navigate(roomPath(room.code))
+      navigate(roomPath(room.code), { state: JOINED_ROOM_STATE })
     } catch (err) {
       // joinRoomByCode já traduz: "Sala 4821 não encontrada.", "já está cheia", "já começou"
       setError(err instanceof ApiError ? err.message : ROOM_TEXTS.errors.joinFailed)

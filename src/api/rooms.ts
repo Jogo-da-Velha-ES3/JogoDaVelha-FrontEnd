@@ -1,5 +1,4 @@
 // Criar e entrar em sala pelo REST [RF-HUB-04] [RF-HUB-05]. O jogador vem do token.
-// ⚠️ Hoje o back ainda pede `?playerId=`; a BE-009.1 troca pelo usuário do JWT (contrato do back).
 import { ROOM_CODE_LENGTH } from '../constants/game'
 import { ROOM_TEXTS } from '../constants/texts'
 import { isMockServerEnabled } from '../sockets/mode'
@@ -53,6 +52,20 @@ export async function joinRoomByCode(code: string): Promise<RoomInfo> {
     if (error instanceof ApiError) {
       throw new ApiError(error.status, roomErrorMessage(error, code), error.code)
     }
+    throw error
+  }
+}
+
+/**
+ * Entra pelo endereço da sala (link compartilhado, link colado, volta do Acesso): o back só deixa
+ * assinar a sala no STOMP depois do `POST /join`. Quem já está numa sala ativa (o host, quem
+ * recarrega a página) recebe `ROOM_CONFLICT` e segue: o STOMP confirma se a sala é esta.
+ */
+export async function enterRoomByLink(code: string): Promise<void> {
+  try {
+    await joinRoomByCode(code)
+  } catch (error) {
+    if (error instanceof ApiError && error.code === 'ROOM_CONFLICT') return
     throw error
   }
 }

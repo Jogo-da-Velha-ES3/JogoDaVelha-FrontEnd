@@ -83,6 +83,8 @@ describe('JoinRoomModal', () => {
 
     expect(joinRoomByCode).toHaveBeenCalledWith('4821')
     await waitFor(() => expect(router.state.location.pathname).toBe('/sala/4821'))
+    // O POST /join já foi feito aqui: a sala não chama de novo
+    expect(router.state.location.state).toEqual({ joined: true })
   })
 
   it('esperando o servidor, o modal não fecha', async () => {

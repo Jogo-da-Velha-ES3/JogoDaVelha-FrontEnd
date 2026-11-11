@@ -1,5 +1,7 @@
 import { useEffect } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import { ApiError } from '../api/client'
+import { enterRoomByLink } from '../api/rooms'
 import { RESULT_HOLD_SECONDS } from '../constants/game'
 import { ROOM_TEXTS } from '../constants/texts'
 import { WaitingRoom } from '../features/lobby/WaitingRoom'
@@ -14,27 +16,55 @@ import { useRoomStore } from '../stores/roomStore'
 import { showToast } from '../stores/toastStore'
 import { NotFoundPage } from './NotFoundPage'
 import { PagePlaceholder } from './PagePlaceholder'
-import { PATHS } from './paths'
+import { PATHS, type RoomLocationState } from './paths'
 import { PreparationPlaceholder } from './room/RoomPlaceholders'
 
 /** A sala inteira (Sala de Espera, Preparação, Arena, Resultado), escolhida pela `phase` */
 export function RoomPage() {
   const { codigo } = useParams()
+  const navigate = useNavigate()
   const setPendingRoomCode = useRoomStore((s) => s.setPendingRoomCode)
   const isValid = isValidRoomCode(codigo)
+  // Criar Sala e o modal do código já fizeram o POST /join; o link (e o recarregar) ainda não
+  const alreadyJoined = (useLocation().state as RoomLocationState | null)?.joined === true
 
   useEffect(() => {
     if (!isValid) return
     // Chegou na sala: o link direto guardado antes do Acesso já foi usado
     setPendingRoomCode(null)
-    joinRoom(codigo).catch((error: unknown) =>
+    let active = true
+
+    async function enter(code: string) {
+      if (!alreadyJoined) {
+        try {
+          // O back só deixa assinar a sala no STOMP depois do POST /join [RF-HUB-05]
+          await enterRoomByLink(code)
+        } catch (error) {
+          // Sessão vencida: o Acesso já avisa. Sala inexistente, cheia ou começada: volta ao Hub
+          if (!active || (error instanceof ApiError && error.status === 401)) return
+          showToast({
+            message: error instanceof ApiError ? error.message : ROOM_TEXTS.errors.joinFailed,
+            tone: 'danger',
+          })
+          navigate(PATHS.play, { replace: true })
+          return
+        }
+        if (!active) return
+      }
+      await joinRoom(code)
+    }
+
+    enter(codigo).catch((error: unknown) =>
       showToast({
         message: error instanceof Error ? error.message : ROOM_TEXTS.errors.joinFailed,
         tone: 'danger',
       }),
     )
-    return () => leaveRoom()
-  }, [isValid, codigo, setPendingRoomCode])
+    return () => {
+      active = false
+      leaveRoom()
+    }
+  }, [isValid, codigo, alreadyJoined, setPendingRoomCode, navigate])
 
   // Erros do servidor (jogada inválida, sem conexão…) aparecem como aviso [FE-18]
   const lastError = useRoomStore((s) => s.lastError)
@@ -43,7 +73,6 @@ export function RoomPage() {
   }, [lastError])
 
   // Revanche cancelada para quem pediu ou sala encerrada: avisa e volta ao Hub [RN-POS-02]
-  const navigate = useNavigate()
   useRoomExit((message) => {
     showToast({ message, tone: 'info' })
     navigate(PATHS.play)
