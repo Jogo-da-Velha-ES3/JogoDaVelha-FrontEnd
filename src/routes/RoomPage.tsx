@@ -8,6 +8,7 @@ import { RoomLoading } from '../features/lobby/RoomLoading'
 import { WaitingRoom } from '../features/lobby/WaitingRoom'
 import { Arena } from '../features/match'
 import { ResultScreen, useRoomExit } from '../features/results'
+import { stopVoice } from '../features/sound/soundManager'
 import { useRoomMusic } from '../features/sound/useRoomMusic'
 import { useIsBefore } from '../hooks/useIsBefore'
 import { isValidRoomCode } from '../lib/roomCode'
@@ -67,6 +68,7 @@ export function RoomPage() {
     return () => {
       active = false
       leaveRoom()
+      stopVoice() // a fala do Vitão não segue tocando no Hub (FE-48)
     }
   }, [isValid, codigo, alreadyJoined, attempt, setPendingRoomCode, navigate])
 

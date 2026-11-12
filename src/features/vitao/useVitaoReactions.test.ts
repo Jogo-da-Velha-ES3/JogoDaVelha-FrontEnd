@@ -116,9 +116,20 @@ describe('useVitaoReactions', () => {
     expect(result.current).toBeNull()
 
     wait(1000)
+    act(() => useMatchStore.setState({ lastTimeout: timeout('P1') }))
+    waitWindow()
+    expect(result.current?.moment).toEqual({ kind: 'TIMEOUT', by: 'ME', count: 1 })
+  })
+
+  it('estouro do oponente e round empatado: o Vitão fica quieto, o anúncio gravado fala (FE-48)', () => {
+    const { result } = renderHook(() => useVitaoReactions())
     act(() => useMatchStore.setState({ lastTimeout: timeout('P2') }))
     waitWindow()
-    expect(result.current?.moment).toEqual({ kind: 'TIMEOUT', by: 'OPPONENT', count: 1 })
+    expect(result.current).toBeNull()
+
+    act(() => useMatchStore.setState({ roundEnd: { round: 1, winner: null, winningLine: null } }))
+    waitWindow()
+    expect(result.current).toBeNull()
   })
 
   it('o momento grande ganha da jogada que chegou junto', () => {
@@ -139,7 +150,7 @@ describe('useVitaoReactions', () => {
     expect(result.current?.devil).toBe(true)
     expect(result.current?.expression).toBe('DIABO')
     expect(result.current?.text).toBe(ARENA_TEXTS.suddenDeath.line.unfiltered)
-    expect(result.current?.audio).toMatch(/^morte-subita/)
+    expect(result.current?.audio).toBe('vitao-morte-subita')
   })
 
   it('tabuleiro recarregado por reconexão não vira jogada', () => {
@@ -201,7 +212,7 @@ describe('useVitaoReactions', () => {
       abilityId: 'BOMBA',
     })
     expect(result.current?.text).toBe(ABILITY_TEXTS.lines.BOMBA.unfiltered)
-    expect(result.current?.audio).toBe('habilidade-bomba-e')
+    expect(result.current?.audio).toBe('vitao-habilidade-bomba')
   })
 
   it('estouro meu: a fala do Rafik segue o contador (2º estouro)', () => {
@@ -210,7 +221,7 @@ describe('useVitaoReactions', () => {
     waitWindow()
     expect(result.current?.moment).toEqual({ kind: 'TIMEOUT', by: 'ME', count: 2 })
     expect(result.current?.text).toBe(ARENA_TEXTS.timeout.mine(2).unfiltered)
-    expect(result.current?.audio).toBe('tempo-esgotado-2-e')
+    expect(result.current?.audio).toBe('vitao-tempo-esgotado-2')
   })
 
   it('match point: o round entra em jogo com alguém na frente', () => {

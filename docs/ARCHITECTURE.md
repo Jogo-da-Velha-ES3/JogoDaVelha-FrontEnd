@@ -142,10 +142,27 @@ Morte Súbita, filtro) e a detecção dos momentos também (`lib/vitaoMoments.ts
 dois retratos das stores). O hook `useVitaoReactions` observa as stores, que só mudam por evento do
 servidor, e entrega a fala atual ao `VitaoSlot`. O momento grande fala na hora, mesmo dentro da
 pausa de 6s, no lugar da fala atual. As falas ficam em `features/vitao/vitaoLines.ts` (FE-43): as
-do Rafik vêm de `constants/texts.ts` pelo `fromVoice`, com o nome do áudio para a FE-48, e o
+do Rafik vêm de `constants/texts.ts` pelo `fromVoice`, com a gravação de cada versão, e o
 `buildVitaoLines` escolhe a da habilidade do oponente e a do 1º ou 2º estouro. Na Morte Súbita, o
 momento com gravação não tem lista `devil` e fala a frase do Rafik com a cara de Diabo. A flag
 `VITAO_ENABLED` foi ligada em 31/10, com a FE-44.
+
+A voz do Vitão (FE-48) são as gravações do Rafik em `src/assets/sounds/vitao/` (`vitao-<fala>.mp3`
+e `vitao-<fala>-filtrado.mp3`, a versão [C]), geradas dos WAV originais por
+`tools/vitao-voices.sh` (ffmpeg: mono 96 kbps, sem silêncio nas pontas, -16 LUFS e pico abaixo de
+-1 dBTP, como os efeitos). O motor de som tem um canal de voz (`playVoice`, `stopVoice`,
+`preloadVoices` no `soundManager`): uma fala por vez, volume da voz das Configurações e mudo com o
+Vitão desligado. As falas são baixadas quando a Arena abre (`VitaoSlot`), nunca ao abrir o app.
+Quem toca:
+
+- o `VitaoSlot`, junto com cada fala nova do balão que tem `audio`;
+- o `playAnnouncementForServerEvent` (`features/vitao/vitaoVoices.ts`, chamado pelo
+  `applyServerEvent`), para os anúncios só com voz, pela regra pura de `lib/vitaoAnnouncements.ts`:
+  Confronto, Round 1 e 2, round empatado, empate absoluto e o estouro do oponente. Snapshot de
+  reconexão não anuncia nada;
+- o Resultado (vitória e derrota, só ao vivo pelo `useLiveResult`) e o `RematchPanel` (o oponente
+  saiu com a tela aberta).
+  O `RoomPage` para a voz ao sair da sala.
 
 O desenho do Vitão (FE-42) é o `VitaoView`, que não lê store: recebe a expressão, a fala e o `id` da
 fala, respira parado, toca a reação de cada expressão a cada fala nova e encolhe a cabeça para o
@@ -199,9 +216,9 @@ desligado por padrão. Nos componentes, `useVoice()` escolhe a versão de cada f
 As Configurações (FE-39) ficam em `src/features/settings/SettingsModal.tsx` e abrem pelo Hub
 (engrenagem na barra lateral) e pela pausa da Arena. O `settingsStore` guarda as preferências no
 aparelho e funciona sem armazenamento (aba anônima). Quem lê: o motor de som (volume e mudo de
-música e efeitos, em `initSound`), `useLanguageFilter`, a vibração da Morte Súbita
+música, efeitos e voz, em `initSound`), `useLanguageFilter`, a vibração da Morte Súbita
 (`useVibration`) e o `VitaoSlot` (Vitão desligado some, mesmo com a flag `VITAO_ENABLED` ligada). O
-volume da voz fica guardado para a FE-48.
+volume da voz e o Vitão desligado valem para a voz do Rafik (FE-48).
 
 Os identificadores de habilidade e personagem (`'BOMBA'`, `'CAMPO_DE_FORCA'`, `'TRIANGULO'`...) devem
 bater com os enums do back — confirmar na FE-17.

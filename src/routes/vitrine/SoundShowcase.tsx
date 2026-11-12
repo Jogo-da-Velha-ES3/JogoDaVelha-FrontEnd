@@ -7,12 +7,21 @@ import {
   playLoopSound,
   playMusic,
   playSound,
+  playVoice,
   soundDuration,
   stopAllMusic,
   stopLoopSound,
   stopSound,
+  stopVoice,
+  voiceDuration,
 } from '../../features/sound/soundManager'
-import { abilitySoundKey, type SoundKey } from '../../features/sound/soundMap'
+import {
+  abilitySoundKey,
+  isFilteredVoice,
+  type SoundKey,
+  VOICE_KEYS,
+  type VoiceKey,
+} from '../../features/sound/soundMap'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { ShowcaseBlock } from './ShowcaseLayout'
 
@@ -63,6 +72,16 @@ const EFFECT_GROUPS: { title: string; sounds: { key: SoundKey; label: string }[]
   },
 ]
 
+/** Voz do Vitão (FE-48): as gravações do Rafik, sem filtro (e as que só têm uma versão) e com filtro */
+const voiceLabel = (key: VoiceKey) => key.replace('vitao-', '').replaceAll('-', ' ')
+const VOICE_GROUPS: { title: string; voices: VoiceKey[] }[] = [
+  {
+    title: 'Voz do Vitão: sem filtro e as de versão única',
+    voices: VOICE_KEYS.filter((key) => !isFilteredVoice(key)),
+  },
+  { title: 'Voz do Vitão: com o filtro ([C])', voices: VOICE_KEYS.filter(isFilteredVoice) },
+]
+
 // ---- Partida encurtada ------------------------------------------------------------------------
 
 interface FlowStep {
@@ -70,6 +89,8 @@ interface FlowStep {
   play: () => void
   /** Efeito: espera ele tocar inteiro (pela duração do arquivo) antes do próximo passo */
   sound?: SoundKey
+  /** Fala do Vitão: espera ela inteira, como os efeitos */
+  voice?: VoiceKey
   /** Trilhas e loops: quanto tempo deixar tocando */
   holdMs?: number
 }
@@ -83,6 +104,11 @@ const effect = (key: SoundKey, label: string): FlowStep => ({
   label,
   play: () => playSound(key),
   sound: key,
+})
+const speech = (key: VoiceKey, label: string): FlowStep => ({
+  label: `Voz: ${label}`,
+  play: () => playVoice(key),
+  voice: key,
 })
 const music = (key: Track, label: string, holdMs: number): FlowStep => ({
   label,
@@ -109,16 +135,22 @@ const SHORT_MATCH: { stage: string; steps: FlowStep[] }[] = [
     stage: 'Arena',
     steps: [
       music('trilha-arena', 'Trilha da Arena', 2500),
+      speech('vitao-confronto', 'Confronto'),
+      speech('vitao-round-1', 'Round 1'),
       effect('jogada', 'Jogada'),
       ...ABILITY_SOUNDS.map(({ key, label }) => effect(key, label)),
+      speech('vitao-habilidade-bomba', 'Bomba do oponente'),
       effect('estouro-tempo', 'Estouro de tempo'),
+      speech('vitao-tempo-esgotado-1', 'Tempo esgotado'),
       effect('fim-round', 'Fim do round'),
+      speech('vitao-round-vitoria', 'Venceu a rodada'),
     ],
   },
   {
     stage: 'Morte Súbita',
     steps: [
       effect('morte-subita', 'Sirene'),
+      speech('vitao-morte-subita', 'Morte súbita'),
       {
         label: 'Trilha da Morte Súbita e coração',
         play: () => {
@@ -146,6 +178,7 @@ const SHORT_MATCH: { stage: string; steps: FlowStep[] }[] = [
         holdMs: 800,
       },
       effect('vitoria', 'Vitória'),
+      speech('vitao-vitoria', 'Vitória'),
       effect('coins', 'Coins'),
       effect('derrota', 'Derrota'),
       effect('empate', 'Empate'),
@@ -167,7 +200,11 @@ const STAGES = SHORT_MATCH.map((group, g) => {
 /** Quanto esperar antes do próximo passo */
 function waitFor(step: FlowStep): number {
   if (step.holdMs !== undefined) return step.holdMs
-  const seconds = step.sound ? soundDuration(step.sound) : 0
+  const seconds = step.sound
+    ? soundDuration(step.sound)
+    : step.voice
+      ? voiceDuration(step.voice)
+      : 0
   return (seconds > 0 ? seconds * 1000 : FALLBACK_MS) + GAP_MS
 }
 
@@ -175,6 +212,7 @@ function waitFor(step: FlowStep): number {
 function silence(current: FlowStep | undefined) {
   stopLoops()
   stopAllMusic()
+  stopVoice()
   if (current?.sound) stopSound(current.sound)
 }
 
@@ -256,7 +294,7 @@ export function SoundShowcase() {
 
       <ShowcaseBlock
         title="Partida encurtada"
-        hint="Toca, na ordem de uma partida, todas as trilhas e todos os efeitos, cada efeito inteiro (cerca de 1 minuto). O passo tocando fica em destaque."
+        hint="Toca, na ordem de uma partida, todas as trilhas, todos os efeitos e algumas falas do Vitão, cada efeito e cada fala inteiros (cerca de 1 minuto e meio), para comparar o volume. O passo tocando fica em destaque."
       >
         <div className="flex gap-2">
           <Button size="sm" data-sound="off" disabled={running} onClick={start}>
@@ -299,7 +337,7 @@ export function SoundShowcase() {
 
       <ShowcaseBlock
         title="Todos os sons"
-        hint="Toque para ouvir um som sozinho. As trilhas tocam até você tocar de novo, uma por vez, como no jogo; os loops também. Durante a partida encurtada, estes botões ficam travados."
+        hint="Toque para ouvir um som sozinho. As trilhas tocam até você tocar de novo, uma por vez, como no jogo; os loops também. As falas do Vitão tocam uma por vez. Durante a partida encurtada, estes botões ficam travados."
       >
         <SoundGroup title="Trilhas">
           {TRACKS.map(({ key, label }) => (
@@ -345,6 +383,23 @@ export function SoundShowcase() {
             ))}
           </SoundGroup>
         ))}
+        {/* Uma fala por vez, como no jogo: a nova corta a anterior */}
+        {VOICE_GROUPS.map((group) => (
+          <SoundGroup key={group.title} title={group.title}>
+            {group.voices.map((key) => (
+              <Button
+                key={key}
+                size="sm"
+                variant="ghost"
+                data-sound="off"
+                disabled={running}
+                onClick={() => playVoice(key)}
+              >
+                {voiceLabel(key)}
+              </Button>
+            ))}
+          </SoundGroup>
+        ))}
       </ShowcaseBlock>
 
       <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
@@ -357,10 +412,11 @@ export function SoundShowcase() {
  * fica salva no aparelho, então um teste antigo pode ter deixado a música desligada sem ninguém ver.
  */
 function MutedNotice() {
-  const { musicOn, musicVolume, sfxOn, sfxVolume } = useSettingsStore()
+  const { musicOn, musicVolume, sfxOn, sfxVolume, vitaoOn, voiceVolume } = useSettingsStore()
   const silent = [
     (!musicOn || musicVolume === 0) && 'a música (as 4 trilhas)',
     (!sfxOn || sfxVolume === 0) && 'os efeitos (e as habilidades)',
+    (!vitaoOn || voiceVolume === 0) && 'a voz do Vitão',
   ].filter(Boolean)
   if (silent.length === 0) return null
   return (

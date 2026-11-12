@@ -498,8 +498,20 @@ minutinhos". O aviso some quando o servidor responde. Nenhuma chamada é cortada
   - **Vitão desligado nas Configurações:** some o balão e a voz; os banners continuam só com a
     informação.
   - Feito na FE-43 (11/11): as piadas saíram dos banners e o Vitão fala as frases do Rafik. As
-    falas de jogadas, da minha habilidade, do empate, do estouro do oponente e as do Diabo foram
-    escritas pelo time e continuam provisórias.
+    falas de jogadas, da minha habilidade e as do Diabo foram escritas pelo time e continuam
+    provisórias.
+  - **Voz no jogo (FE-48, decidido em 11/11):** 50 gravações do Rafik, em mp3 mono, no mesmo volume
+    dos efeitos. Uma voz por vez: a nova corta a anterior.
+    - "Round empatado." e "O oponente perdeu a vez." são só a informação do banner: tocam como
+      anúncio, só a voz, e o Vitão não comenta esses dois momentos.
+    - O Confronto sorteia uma das duas gravações ("É hora... do duelo!" e "É hora do confronto!").
+    - Round 2 com match point toca só a fala do match point, sem o "Round 2". No empate absoluto,
+      só o anúncio, e o Vitão fica quieto.
+    - No Resultado: vitória, derrota e "o oponente saiu". O 2×0 toca "Vitória implacável!", como o
+      Rafik gravou (o título continua "Vitória impecável", da ERS). W.O. e empate absoluto não
+      repetem a voz, porque a Arena já falou.
+    - Ficam fora do jogo a narração do Como Jogar (não segue as 5 páginas nem fala dos Coins) e as
+      explicações das 10 habilidades (podem virar um card próprio para a demonstração da Loja).
   - **Morte Súbita (decidido em 11/11):** nos momentos com gravação, o Vitão fala a frase do Rafik
     com a cara de Diabo, para a voz tocar. As falas próprias do Diabo ficam para os momentos sem
     gravação.
@@ -531,8 +543,8 @@ minutinhos". O aviso some quando o servidor responde. Nenhuma chamada é cortada
   do Vitão (acima), e os banners ficam com a informação (placar, 1/3, os segundos da Morte Súbita).
   Ficaram só para o áudio as explicações das 10
   habilidades e a narração do Como Jogar, que não segue as 5 páginas. "Vitória implacável",
-  como o Rafik gravou, fica "Vitória impecável" no texto, como na ERS `[RF-POS-01]`. O áudio do
-  narrador ainda não está no jogo.
+  como o Rafik gravou, fica "Vitória impecável" no texto, como na ERS `[RF-POS-01]`. A voz entrou
+  no jogo com a FE-48 (acima).
 - **Trilhas (decidido em 02/11, FE-38):** uma trilha por momento: Hub, Sala de Espera e
   Preparação, Arena, Morte Súbita (acelerada) e Resultado (vitória e derrota), além da batida de
   coração e do tique-taque da Morte Súbita. Hoje toca uma trilha só, do começo ao fim.
