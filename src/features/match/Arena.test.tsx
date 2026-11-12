@@ -19,6 +19,12 @@ import type { ShopItem } from '../../api/shop'
 import { usePowersStore } from '../../stores/powersStore'
 import { resetProfile, useProfileStore } from '../../stores/profileStore'
 
+/** O aviso de turno perdido: o contador 1/3 também aparece na faixa do jogador */
+const timeoutToast = () =>
+  screen
+    .getByText(/^(Tempo esgotado!|Oponente perdeu a vez)$/)
+    .closest('[role="status"]') as HTMLElement
+
 vi.mock('../../sockets/gameClient', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../sockets/gameClient')>()
   return { ...actual, sendCommand: vi.fn<typeof actual.sendCommand>() }
@@ -111,11 +117,12 @@ describe('aviso de turno perdido (TURN_TIMEOUT)', () => {
     renderArena()
     send('TURN_TIMEOUT', { player: 'P1', consecutiveTimeouts: 1 })
     expect(screen.getByText('Tempo esgotado!')).toBeInTheDocument()
-    expect(screen.getByText('Tá dormindo na rede?! · 1/3')).toBeInTheDocument()
+    expect(within(timeoutToast()).getByText('1/3')).toBeInTheDocument()
+    expect(screen.queryByText(/Tá dormindo na rede/)).not.toBeInTheDocument()
 
     send('TURN_TIMEOUT', { player: 'P1', consecutiveTimeouts: 2 })
-    expect(screen.getByText('Acorda pra vida, mané! Mais um e é W.O. · 2/3')).toBeInTheDocument()
-
+    expect(within(timeoutToast()).getByText('2/3')).toBeInTheDocument()
+    expect(screen.queryByText(/Acorda pra vida/)).not.toBeInTheDocument()
     await tick(4000)
     expect(screen.queryByText('Tempo esgotado!')).not.toBeInTheDocument()
   })
@@ -312,10 +319,10 @@ describe('sorteio da 3ª habilidade (FE-10)', () => {
     expect(
       screen.getByRole('region', { name: 'Sorteio da terceira habilidade' }),
     ).toBeInTheDocument()
-    expect(screen.queryByText('A cobra vai fumar… · 5 segundos por jogada')).not.toBeInTheDocument()
+    expect(screen.queryByText('5 segundos por jogada')).not.toBeInTheDocument()
 
     endDraw()
-    expect(screen.getByText('A cobra vai fumar… · 5 segundos por jogada')).toBeInTheDocument()
+    expect(screen.getByText('5 segundos por jogada')).toBeInTheDocument()
   })
 
   it('"Experimente" só nas habilidades que o jogador não comprou', () => {
@@ -564,7 +571,7 @@ describe('mira e efeitos das habilidades (FE-27)', () => {
 
     resolved({})
     expect(screen.getByText('Oponente usou Bomba')).toBeInTheDocument()
-    expect(screen.getByText('Bota o capacete que lá vem pedra!')).toBeInTheDocument()
+    expect(screen.queryByText('Bota o capacete que lá vem pedra!')).not.toBeInTheDocument()
     expect(impact()).not.toBeNull()
 
     await tick(ABILITY_IMPACT_SECONDS * 1000)
@@ -583,13 +590,13 @@ describe('mira e efeitos das habilidades (FE-27)', () => {
 
     resolved({ by: 'P1', absorbed: true })
     expect(screen.getByText('Anulada pelo Campo de Força!')).toBeInTheDocument()
-    expect(screen.getByText('Você usou Bomba · Babaca!')).toBeInTheDocument()
+    expect(screen.getByText('Você usou Bomba')).toBeInTheDocument()
+    expect(screen.queryByText(/Babaca/)).not.toBeInTheDocument()
 
     resolved({ ability: 'TORNADO', noEffect: true })
     expect(screen.getByText('Sem efeito!')).toBeInTheDocument()
-    expect(
-      screen.getByText('Oponente usou Tornado · Cê tá cego ou tá se fazendo, hein?!'),
-    ).toBeInTheDocument()
+    expect(screen.getByText('Oponente usou Tornado')).toBeInTheDocument()
+    expect(screen.queryByText(/Cê tá cego/)).not.toBeInTheDocument()
   })
 
   it('habilidade minha com efeito não tem aviso, só o efeito na casa', () => {
@@ -610,11 +617,11 @@ describe('mira e efeitos das habilidades (FE-27)', () => {
     ).not.toBeNull()
 
     turnOf('P1')
-    expect(screen.getByText('Silenciado! Cala a boca e joga!')).toBeInTheDocument()
+    expect(screen.getByText('Silenciado!')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /^Bomba,/ })).toBeDisabled()
 
     turnOf('P2')
-    expect(screen.queryByText('Silenciado! Cala a boca e joga!')).not.toBeInTheDocument()
+    expect(screen.queryByText('Silenciado!')).not.toBeInTheDocument()
   })
 })
 
@@ -623,10 +630,10 @@ describe('Morte Súbita e empate absoluto (FE-13)', () => {
     renderArena()
     startRound(3, 'P1')
     endDraw()
-    expect(screen.getByText('A cobra vai fumar… · 5 segundos por jogada')).toBeInTheDocument()
+    expect(screen.getByText('5 segundos por jogada')).toBeInTheDocument()
 
     await tick(SUDDEN_DEATH_ENTRY_SECONDS * 1000 + 500)
-    expect(screen.queryByText('A cobra vai fumar… · 5 segundos por jogada')).not.toBeInTheDocument()
+    expect(screen.queryByText('5 segundos por jogada')).not.toBeInTheDocument()
   })
 
   it('round 3 empatado já anuncia o empate absoluto [RN-ARN-06]', () => {
@@ -704,8 +711,8 @@ describe('filtro de linguagem (FE-40)', () => {
     renderArena()
 
     send('TURN_TIMEOUT', { player: 'P1', consecutiveTimeouts: 2 })
-    expect(screen.getByText('Mais um e é W.O.! · 2/3')).toBeInTheDocument()
-
+    expect(within(timeoutToast()).getByText('2/3')).toBeInTheDocument()
+    expect(screen.queryByText(/Mais um e é W\.O\./)).not.toBeInTheDocument()
     send('ABILITY_RESOLVED', {
       by: 'P1',
       ability: 'BOMBA',

@@ -5,6 +5,7 @@ import { RESULT_TEXTS } from '../../constants/texts'
 import { applyServerEvent, resetGameStores } from '../../stores/serverEvents'
 import type { ClientCommand, ServerEvent } from '../../types/events'
 import type { CharacterId, MatchOutcome, PlayerSlot, PlayerState } from '../../types/game'
+import { playVoice } from '../sound/soundManager'
 import { ResultScreen } from './ResultScreen'
 
 const client = vi.hoisted(() => ({
@@ -12,6 +13,10 @@ const client = vi.hoisted(() => ({
   leaveRoom: vi.fn<() => void>(),
 }))
 vi.mock('../../sockets/gameClient', () => client)
+vi.mock('../sound/soundManager', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../sound/soundManager')>()),
+  playVoice: vi.fn<(key: `vitao-${string}`) => void>(),
+}))
 
 function send<T extends ServerEvent['type']>(
   type: T,
@@ -309,6 +314,32 @@ describe('ResultScreen: Coins, espera e saída', () => {
     })
     expect(title().textContent).toBe('Empate absoluto')
     expect(screen.getByText('+20 Coins')).toBeInTheDocument()
+  })
+
+  it('voz do Rafik (FE-48): toca quando o resultado acaba de chegar, nunca ao reconectar', () => {
+    vi.mocked(playVoice).mockClear()
+    renderResult({
+      outcome: { kind: 'WIN', winner: 'P2', score: [0, 2] },
+      coins: { P1: 10, P2: 50 },
+    })
+    expect(playVoice).not.toHaveBeenCalled() // snapshot de reconexão: o estado final, parado
+  })
+
+  it('voz do Rafik (FE-48): a derrota ao vivo toca a fala da derrota', () => {
+    vi.mocked(playVoice).mockClear()
+    renderResult({ outcome: null })
+    send('MATCH_END', {
+      outcome: { kind: 'WIN', winner: 'P2', score: [1, 2] },
+      coins: { P1: 10, P2: 50 },
+    })
+    expect(playVoice).toHaveBeenCalledWith('vitao-derrota')
+  })
+
+  it('voz do Rafik (FE-48): empate absoluto e W.O. não falam de novo, a Arena já falou', () => {
+    vi.mocked(playVoice).mockClear()
+    renderResult({ outcome: null, mySlot: 'P2' })
+    send('MATCH_END', { outcome: { kind: 'WO', winner: 'P2' }, coins: { P1: 0, P2: 30 } })
+    expect(playVoice).not.toHaveBeenCalled()
   })
 
   it('"Voltar ao Lobby" usa o onLeave recebido', () => {

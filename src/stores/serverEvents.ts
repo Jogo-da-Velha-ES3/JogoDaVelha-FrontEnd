@@ -12,6 +12,7 @@ import { INITIAL_POWERS_DATA, usePowersStore } from './powersStore'
 import { INITIAL_ROOM_STATE, useRoomStore } from './roomStore'
 import { INITIAL_TIMER_STATE, useTimerStore } from './timerStore'
 import { playSoundForServerEvent } from '../features/sound'
+import { playAnnouncementForServerEvent } from '../features/vitao/vitaoVoices'
 
 const patchPlayer = (players: PlayerState[], slot: PlayerSlot, patch: Partial<PlayerState>) =>
   players.map((p) => (p.slot === slot ? { ...p, ...patch } : p))
@@ -47,6 +48,8 @@ export function applyServerEvent(envelope: ServerEnvelope, receivedAt = Date.now
 
   const event = { type: envelope.type, payload: envelope.payload } as ServerEvent
   playSoundForServerEvent(event)
+  // Anúncios gravados (Confronto, Round 1 e 2, empates, estouro do oponente): só a voz (FE-48)
+  playAnnouncementForServerEvent(event)
 
   switch (event.type) {
     case 'ROOM_SNAPSHOT': {

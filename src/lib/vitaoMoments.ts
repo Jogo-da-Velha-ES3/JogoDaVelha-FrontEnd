@@ -1,14 +1,25 @@
 // Detecta os momentos do Vitão pela MUDANÇA entre dois retratos das stores (FE-44). Lógica pura,
 // sem React e sem ler stores: o hook tira os retratos e passa para cá. As stores só mudam por
 // evento do servidor, então tudo o que sai daqui já está confirmado.
-import type { Cell, MatchOutcome, PlayerSlot } from '../types/game'
+import type { AbilityId, Cell, MatchOutcome, PlayerSlot } from '../types/game'
+import { isMatchPoint, otherSlot, type Score } from './match'
 import type { VitaoMoment, VitaoSide } from './vitao'
 
 export interface VitaoSnapshot {
   cells: Cell[]
   /** Última habilidade resolvida: a store troca o objeto a cada habilidade nova */
-  lastAbility: { by: PlayerSlot; absorbed: boolean; noEffect: boolean } | null
-  lastTimeout: { player: PlayerSlot } | null
+  lastAbility: {
+    by: PlayerSlot
+    absorbed: boolean
+    noEffect: boolean
+    /** Qual habilidade foi (nome do campo no payload do ABILITY_RESOLVED) */
+    ability?: AbilityId
+  } | null
+  lastTimeout: {
+    player: PlayerSlot
+    /** Estouros seguidos de quem perdeu a vez */
+    consecutiveTimeouts: number
+  } | null
   /** O oponente está conectado (PLAYER_DISCONNECTED / PLAYER_RECONNECTED) */
   opponentConnected: boolean
   roundEnd: { winner: PlayerSlot | null } | null
@@ -20,6 +31,8 @@ export interface VitaoSnapshot {
   /** Hora em que o ROUND_START chegou; null em snapshot de reconexão */
   roundStartedAt: number | null
   suddenDeath: boolean
+  /** Placar como o servidor mandou */
+  score: Score
 }
 
 const side = (slot: PlayerSlot, me: PlayerSlot): VitaoSide => (slot === me ? 'ME' : 'OPPONENT')
@@ -52,12 +65,17 @@ export function momentsFromChange(
       by: side(ability.by, me),
       absorbed: ability.absorbed,
       noEffect: ability.noEffect,
+      abilityId: ability.ability,
     })
   }
 
   const timeout = next.lastTimeout
   if (timeout && timeout !== prev.lastTimeout) {
-    moments.push({ kind: 'TIMEOUT', by: side(timeout.player, me) })
+    moments.push({
+      kind: 'TIMEOUT',
+      by: side(timeout.player, me),
+      count: timeout.consecutiveTimeouts,
+    })
   }
 
   // Oponente caiu: o aviso da Arena fica só com a informação e a piada é do Vitão
@@ -73,14 +91,21 @@ export function momentsFromChange(
     })
   }
 
-  // Entrada da Morte Súbita: o round 3 entra em jogo depois do sorteio
-  if (
-    next.suddenDeath &&
-    next.introStartedAt !== null &&
-    next.introStartedAt !== prev.introStartedAt
-  ) {
-    moments.push({ kind: 'SUDDEN_DEATH_START' })
+  // O round entra em jogo depois do sorteio (snapshot de reconexão vem sem a hora)
+  const enteredPlay = next.introStartedAt !== null && next.introStartedAt !== prev.introStartedAt
+
+  // Match point: a mesma regra do banner (isMatchPoint). Na Morte Súbita não, porque é o round
+  // decisivo e ela tem a fala própria
+  if (enteredPlay && !next.suddenDeath && isMatchPoint(next.score)) {
+    const mine = next.score[me]
+    const theirs = next.score[otherSlot(me)]
+    if (mine !== theirs) {
+      moments.push({ kind: 'MATCH_POINT', leader: mine > theirs ? 'ME' : 'OPPONENT' })
+    }
   }
+
+  // Entrada da Morte Súbita: o round 3 entra em jogo
+  if (enteredPlay && next.suddenDeath) moments.push({ kind: 'SUDDEN_DEATH_START' })
 
   // W.O.: só quando o MATCH_END acabou de chegar (repetido ou vindo de snapshot, não)
   const { outcome } = next

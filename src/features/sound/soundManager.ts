@@ -1,5 +1,12 @@
 import { Howl, Howler } from 'howler'
-import { MUSIC_KEYS, SOUND_KEYS, type SoundKey, soundUrl } from './soundMap'
+import {
+  MUSIC_KEYS,
+  SOUND_KEYS,
+  type SoundKey,
+  soundUrl,
+  type VoiceKey,
+  voiceUrl,
+} from './soundMap'
 
 const sounds = new Map<SoundKey, Howl>()
 const loopingEffects = new Set<SoundKey>()
@@ -254,13 +261,89 @@ export function soundDuration(key: SoundKey): number {
   }
 }
 
+// ---- Voz do Vitão (FE-48) ----------------------------------------------------------------------
+// Canal próprio, com volume da voz e mudo pelo Vitão desligado nas Configurações. Uma voz por vez.
+
+const voices = new Map<VoiceKey, Howl>()
+let currentVoice: Howl | null = null
+const voiceSettings = { volume: 1, muted: false }
+
+function createVoice(key: VoiceKey): Howl | undefined {
+  const src = voiceUrl(key)
+  if (!src) return undefined
+  try {
+    const howl = new Howl({
+      src: [src],
+      preload: true,
+      volume: voiceSettings.volume,
+      onloaderror: () => voices.delete(key),
+    })
+    voices.set(key, howl)
+    return howl
+  } catch {
+    return undefined
+  }
+}
+
+/**
+ * Baixa as falas antes de precisar delas (ao entrar na Arena), para a voz sair junto com o balão.
+ * Não carrega nada ao abrir o app, nem com o Vitão desligado.
+ */
+export function preloadVoices(keys: readonly VoiceKey[]) {
+  if (voiceSettings.muted) return
+  for (const key of keys) if (!voices.has(key)) createVoice(key)
+}
+
+/** Toca uma fala. Uma voz por vez: a nova corta a que estiver tocando (PROJECT_CONTEXT §9) */
+export function playVoice(key: VoiceKey) {
+  stopVoice()
+  if (voiceSettings.muted) return
+  try {
+    const voice = voices.get(key) ?? createVoice(key)
+    if (!voice) return
+    voice.volume(voiceSettings.volume)
+    currentVoice = voice
+    voice.play()
+  } catch {
+    // Fala indisponível: o Vitão fala só por escrito.
+  }
+}
+
+/** Duração da fala em segundos; 0 se ela ainda não carregou (aba Sons da vitrine) */
+export function voiceDuration(key: VoiceKey): number {
+  try {
+    return voices.get(key)?.duration() ?? 0
+  } catch {
+    return 0
+  }
+}
+
+/** Para a fala que estiver tocando (ex: ao sair da sala) */
+export function stopVoice() {
+  try {
+    currentVoice?.stop()
+  } catch {
+    // Sem áudio disponível: ignora.
+  }
+  currentVoice = null
+}
+
 function refreshAll() {
   sounds.forEach((howl, key) => applySettings(key, howl))
 }
 
-/** Controles de volume e mudo, separados para efeitos e música. */
+/** Controles de volume e mudo, separados para efeitos, música e a voz do Vitão. */
 export const soundSettings = {
-  get: () => ({ ...settings }),
+  get: () => ({ ...settings, voiceVolume: voiceSettings.volume, voiceMuted: voiceSettings.muted }),
+  setVoiceVolume(v: number) {
+    voiceSettings.volume = Math.min(1, Math.max(0, v))
+    voices.forEach((voice) => voice.volume(voiceSettings.volume))
+  },
+  /** Vitão desligado: nenhuma voz toca, e a que estiver tocando para na hora */
+  setVoiceMuted(muted: boolean) {
+    voiceSettings.muted = muted
+    if (muted) stopVoice()
+  },
   setSfxVolume(v: number) {
     settings.sfxVolume = Math.min(1, Math.max(0, v))
     refreshAll()

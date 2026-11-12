@@ -1,7 +1,6 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { Banner } from '../../components/ui/Banner'
-import { ARENA_TEXTS, joinParts } from '../../constants/texts'
-import { useVoice } from '../../hooks/useLanguageFilter'
+import { ARENA_TEXTS } from '../../constants/texts'
 import { useServerTimer } from '../../hooks/useServerTimer'
 import { useSuddenDeathSounds } from '../../hooks/useSuddenDeathSounds'
 import { useSuddenDeathVibration } from '../../hooks/useVibration'
@@ -21,7 +20,8 @@ const TAPE_STYLE = {
  * Camada de efeitos da Morte Súbita (FE-13), na camada de avisos da Arena (sem receber toques).
  *
  * - Entrada (primeiros segundos do round 3): flash vermelho, fitas de perigo entrando por cima e
- *   por baixo e o banner "MORTE SÚBITA". O tremor é da Arena inteira (classe no Arena.tsx).
+ *   por baixo e o banner "MORTE SÚBITA", só com a informação ("5 segundos por jogada"): a piada
+ *   da entrada é do Vitão (FE-43). O tremor é da Arena inteira (classe no Arena.tsx).
  * - Durante o round: bordas pulsando como batimento cardíaco.
  * - Vibração e ganchos de som: ficam aqui, com o timer só ligado na Morte Súbita, para a Arena
  *   não re-renderizar a cada 100ms a partida inteira.
@@ -33,7 +33,6 @@ export function SuddenDeathLayer() {
   const turn = useTimerStore((s) => s.turn)
   const entering = useSuddenDeathEntrance()
   const reduceMotion = useReducedMotion()
-  const voice = useVoice()
 
   const timer = useServerTimer(suddenDeath ? turn : null)
   const seconds = timer?.remainingSeconds ?? null
@@ -96,7 +95,7 @@ export function SuddenDeathLayer() {
         className="absolute inset-x-0 top-1/2 z-[22] w-full -translate-y-1/2"
         show={entering}
         title={ARENA_TEXTS.suddenDeath.title}
-        subtitle={joinParts(voice(ARENA_TEXTS.suddenDeath.line), ARENA_TEXTS.suddenDeath.perMove)}
+        subtitle={ARENA_TEXTS.suddenDeath.perMove}
         tone="danger"
         flicker
       />

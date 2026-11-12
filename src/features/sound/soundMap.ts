@@ -40,6 +40,23 @@ const URL_BY_NAME = new Map(Object.entries(FILES).map(([path, url]) => [fileName
 /** URL do som; undefined se o arquivo não existir (o jogo segue sem ele) */
 export const soundUrl = (key: SoundKey) => URL_BY_NAME.get(key.toLowerCase())
 
+/**
+ * Voz do Vitão (FE-48): as falas gravadas do Rafik, em sounds/vitao/. A chave é o nome do arquivo
+ * sem a extensão; a versão [C] (filtro ligado) termina em "-filtrado".
+ */
+export type VoiceKey = `vitao-${string}`
+
+/** URL da fala; undefined se o arquivo não existir (o Vitão fala só por escrito) */
+export const voiceUrl = (key: VoiceKey) => URL_BY_NAME.get(key)
+
+/** Todas as falas gravadas que existem na pasta */
+export const VOICE_KEYS = [...URL_BY_NAME.keys()].filter((name): name is VoiceKey =>
+  name.startsWith('vitao-'),
+)
+
+/** Versão [C] de uma fala: o sufixo "-filtrado" */
+export const isFilteredVoice = (key: VoiceKey) => key.endsWith('-filtrado')
+
 export const SOUND_KEYS: SoundKey[] = [
   'jogada',
   'estouro-tempo',

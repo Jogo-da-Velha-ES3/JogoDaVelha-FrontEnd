@@ -10,7 +10,7 @@ src/
 ├── api/                # cliente REST fino (fetch): auth, perfil, inventário, loja, salas
 ├── assets/             # sons (Howler), imagens, ícones, fontes
 ├── components/         # componentes reutilizáveis e "burros" (sem lógica de negócio)
-│   ├── ui/              # botões, modais, inputs, toast, banner, ícones (cadeado, pausa) — puramente visuais
+│   ├── ui/              # botões, modais, inputs, toast, banner, carregando (`Spinner`), ícones (cadeado, pausa) — puramente visuais
 │   └── layout/          # LandscapeShell (safe-area, sem overflow) e o aviso "Gire o celular"
 ├── features/           # lógica de domínio, isolada por área do jogo
 │   ├── auth/            # login, cadastro, sessão
@@ -99,11 +99,14 @@ switch (room.phase) {
 ```
 
 Implementado na FE-28 em `src/routes/RoomPage.tsx`: ao abrir `/sala/:codigo`, a página chama
-`joinRoom` (pelo link, depois do `POST /join`, acima) e, ao sair, `leaveRoom`. Sala de Espera e Preparação ainda são placeholders
-(`src/routes/room/RoomPlaceholders.tsx`) que a FE-26 e a FE-09 substituem; o Resultado (FE-15) já é
-tela de verdade. No W.O., a
-Arena segura o banner por `RESULT_HOLD_SECONDS` antes do Resultado; no empate absoluto também
-(PROJECT_CONTEXT §9). Os efeitos da Morte Súbita ficam em `SuddenDeathLayer` (FE-13).
+`joinRoom` (pelo link, depois do `POST /join`, acima) e, ao sair, `leaveRoom`. Até o servidor
+mandar a fase, aparece o `RoomLoading` (`src/features/lobby/`): "Entrando na sala…" com o
+"Voltar ao Hub", porque o back acordando pode levar minutos. Se a conexão falhar, o `RoomPage` para
+o cliente STOMP (que tentaria de novo sozinho, sem parar) e a tela mostra o erro com "Tentar de
+novo" (11/11). A Sala de Espera é a FE-26, a Preparação (FE-09) entra pelo `PreparationPlaceholder`
+(`src/routes/room/RoomPlaceholders.tsx`), que só carrega o inventário, e o Resultado é a FE-15. No
+W.O., a Arena segura o banner por `RESULT_HOLD_SECONDS` antes do Resultado; no empate absoluto
+também (PROJECT_CONTEXT §9). Os efeitos da Morte Súbita ficam em `SuddenDeathLayer` (FE-13).
 A Arena fica em `src/features/match/Arena.tsx`, com as regiões prontas para as faixas e banners
 (FE-05), o deck (FE-11) e a mira (FE-27).
 
@@ -138,9 +141,28 @@ O motor de reações do Vitão (FE-44) fica em `src/features/vitao/` e `src/lib/
 Morte Súbita, filtro) e a detecção dos momentos também (`lib/vitaoMoments.ts`, pela diferença entre
 dois retratos das stores). O hook `useVitaoReactions` observa as stores, que só mudam por evento do
 servidor, e entrega a fala atual ao `VitaoSlot`. O momento grande fala na hora, mesmo dentro da
-pausa de 6s, no lugar da fala atual. As falas provisórias estão em `features/vitao/vitaoLines.ts` (a
-FE-43 troca pelas frases do Rafik de `constants/texts.ts` e tira as piadas dos banners). A flag
+pausa de 6s, no lugar da fala atual. As falas ficam em `features/vitao/vitaoLines.ts` (FE-43): as
+do Rafik vêm de `constants/texts.ts` pelo `fromVoice`, com a gravação de cada versão, e o
+`buildVitaoLines` escolhe a da habilidade do oponente e a do 1º ou 2º estouro. Na Morte Súbita, o
+momento com gravação não tem lista `devil` e fala a frase do Rafik com a cara de Diabo. A flag
 `VITAO_ENABLED` foi ligada em 31/10, com a FE-44.
+
+A voz do Vitão (FE-48) são as gravações do Rafik em `src/assets/sounds/vitao/` (`vitao-<fala>.mp3`
+e `vitao-<fala>-filtrado.mp3`, a versão [C]), geradas dos WAV originais por
+`tools/vitao-voices.sh` (ffmpeg: mono 96 kbps, sem silêncio nas pontas, -16 LUFS e pico abaixo de
+-1 dBTP, como os efeitos). O motor de som tem um canal de voz (`playVoice`, `stopVoice`,
+`preloadVoices` no `soundManager`): uma fala por vez, volume da voz das Configurações e mudo com o
+Vitão desligado. As falas são baixadas quando a Arena abre (`VitaoSlot`), nunca ao abrir o app.
+Quem toca:
+
+- o `VitaoSlot`, junto com cada fala nova do balão que tem `audio`;
+- o `playAnnouncementForServerEvent` (`features/vitao/vitaoVoices.ts`, chamado pelo
+  `applyServerEvent`), para os anúncios só com voz, pela regra pura de `lib/vitaoAnnouncements.ts`:
+  Confronto, Round 1 e 2, round empatado, empate absoluto e o estouro do oponente. Snapshot de
+  reconexão não anuncia nada;
+- o Resultado (vitória e derrota, só ao vivo pelo `useLiveResult`) e o `RematchPanel` (o oponente
+  saiu com a tela aberta).
+  O `RoomPage` para a voz ao sair da sala.
 
 O desenho do Vitão (FE-42) é o `VitaoView`, que não lê store: recebe a expressão, a fala e o `id` da
 fala, respira parado, toca a reação de cada expressão a cada fala nova e encolhe a cabeça para o
@@ -194,9 +216,9 @@ desligado por padrão. Nos componentes, `useVoice()` escolhe a versão de cada f
 As Configurações (FE-39) ficam em `src/features/settings/SettingsModal.tsx` e abrem pelo Hub
 (engrenagem na barra lateral) e pela pausa da Arena. O `settingsStore` guarda as preferências no
 aparelho e funciona sem armazenamento (aba anônima). Quem lê: o motor de som (volume e mudo de
-música e efeitos, em `initSound`), `useLanguageFilter`, a vibração da Morte Súbita
+música, efeitos e voz, em `initSound`), `useLanguageFilter`, a vibração da Morte Súbita
 (`useVibration`) e o `VitaoSlot` (Vitão desligado some, mesmo com a flag `VITAO_ENABLED` ligada). O
-volume da voz fica guardado para a FE-48.
+volume da voz e o Vitão desligado valem para a voz do Rafik (FE-48).
 
 Os identificadores de habilidade e personagem (`'BOMBA'`, `'CAMPO_DE_FORCA'`, `'TRIANGULO'`...) devem
 bater com os enums do back — confirmar na FE-17.

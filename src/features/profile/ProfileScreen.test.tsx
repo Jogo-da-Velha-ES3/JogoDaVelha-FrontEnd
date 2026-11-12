@@ -63,6 +63,17 @@ describe('Perfil (FE-33)', () => {
     expect(screen.queryByText(/e-mail/i)).not.toBeInTheDocument()
   })
 
+  it('antes das estatísticas chegarem mostra "–", e não um 0 que depois muda', async () => {
+    const router = createMemoryRouter(routes, { initialEntries: ['/perfil'] })
+    render(<RouterProvider router={router} />)
+    expect(screen.getAllByText('–')).toHaveLength(4)
+    expect(screen.queryByText('0%')).not.toBeInTheDocument()
+
+    await respond()
+    expect(screen.queryByText('–')).not.toBeInTheDocument()
+    expect(screen.getByText('50%')).toBeInTheDocument()
+  })
+
   it('taxa de vitória com no máximo 1 casa (o back manda sem arredondar)', async () => {
     await openProfile()
 

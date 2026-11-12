@@ -10,11 +10,14 @@ Desde 02/11, uma voz só: **o Vitão** (PROJECT_CONTEXT §9).
 - Ele é o locutor de luta, no estilo Mortal Kombat/Cuphead: provoca quem errou e comemora com
   exagero. As piadas são as falas que o Rafik escreveu e gravou (pasta `Jogo da Velha_Audios`), e
   a voz do Vitão é a do Rafik (FE-48).
-- Na Arena, a piada fica no **balão do Vitão** e o banner fica só com a informação (FE-43). Até a
-  FE-43, as piadas ainda aparecem como subtítulo dos banners.
+- Na Arena, a piada fica no **balão do Vitão** e o banner fica só com a informação (FE-43). Na
+  Morte Súbita, o Vitão vira o Diabo, mas os momentos com gravação continuam com a frase do Rafik.
 - Jogadas de peça e a minha habilidade não têm gravação: o Vitão comenta só por escrito, no mesmo
   tom.
 - No Resultado, que não tem o Vitão, a piada continua como subtítulo.
+- Fala nova ou regravada do Rafik: pôr o WAV na pasta, ligar o arquivo ao nome no jogo na lista de
+  `tools/vitao-voices.sh` e rodar o script (ARCHITECTURE §2, voz do Vitão). O teste de
+  `vitaoVoices.test.ts` avisa se faltar arquivo ou sobrar algum sem uso.
 
 ## Regras
 

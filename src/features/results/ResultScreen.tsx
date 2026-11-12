@@ -1,15 +1,17 @@
 import { motion, useReducedMotion } from 'framer-motion'
-import type { CSSProperties } from 'react'
+import { type CSSProperties, useEffect } from 'react'
 import { CHARACTER_INFO } from '../../constants/characters'
 import { ROUNDS_TO_WIN_MATCH } from '../../constants/game'
 import { RESULT_TEXTS } from '../../constants/texts'
-import { useVoice } from '../../hooks/useLanguageFilter'
+import { useLanguageFilter, useVoice } from '../../hooks/useLanguageFilter'
 import { otherSlot } from '../../lib/match'
 import { classifyResult, type ResultKind } from '../../lib/result'
 import { useMatchStore } from '../../stores/matchStore'
 import { useRoomStore } from '../../stores/roomStore'
 import type { CharacterId } from '../../types/game'
 import { Character } from '../characters'
+import { playVoice } from '../sound/soundManager'
+import { pickVoice, RESULT_VOICES } from '../vitao/vitaoVoices'
 import { celebrationFlavor } from './celebration'
 import { CoinsReward } from './CoinsReward'
 import { CelebrationBurst, CelebrationHalo } from './ResultCelebration'
@@ -92,6 +94,14 @@ export function ResultScreen({ onLeave }: ResultScreenProps) {
   const live = useLiveResult()
   const reduceMotion = useReducedMotion()
   const voice = useVoice()
+  const filterOn = useLanguageFilter()
+
+  // Voz do Rafik (FE-48): só quando o resultado acaba de chegar, nunca ao reconectar
+  const resultVoice = live && result ? RESULT_VOICES[result.kind] : undefined
+  const voiceKey = resultVoice && pickVoice(resultVoice, filterOn)
+  useEffect(() => {
+    if (voiceKey) playVoice(voiceKey)
+  }, [voiceKey])
 
   if (!result) {
     // O servidor ainda não mandou o resultado: nada de "Derrota" por engano
