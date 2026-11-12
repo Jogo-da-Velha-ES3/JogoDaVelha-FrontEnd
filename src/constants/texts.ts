@@ -115,7 +115,6 @@ export const HUB_TEXTS = {
 export const SETTINGS_TEXTS = {
   title: 'Configurações',
   savedHint: 'Vale na hora e fica guardado neste aparelho.',
-  voiceSoon: 'A voz do Vitão chega em breve.',
   vitaoHint: 'Desligado, o Vitão some da partida, com balão e voz.',
   filterHint: 'Troca os palavrões por versões leves.',
   vibrationHint: 'Nos 3 últimos segundos da Morte Súbita. O iPhone não vibra.',

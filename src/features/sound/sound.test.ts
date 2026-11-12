@@ -124,12 +124,21 @@ describe('Configurações no motor de som (FE-39)', () => {
       sfxOn: true,
       sfxVolume: 0.2,
     })
-    expect(soundSettings.get()).toEqual({
+    expect(soundSettings.get()).toMatchObject({
       musicVolume: 0.5,
       musicMuted: true,
       sfxVolume: 0.2,
       sfxMuted: false,
     })
+    applySoundSettings(DEFAULT_SETTINGS)
+  })
+
+  it('a voz do Vitão segue o volume da voz e fica muda com o Vitão desligado (FE-48)', () => {
+    applySoundSettings({ ...DEFAULT_SETTINGS, voiceVolume: 0.4 })
+    expect(soundSettings.get()).toMatchObject({ voiceVolume: 0.4, voiceMuted: false })
+
+    applySoundSettings({ ...DEFAULT_SETTINGS, vitaoOn: false })
+    expect(soundSettings.get()).toMatchObject({ voiceMuted: true })
     applySoundSettings(DEFAULT_SETTINGS)
   })
 })

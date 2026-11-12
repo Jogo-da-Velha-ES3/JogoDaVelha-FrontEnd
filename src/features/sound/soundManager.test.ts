@@ -135,3 +135,44 @@ describe('motor de som: trilhas (FE-38)', () => {
     expect(track('trilha-hub')?.isPlaying).toBe(true)
   })
 })
+
+describe('motor de som: voz do Vitão (FE-48)', () => {
+  const voice = (name: string) => created.find((howl) => howl.src.includes(`${name}.mp3`))
+  const voices = () => created.filter((howl) => howl.src.includes('/vitao/'))
+
+  it('ao abrir o app, nenhuma fala é baixada', async () => {
+    const { loadSounds } = await import('./soundManager')
+    loadSounds()
+    expect(voices()).toHaveLength(0)
+  })
+
+  it('uma voz por vez: a fala nova corta a que estava tocando', async () => {
+    const { playVoice } = await import('./soundManager')
+    playVoice('vitao-round-1')
+    expect(voice('vitao-round-1')?.isPlaying).toBe(true)
+
+    playVoice('vitao-match-point')
+    expect(voice('vitao-round-1')?.isPlaying).toBe(false)
+    expect(voice('vitao-match-point')?.isPlaying).toBe(true)
+  })
+
+  it('Vitão desligado: a fala atual para e nenhuma outra toca', async () => {
+    const { playVoice, soundSettings } = await import('./soundManager')
+    playVoice('vitao-round-1')
+    soundSettings.setVoiceMuted(true)
+    expect(voice('vitao-round-1')?.isPlaying).toBe(false)
+
+    playVoice('vitao-round-2')
+    expect(voice('vitao-round-2')).toBeUndefined()
+  })
+
+  it('preloadVoices baixa cada fala uma vez só; fala sem arquivo não quebra nada', async () => {
+    const { playVoice, preloadVoices } = await import('./soundManager')
+    preloadVoices(['vitao-round-1', 'vitao-round-2'])
+    preloadVoices(['vitao-round-1'])
+    expect(voices()).toHaveLength(2)
+
+    expect(() => playVoice('vitao-nao-existe')).not.toThrow()
+    expect(voices()).toHaveLength(2)
+  })
+})

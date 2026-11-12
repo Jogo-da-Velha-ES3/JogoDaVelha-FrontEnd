@@ -1,3 +1,4 @@
+import { VITAO_ENABLED } from '../../constants/game'
 import { useBoardStore } from '../../stores/boardStore'
 import { useMatchStore } from '../../stores/matchStore'
 import { useRoomStore } from '../../stores/roomStore'
@@ -7,8 +8,15 @@ import type { Cell } from '../../types/game'
 import { loadSounds, playSound, setupAudioUnlock, soundSettings, stopSound } from './soundManager'
 import { abilitySoundKey, COINS_DELAY_MS } from './soundMap'
 
-export { playSound, stopSound, soundSettings } from './soundManager'
-export type { SoundKey } from './soundMap'
+export {
+  playSound,
+  playVoice,
+  preloadVoices,
+  soundSettings,
+  stopSound,
+  stopVoice,
+} from './soundManager'
+export type { SoundKey, VoiceKey } from './soundMap'
 
 let started = false
 
@@ -33,11 +41,21 @@ function setupButtonSounds() {
 }
 
 /** Volume e mudo das Configurações (FE-39) no motor de som */
-export function applySoundSettings({ musicOn, musicVolume, sfxOn, sfxVolume }: Settings) {
+export function applySoundSettings({
+  musicOn,
+  musicVolume,
+  sfxOn,
+  sfxVolume,
+  voiceVolume,
+  vitaoOn,
+}: Settings) {
   soundSettings.setMusicVolume(musicVolume)
   soundSettings.setMusicMuted(!musicOn)
   soundSettings.setSfxVolume(sfxVolume)
   soundSettings.setSfxMuted(!sfxOn)
+  // A voz é do Vitão: com ele desligado (ou fora do jogo pela flag), nenhuma fala toca (FE-48)
+  soundSettings.setVoiceVolume(voiceVolume)
+  soundSettings.setVoiceMuted(!vitaoOn || !VITAO_ENABLED)
 }
 
 /** Chamar uma vez ao abrir o app */

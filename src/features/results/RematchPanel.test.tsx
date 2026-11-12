@@ -4,6 +4,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { applyServerEvent, resetGameStores } from '../../stores/serverEvents'
 import type { ClientCommand, ServerEvent } from '../../types/events'
 import type { PlayerSlot, PlayerState } from '../../types/game'
+import { useSettingsStore } from '../../stores/settingsStore'
+import { playVoice } from '../sound/soundManager'
 import { RematchPanel } from './RematchPanel'
 
 const client = vi.hoisted(() => ({
@@ -11,6 +13,10 @@ const client = vi.hoisted(() => ({
   leaveRoom: vi.fn<() => void>(),
 }))
 vi.mock('../../sockets/gameClient', () => client)
+vi.mock('../sound/soundManager', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../sound/soundManager')>()),
+  playVoice: vi.fn<(key: `vitao-${string}`) => void>(),
+}))
 
 function send<T extends ServerEvent['type']>(
   type: T,
@@ -106,6 +112,23 @@ describe('RematchPanel', () => {
     expect(screen.getByRole('status')).toHaveTextContent('O oponente sentiu a pressão, neném!')
     expect(button('Revanche')).toBeDisabled()
     expect(button('Voltar ao Lobby')).toBeEnabled()
+  })
+
+  it('oponente saiu com a tela aberta: a voz do Rafik fala junto (FE-48)', () => {
+    vi.mocked(playVoice).mockClear()
+    renderResult()
+    expect(playVoice).not.toHaveBeenCalled()
+    send('PLAYER_LEFT', { slot: 'P2' })
+    expect(playVoice).toHaveBeenCalledWith('vitao-oponente-saiu')
+  })
+
+  it('oponente saiu, com o filtro de linguagem: a versão filtrada da voz', () => {
+    vi.mocked(playVoice).mockClear()
+    useSettingsStore.setState({ languageFilter: true })
+    renderResult()
+    send('PLAYER_LEFT', { slot: 'P2' })
+    expect(playVoice).toHaveBeenCalledWith('vitao-oponente-saiu-filtrado')
+    useSettingsStore.setState({ languageFilter: false })
   })
 
   it('pedido do oponente que expirou: aviso e revanche desabilitada', () => {

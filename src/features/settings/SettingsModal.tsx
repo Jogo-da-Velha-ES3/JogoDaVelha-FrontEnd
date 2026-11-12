@@ -2,7 +2,7 @@ import { useId, type ReactNode } from 'react'
 import { Modal } from '../../components/ui'
 import { SETTINGS_TEXTS as T } from '../../constants/texts'
 import { useSettingsStore } from '../../stores/settingsStore'
-import { playSound } from '../sound'
+import { playSound, playVoice } from '../sound'
 
 export interface SettingsModalProps {
   open: boolean
@@ -50,12 +50,14 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
               onCommit={() => playSound('botao')}
             />
           </SwitchRow>
-          <Row label="Voz do Vitão" hint={T.voiceSoon}>
+          <Row label="Voz do Vitão">
             <VolumeSlider
               label="Volume da voz do Vitão"
               value={settings.voiceVolume}
               disabled={!settings.vitaoOn}
               onChange={(voiceVolume) => update({ voiceVolume })}
+              // Uma fala de exemplo ao soltar, para ouvir o volume novo (FE-48)
+              onCommit={() => playVoice('vitao-round-1')}
             />
           </Row>
           <p className="mt-auto text-xs">{T.savedHint}</p>

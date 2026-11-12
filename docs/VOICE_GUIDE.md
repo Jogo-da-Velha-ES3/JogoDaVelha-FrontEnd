@@ -15,6 +15,9 @@ Desde 02/11, uma voz só: **o Vitão** (PROJECT_CONTEXT §9).
 - Jogadas de peça e a minha habilidade não têm gravação: o Vitão comenta só por escrito, no mesmo
   tom.
 - No Resultado, que não tem o Vitão, a piada continua como subtítulo.
+- Fala nova ou regravada do Rafik: pôr o WAV na pasta, ligar o arquivo ao nome no jogo na lista de
+  `tools/vitao-voices.sh` e rodar o script (ARCHITECTURE §2, voz do Vitão). O teste de
+  `vitaoVoices.test.ts` avisa se faltar arquivo ou sobrar algum sem uso.
 
 ## Regras
 

@@ -59,9 +59,12 @@ export interface VitaoLine {
   explicit?: boolean
   /** Versão limpa de uma fala `explicit` (o [C] do Rafik): só aparece com o filtro ligado */
   filteredOnly?: boolean
-  /** Nome do arquivo de áudio do Rafik, usado pela voz (FE-48) */
-  audio?: string
+  /** Fala gravada do Rafik que toca junto com o balão (FE-48) */
+  audio?: VitaoVoiceKey
 }
+
+/** Nome do arquivo da fala gravada, em src/assets/sounds/vitao/ (ex: "vitao-round-1") */
+export type VitaoVoiceKey = `vitao-${string}`
 
 /** Falas por momento: a versão normal e a versão "Diabo" (Morte Súbita) */
 export type VitaoLines = Partial<Record<VitaoLineKey, { normal: VitaoLine[]; devil: VitaoLine[] }>>
@@ -90,7 +93,7 @@ export interface VitaoReaction {
   big: boolean
   moment: VitaoMoment
   /** Áudio da fala escolhida (FE-48) */
-  audio?: string
+  audio?: VitaoVoiceKey
 }
 
 /** Quanto maior, mais importante. Os momentos grandes passam na frente dos pequenos */

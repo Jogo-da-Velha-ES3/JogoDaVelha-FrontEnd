@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button, TimerBar } from '../../components/ui'
 import { REMATCH_WINDOW_SECONDS } from '../../constants/game'
@@ -9,6 +10,8 @@ import { leaveRoom, sendCommand } from '../../sockets/gameClient'
 import { useMatchStore } from '../../stores/matchStore'
 import { useRoomStore } from '../../stores/roomStore'
 import { rematchCancelledMessage } from './rematch'
+import { playVoice } from '../sound/soundManager'
+import { OPPONENT_LEFT_VOICE, pickVoice } from '../vitao/vitaoVoices'
 import { roomClosedMessage } from './roomClosed'
 
 export interface RematchPanelProps {
@@ -46,6 +49,15 @@ export function RematchPanel({ onLeave, className = '' }: RematchPanelProps) {
     ended = rematchCancelledMessage(cancelled.reason, cancelled.requestedBy === me, filterOn)
   } else if (!opponent) ended = voice(T.opponentLeft)
   else if (closedReason !== null) ended = roomClosedMessage(closedReason)
+
+  // "O oponente sentiu a pressão, neném!" com a voz do Rafik (FE-48): toca quando ele sai com a
+  // tela aberta, não quando a tela já abre assim
+  const opponentLeft = cancelled ? cancelled.reason === 'LEFT' : !opponent
+  const wasLeft = useRef(opponentLeft)
+  useEffect(() => {
+    if (opponentLeft && !wasLeft.current) playVoice(pickVoice(OPPONENT_LEFT_VOICE, filterOn))
+    wasLeft.current = opponentLeft
+  }, [opponentLeft, filterOn])
 
   const pending = ended === null ? rematch : null
   const askedByOpponent = pending !== null && pending.requestedBy !== me

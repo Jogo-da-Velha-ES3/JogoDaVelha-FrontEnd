@@ -26,7 +26,7 @@ describe('falas do Vitão na Morte Súbita (decidido em 11/11)', () => {
       text: ABILITY_TEXTS.lines.BOMBA.unfiltered,
       expression: 'DIABO',
       devil: true,
-      audio: 'habilidade-bomba-e',
+      audio: 'vitao-habilidade-bomba',
     })
   })
 
