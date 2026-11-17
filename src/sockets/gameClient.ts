@@ -30,8 +30,15 @@ export async function createGameConnection(
 
   const base = import.meta.env.VITE_WEBSOCKET_URL
   if (!base) throw new Error('VITE_WEBSOCKET_URL não está configurada.')
-  const { StompConnection, toBrokerUrl } = await import('./stompConnection')
-  return new StompConnection({ brokerURL: toBrokerUrl(base) })
+  const [{ StompConnection, toBrokerUrl }, { RenewingConnection }] = await Promise.all([
+    import('./stompConnection'),
+    import('./renewingConnection'),
+  ])
+  // A renovação preventiva (Cloud Run derruba WebSocket ~60 min) troca a conexão por uma nova
+  // validada, preferindo os intervalos entre partidas — ver renewingConnection.ts
+  return new RenewingConnection({
+    createConnection: () => new StompConnection({ brokerURL: toBrokerUrl(base) }),
+  })
 }
 
 let connection: GameConnection | null = null
