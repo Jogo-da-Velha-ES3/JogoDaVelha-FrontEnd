@@ -120,6 +120,8 @@ function setup(configure?: (fake: FakeConnection, index: number) => void) {
 
 beforeEach(() => {
   vi.useFakeTimers()
+  // Relógio em 0: os serverTime explícitos dos testes ficam comparáveis aos dos snapshots
+  vi.setSystemTime(0)
 })
 
 afterEach(() => {
@@ -455,6 +457,131 @@ describe('RenewingConnection', () => {
       connection.disconnect()
     },
   )
+
+  it('snapshot mais antigo que evento já aplicado não regride o estado', async () => {
+    const { connection, created, events } = setup((fake, index) => {
+      if (index === 1) fake.autoSnapshot = false
+    })
+    await connection.connect('4821')
+    await vi.advanceTimersByTimeAsync(RENEW_AFTER)
+    const [oldConn, newConn] = created
+
+    // A conexão antiga entrega um evento mais novo durante a sincronização
+    oldConn.emit({
+      type: 'TURN_START',
+      payload: {
+        player: 'P1',
+        startedAt: 1_000,
+        durationSeconds: 30,
+        consecutiveTimeouts: { P1: 0, P2: 0 },
+      },
+      serverTime: 100,
+    })
+    // O snapshot da nova conexão é mais velho que esse evento
+    newConn.emit(snapshot('WAITING', {}, 50))
+    await vi.advanceTimersByTimeAsync(0)
+
+    // A troca acontece (a conexão validou), mas o snapshot velho não é rejogado
+    expect(oldConn.disconnected).toBe(true)
+    expect(events.some((e) => e.type === 'ROOM_SNAPSHOT' && e.serverTime === 50)).toBe(false)
+    expect(events.at(-1)).toMatchObject({ type: 'TURN_START', serverTime: 100 })
+    connection.disconnect()
+  })
+
+  it('snapshot válido com todos os dados obrigatórios promove e é entregue', async () => {
+    const { connection, created, events } = setup((fake, index) => {
+      if (index === 1) fake.autoSnapshot = false
+    })
+    await connection.connect('4821')
+    await vi.advanceTimersByTimeAsync(RENEW_AFTER)
+    const [, newConn] = created
+
+    const full = snapshot('RESULT', { outcome: { kind: 'ABSOLUTE_DRAW' } }, 500)
+    newConn.emit(full)
+    await vi.advanceTimersByTimeAsync(0)
+
+    expect(created[0].disconnected).toBe(true)
+    expect(events).toContainEqual(full)
+    connection.disconnect()
+  })
+
+  it.each([
+    ['board ausente', { board: undefined }],
+    ['players que não é lista', { players: 'x' }],
+    ['myDeck ausente', { myDeck: undefined }],
+    ['serverTime do payload inválido', { serverTime: 'agora' }],
+    ['phase desconhecida', { phase: 'INVALIDA' }],
+    ['outcome com tipo errado', { outcome: 42 }],
+    ['turn com tipo errado', { turn: 'x' }],
+    ['mySlot ausente', { mySlot: null }],
+  ])('snapshot inválido (%s) não promove e a antiga segue ativa', async (_name, patch) => {
+    const { connection, created, renewalErrors } = setup((fake, index) => {
+      if (index === 1) fake.autoSnapshot = false
+    })
+    await connection.connect('4821')
+    await vi.advanceTimersByTimeAsync(RENEW_AFTER)
+    const [oldConn, newConn] = created
+
+    const valid = snapshot('WAITING', {}, 30)
+    newConn.emit({
+      ...valid,
+      payload: { ...valid.payload, ...patch },
+    } as ServerEnvelope)
+    await vi.advanceTimersByTimeAsync(0)
+
+    expect(renewalErrors).toHaveLength(1)
+    expect(newConn.disconnected).toBe(true)
+    expect(oldConn.disconnected).toBe(false)
+    connection.disconnect()
+  })
+
+  it('não cria standby duplicada com checagens simultâneas', async () => {
+    const { connection, created } = setup((fake, index) => {
+      if (index === 1) fake.autoSnapshot = false // a standby fica pendente de propósito
+    })
+    await connection.connect('4821')
+    created[0].emit(phaseChange('RESULT'))
+    await vi.advanceTimersByTimeAsync(RENEW_AFTER)
+    expect(created).toHaveLength(2)
+
+    // Eventos e acordares durante a sincronização não abrem outra tentativa
+    for (let i = 0; i < 5; i++) {
+      created[0].emit({ type: 'BOARD_UPDATE', payload: { board: [] }, serverTime: 1_000 + i })
+      window.dispatchEvent(new Event('focus'))
+    }
+    // Menos que o snapshotTimeoutMs: a standby continua pendente durante as checagens
+    await vi.advanceTimersByTimeAsync(500)
+    expect(created).toHaveLength(2)
+    connection.disconnect()
+  })
+
+  it('sala, estado da partida e intenções sobrevivem à renovação', async () => {
+    const { connection, created, events } = setup((fake, index) => {
+      if (index === 1) fake.autoSnapshot = false
+    })
+    await connection.connect('4821')
+    created[0].emit(
+      snapshot('RESULT', { outcome: { kind: 'WIN', winner: 'P1', score: [2, 0] } }, 40),
+    )
+    await vi.advanceTimersByTimeAsync(RENEW_AFTER)
+    const [oldConn, newConn] = created
+
+    // Pedido de revanche e resposta seguem pela conexão antiga durante a troca
+    oldConn.emit({
+      type: 'REMATCH_REQUESTED',
+      payload: { by: 'P2', deadline: 9_999 },
+      serverTime: 41,
+    })
+    connection.send({ type: 'REMATCH_RESPOND', payload: { accept: true } })
+    expect(oldConn.sent).toContainEqual({ type: 'REMATCH_RESPOND', payload: { accept: true } })
+    expect(events.some((e) => e.type === 'REMATCH_REQUESTED')).toBe(true)
+
+    newConn.emit(snapshot('DRAFT', {}, 42))
+    await vi.advanceTimersByTimeAsync(0)
+    connection.send({ type: 'DRAFT_CHARACTER', payload: { character: 'X' } })
+    expect(newConn.sent).toContainEqual({ type: 'DRAFT_CHARACTER', payload: { character: 'X' } })
+    connection.disconnect()
+  })
 
   it('sair da sala cancela timers e desconecta as duas conexões', async () => {
     const { connection, created } = setup()

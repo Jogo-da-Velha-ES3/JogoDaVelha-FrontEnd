@@ -39,6 +39,18 @@ export interface RenewingConnectionOptions {
  */
 const SAFE_PHASES: ReadonlySet<RoomPhase> = new Set(['WAITING', 'MATCHED', 'RESULT'])
 
+/** Todas as fases conhecidas, para validar a estrutura do ROOM_SNAPSHOT */
+const ROOM_PHASES: ReadonlySet<RoomPhase> = new Set([
+  'WAITING',
+  'MATCHED',
+  'DRAFT',
+  'VERSUS',
+  'ROUND_DRAW',
+  'PLAYING',
+  'ROUND_END',
+  'RESULT',
+])
+
 /** Teto do histórico de assinaturas de eventos, para deduplicar a sobreposição das duas conexões */
 const SEEN_LIMIT = 500
 
@@ -50,10 +62,12 @@ export class RenewingConnection implements GameConnection {
   private standbyUnsubs: Unsubscribe[] = []
   private standbyConnectedAt = 0
   private roomCode: string | null = null
-  /** Instante em que a conexão ativa foi estabelecida; 0 = ainda não conectou */
-  private connectedAt = 0
+  /** Instante em que a conexão ativa foi estabelecida; null = ainda não conectou */
+  private connectedAt: number | null = null
   private phase: RoomPhase | null = null
   private matchEnded = false
+  /** Maior serverTime já entregue pelas telas: um snapshot mais velho não pode regredir o estado */
+  private newestServerTime = 0
   private renewing = false
   private failures = 0
   private readonly eventListeners = new Set<(event: ServerEnvelope) => void>()
@@ -92,6 +106,8 @@ export class RenewingConnection implements GameConnection {
     this.disposed = false
     this.seen = new Set()
     this.seenOrder = []
+    this.newestServerTime = 0
+    this.connectedAt = null
     const connection = this.options.createConnection()
     this.active = connection
     this.activeUnsubs = this.wireActive(connection)
@@ -148,8 +164,11 @@ export class RenewingConnection implements GameConnection {
   private wireActive(connection: GameConnection): Unsubscribe[] {
     return [
       connection.onEvent((event) => {
+        // Snapshot mais velho que o evento mais novo já aplicado não pode regredir o estado
+        if (this.isStaleSnapshot(event)) return
         this.trackPhase(event)
         if (this.accept(event)) {
+          this.noteServerTime(event)
           this.emitEvent(event)
           this.checkRenewal()
         }
@@ -185,10 +204,39 @@ export class RenewingConnection implements GameConnection {
     ]
   }
 
-  /** O snapshot tem que ser desta sala e trazer os dados privados (mySlot) */
+  /** Eventos locais (ex: NOT_CONNECTED) usam o relógio do navegador, não o do servidor */
+  private noteServerTime(event: ServerEnvelope) {
+    if (!event.local) this.newestServerTime = Math.max(this.newestServerTime, event.serverTime)
+  }
+
+  /**
+   * Um ROOM_SNAPSHOT carrega o estado inteiro do servidor no instante do serverTime dele: se já
+   * entregamos um evento mais novo, rejogá-lo regrediria fase, turno e tabuleiro
+   */
+  private isStaleSnapshot(event: ServerEnvelope): boolean {
+    if (event.type !== 'ROOM_SNAPSHOT' || event.local) return false
+    const serverTime = (event.payload as RoomSnapshot).serverTime
+    return typeof serverTime === 'number' && serverTime < this.newestServerTime
+  }
+
+  /**
+   * O snapshot tem que ser desta sala e trazer a estrutura mínima que as stores consomem:
+   * fase válida, jogadores, tabuleiro, meu deck, resultado e o relógio do servidor
+   */
   private isRoomSnapshot(event: ServerEnvelope): boolean {
     const payload = event.payload as Partial<RoomSnapshot>
-    return payload.code === this.roomCode && (payload.mySlot === 'P1' || payload.mySlot === 'P2')
+    return (
+      payload.code === this.roomCode &&
+      (payload.mySlot === 'P1' || payload.mySlot === 'P2') &&
+      typeof payload.phase === 'string' &&
+      ROOM_PHASES.has(payload.phase as RoomPhase) &&
+      Array.isArray(payload.players) &&
+      Array.isArray(payload.board) &&
+      Array.isArray(payload.myDeck) &&
+      (payload.turn === null || typeof payload.turn === 'object') &&
+      (payload.outcome === null || typeof payload.outcome === 'object') &&
+      typeof payload.serverTime === 'number'
+    )
   }
 
   /** ROOM_SNAPSHOT substitui o estado; MATCH_END e PHASE_CHANGE dizem se há partida rolando */
@@ -275,18 +323,19 @@ export class RenewingConnection implements GameConnection {
 
   /** Desperta no próximo limite (50 ou 55 min); o intervalo cobre relógio atrasado */
   private scheduleNextCheck() {
+    const connectedAt = this.connectedAt
     if (
       this.disposed ||
       this.checkTimer !== null ||
-      this.connectedAt === 0 ||
+      connectedAt === null ||
       this.renewing ||
       this.standby ||
       this.retryTimer !== null
     )
       return
-    const elapsed = this.now() - this.connectedAt
+    const elapsed = this.now() - connectedAt
     const target = elapsed >= this.renewAfterMs ? this.forceRenewAfterMs : this.renewAfterMs
-    const delay = Math.max(0, this.connectedAt + target - this.now())
+    const delay = Math.max(0, connectedAt + target - this.now())
     this.checkTimer = setTimeout(() => {
       this.checkTimer = null
       this.checkRenewal()
@@ -297,7 +346,7 @@ export class RenewingConnection implements GameConnection {
     // Com tentativa em andamento ou backoff armado, quem retoma a checagem é o próprio fluxo
     // dela (promoção, falha ou o timer de retry) — remarcar aqui criaria timers em loop
     if (this.disposed || this.renewing || this.standby || this.retryTimer !== null) return
-    const elapsed = this.connectedAt === 0 ? 0 : this.now() - this.connectedAt
+    const elapsed = this.connectedAt === null ? 0 : this.now() - this.connectedAt
     if (elapsed < this.renewAfterMs) {
       this.scheduleNextCheck()
       return
@@ -354,8 +403,16 @@ export class RenewingConnection implements GameConnection {
     this.renewing = false
     this.failures = 0
 
-    this.trackPhase(snapshot)
-    if (this.accept(snapshot)) this.emitEvent(snapshot)
+    // Um evento mais novo que o snapshot já foi aplicado pela conexão antiga: rejogar o
+    // snapshot regrediria o estado, então ele é descartado (a conexão assume mesmo assim)
+    const snapshotTime = (snapshot.payload as RoomSnapshot).serverTime
+    if (typeof snapshotTime === 'number' && snapshotTime >= this.newestServerTime) {
+      this.trackPhase(snapshot)
+      if (this.accept(snapshot)) {
+        this.noteServerTime(snapshot)
+        this.emitEvent(snapshot)
+      }
+    }
 
     // A antiga para de ser ouvida antes de desligar: nada dela passa depois da promoção
     previousUnsubs.forEach((unsubscribe) => unsubscribe())
