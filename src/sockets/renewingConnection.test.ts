@@ -291,15 +291,16 @@ describe('RenewingConnection', () => {
       serverTime: 42,
     }
     oldConn.emit(shared)
-    newConn.emit(shared) // fica no buffer da conexão nova
-    newConn.emit(snapshot('WAITING', {}, 43)) // promove e descarrega o buffer
+    newConn.emit(shared) // ignorado: só o snapshot importa antes da promoção
+    newConn.emit(snapshot('WAITING', {}, 43)) // promove
+    newConn.emit(shared) // a mesma mensagem de novo, agora pela conexão ativa: deduplica
 
     expect(events.filter((e) => e.type === 'BOARD_UPDATE')).toHaveLength(1)
-    expect(events.at(-1)).toMatchObject({ type: 'ROOM_SNAPSHOT' })
+    expect(events.at(-1)).toMatchObject({ type: 'ROOM_SNAPSHOT' }) // o repetido foi descartado
     connection.disconnect()
   })
 
-  it('evento que só a conexão nova recebeu não se perde, e a antiga é ignorada após a troca', async () => {
+  it('eventos da conexão nova anteriores ao snapshot são absorvidos por ele', async () => {
     const { connection, created, events } = setup((fake, index) => {
       if (index === 1) fake.autoSnapshot = false
     })
@@ -307,19 +308,53 @@ describe('RenewingConnection', () => {
     await vi.advanceTimersByTimeAsync(RENEW_AFTER)
     const [oldConn, newConn] = created
 
-    const privateEvent = {
+    // Chegam só na conexão nova durante a sincronização: o snapshot já os reflete no estado
+    newConn.emit({
       type: 'DECK_UPDATE',
       payload: { deck: [] },
       serverTime: 77,
-    } as ServerEnvelope
-    newConn.emit(privateEvent)
+    })
     newConn.emit(snapshot('WAITING', {}, 78))
 
-    expect(events).toContainEqual(privateEvent)
+    expect(events.filter((e) => e.type === 'DECK_UPDATE')).toHaveLength(0)
+    expect(events.at(-1)).toMatchObject({ type: 'ROOM_SNAPSHOT' })
 
-    const late = { type: 'BOARD_UPDATE', payload: { board: [] }, serverTime: 79 } as ServerEnvelope
-    oldConn.emit(late) // conexão antiga: nem ouvida depois da promoção
+    // Depois da promoção, a conexão nova entrega normalmente e a antiga é ignorada
+    const after = { type: 'BOARD_UPDATE', payload: { board: [] }, serverTime: 79 } as ServerEnvelope
+    newConn.emit(after)
+    expect(events).toContainEqual(after)
+    const late = { type: 'BOARD_UPDATE', payload: { board: [] }, serverTime: 80 } as ServerEnvelope
+    oldConn.emit(late)
     expect(events).not.toContainEqual(late)
+    connection.disconnect()
+  })
+
+  it('evento antigo da conexão nova não regride estado mais novo da antiga', async () => {
+    const { connection, created, events } = setup((fake, index) => {
+      if (index === 1) fake.autoSnapshot = false
+    })
+    await connection.connect('4821')
+    await vi.advanceTimersByTimeAsync(RENEW_AFTER)
+    const [oldConn, newConn] = created
+
+    // A antiga entrega um evento mais novo enquanto a nova ainda sincroniza
+    oldConn.emit({
+      type: 'TURN_START',
+      payload: {
+        player: 'P1',
+        startedAt: 1_000,
+        durationSeconds: 30,
+        consecutiveTimeouts: { P1: 0, P2: 0 },
+      },
+      serverTime: 60,
+    })
+    // A nova recebeu antes um evento mais velho: não pode ser rejogado depois do snapshot
+    newConn.emit({ type: 'BOARD_UPDATE', payload: { board: [] }, serverTime: 50 })
+    newConn.emit(snapshot('PLAYING', {}, 70))
+
+    const delivered = events.filter((e) => e.serverTime >= 50 && e.serverTime < 1_000_000)
+    expect(delivered.map((e) => e.type)).toEqual(['TURN_START', 'ROOM_SNAPSHOT'])
+    expect(events.some((e) => e.type === 'BOARD_UPDATE')).toBe(false)
     connection.disconnect()
   })
 
@@ -336,6 +371,90 @@ describe('RenewingConnection', () => {
     expect(created).toHaveLength(2)
     connection.disconnect()
   })
+
+  it('fase desconhecida não é janela segura: a renovação espera a confirmação', async () => {
+    const { connection, created } = setup((fake, index) => {
+      if (index === 0) fake.autoSnapshot = false // conecta sem snapshot: fase segue nula
+    })
+    await connection.connect('4821')
+    await vi.advanceTimersByTimeAsync(RENEW_AFTER + MINUTE)
+    expect(created).toHaveLength(1)
+
+    // O snapshot confirma WAITING: agora sim a troca pode começar
+    created[0].emit(snapshot('WAITING', {}, 10))
+    await vi.advanceTimersByTimeAsync(0)
+    expect(created).toHaveLength(2)
+    connection.disconnect()
+  })
+
+  it('falha na conexão inicial limpa timers, listeners e o cliente', async () => {
+    const { connection, created } = setup((fake, index) => {
+      if (index === 0) fake.failConnect = true
+    })
+    await expect(connection.connect('4821')).rejects.toThrow('recusada')
+    expect(created[0].disconnected).toBe(true)
+
+    // Sem monitoramento sobrevivendo: nada de novas conexões depois da falha
+    await vi.advanceTimersByTimeAsync(2 * FORCE_AFTER)
+    expect(created).toHaveLength(1)
+    connection.disconnect()
+  })
+
+  it('snapshot de outra sala não promove a conexão nova', async () => {
+    const { connection, created, renewalErrors } = setup((fake, index) => {
+      if (index === 1) fake.autoSnapshot = false
+    })
+    await connection.connect('4821')
+    await vi.advanceTimersByTimeAsync(RENEW_AFTER)
+    const [oldConn, newConn] = created
+
+    newConn.emit(snapshot('WAITING', { code: '9999' }, 30))
+    await vi.advanceTimersByTimeAsync(0)
+    expect(renewalErrors).toHaveLength(1)
+    expect(newConn.disconnected).toBe(true)
+    expect(oldConn.disconnected).toBe(false)
+
+    // O backoff tenta de novo
+    await vi.advanceTimersByTimeAsync(1_000)
+    await vi.advanceTimersByTimeAsync(0)
+    expect(created).toHaveLength(3)
+    connection.disconnect()
+  })
+
+  it('snapshot sem os dados privados não promove a conexão nova', async () => {
+    const { connection, created, renewalErrors } = setup((fake, index) => {
+      if (index === 1) fake.autoSnapshot = false
+    })
+    await connection.connect('4821')
+    await vi.advanceTimersByTimeAsync(RENEW_AFTER)
+    const [oldConn, newConn] = created
+
+    // ROOM_SNAPSHOT sem mySlot: o envelope.ts já filtraria, mas a validação é da renovação
+    newConn.emit({
+      type: 'ROOM_SNAPSHOT',
+      payload: { code: '4821', phase: 'WAITING' },
+      serverTime: 30,
+    } as ServerEnvelope)
+    await vi.advanceTimersByTimeAsync(0)
+    expect(renewalErrors).toHaveLength(1)
+    expect(newConn.disconnected).toBe(true)
+    expect(oldConn.disconnected).toBe(false)
+    connection.disconnect()
+  })
+
+  it.each(['DRAFT', 'VERSUS', 'ROUND_DRAW'] as const)(
+    'não renova durante %s: espera o limite de segurança',
+    async (phase) => {
+      const { connection, created } = setup()
+      await connection.connect('4821')
+      created[0].emit(phaseChange(phase))
+      await vi.advanceTimersByTimeAsync(RENEW_AFTER + MINUTE)
+      expect(created).toHaveLength(1)
+      await vi.advanceTimersByTimeAsync(FORCE_AFTER - RENEW_AFTER - MINUTE)
+      expect(created).toHaveLength(2)
+      connection.disconnect()
+    },
+  )
 
   it('sair da sala cancela timers e desconecta as duas conexões', async () => {
     const { connection, created } = setup()

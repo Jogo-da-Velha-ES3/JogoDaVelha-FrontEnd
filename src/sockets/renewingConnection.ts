@@ -6,7 +6,7 @@
 //
 // Só envolve a conexão real (createGameConnection): o simulado e as conexões injetadas em testes
 // não passam por aqui. Os nomes do back continuam escondidos em destinations.ts/envelope.ts.
-import type { RoomPhase } from '../types/game'
+import type { RoomPhase, RoomSnapshot } from '../types/game'
 import type { ClientCommand, ServerEnvelope, ServerEvent } from '../types/events'
 import type { ConnectionStatus, GameConnection, Unsubscribe } from './types'
 
@@ -34,9 +34,10 @@ export interface RenewingConnectionOptions {
  * Fases em que a sala está entre partidas: o WAITING é o lobby, o MATCHED é a contagem de 3s antes
  * da Preparação e o RESULT é o intervalo da revanche. Renovar aqui não atrapalha jogada, Draft,
  * sorteio nem rodada. MATCH_END também libera (ver matchEnded), cobrindo o intervalo até o
- * PHASE_CHANGE de RESULT.
+ * PHASE_CHANGE de RESULT. Fase desconhecida (null) NÃO é segura: sem confirmação do servidor de
+ * que a sala está entre partidas, a renovação espera.
  */
-const SAFE_PHASES: ReadonlySet<RoomPhase | null> = new Set(['WAITING', 'MATCHED', 'RESULT', null])
+const SAFE_PHASES: ReadonlySet<RoomPhase> = new Set(['WAITING', 'MATCHED', 'RESULT'])
 
 /** Teto do histórico de assinaturas de eventos, para deduplicar a sobreposição das duas conexões */
 const SEEN_LIMIT = 500
@@ -47,8 +48,6 @@ export class RenewingConnection implements GameConnection {
   private activeUnsubs: Unsubscribe[] = []
   private standby: GameConnection | null = null
   private standbyUnsubs: Unsubscribe[] = []
-  /** Eventos da conexão nova antes da promoção: entram depois do snapshot, sem se perder */
-  private standbyBuffer: ServerEnvelope[] = []
   private standbyConnectedAt = 0
   private roomCode: string | null = null
   /** Instante em que a conexão ativa foi estabelecida; 0 = ainda não conectou */
@@ -97,7 +96,20 @@ export class RenewingConnection implements GameConnection {
     this.active = connection
     this.activeUnsubs = this.wireActive(connection)
     this.startMonitoring()
-    await connection.connect(roomCode)
+    try {
+      await connection.connect(roomCode)
+    } catch (error) {
+      // Sem conexão não há o que renovar: desfaz listeners, timers e o cliente para não vazar
+      // (joinRoom pode retornar sem leaveRoom quando a sessão é inválida)
+      this.activeUnsubs.forEach((unsubscribe) => unsubscribe())
+      this.activeUnsubs = []
+      this.active = null
+      this.clearTimers()
+      this.removeWakeListeners()
+      this.disposed = true
+      connection.disconnect()
+      throw error
+    }
   }
 
   disconnect(): void {
@@ -111,7 +123,6 @@ export class RenewingConnection implements GameConnection {
     this.standbyUnsubs = []
     this.active = null
     this.standby = null
-    this.standbyBuffer = []
     connections.forEach((connection) => connection?.disconnect())
     this.setStatus('DISCONNECTED')
   }
@@ -156,19 +167,28 @@ export class RenewingConnection implements GameConnection {
     ]
   }
 
-  /** A conexão nova é ouvida à parte: os eventos ficam em buffer até a promoção */
+  /**
+   * Da conexão nova só importa o ROOM_SNAPSHOT: ele é a prova de que os tópicos foram assinados e
+   * traz o estado completo do servidor, então absorve tudo que chegou antes dele. Rejogar eventos
+   * mais antigos que o snapshot depois da promoção poderia regredir o estado — eles são ignorados.
+   */
   private wireStandby(connection: GameConnection): Unsubscribe[] {
     return [
       connection.onEvent((event) => {
-        this.standbyBuffer.push(event)
-        // O snapshot privado só chega depois do /connect: é a prova de que a conexão nova
-        // assinou os tópicos e está sincronizada — pode assumir
-        if (event.type === 'ROOM_SNAPSHOT') this.promoteStandby()
+        if (event.type !== 'ROOM_SNAPSHOT') return
+        if (this.isRoomSnapshot(event)) this.promoteStandby(event)
+        else this.failRenewal(new Error('ROOM_SNAPSHOT inválido na renovação'))
       }),
       connection.onStatus((status) => {
         if (status === 'CONNECTED') this.standbyConnectedAt = this.now()
       }),
     ]
+  }
+
+  /** O snapshot tem que ser desta sala e trazer os dados privados (mySlot) */
+  private isRoomSnapshot(event: ServerEnvelope): boolean {
+    const payload = event.payload as Partial<RoomSnapshot>
+    return payload.code === this.roomCode && (payload.mySlot === 'P1' || payload.mySlot === 'P2')
   }
 
   /** ROOM_SNAPSHOT substitui o estado; MATCH_END e PHASE_CHANGE dizem se há partida rolando */
@@ -189,7 +209,7 @@ export class RenewingConnection implements GameConnection {
   }
 
   private isSafeWindow() {
-    return SAFE_PHASES.has(this.phase) || this.matchEnded
+    return (this.phase !== null && SAFE_PHASES.has(this.phase)) || this.matchEnded
   }
 
   // --- deduplicação ---
@@ -297,7 +317,6 @@ export class RenewingConnection implements GameConnection {
     this.renewing = true
     const standby = this.options.createConnection()
     this.standby = standby
-    this.standbyBuffer = []
     this.standbyConnectedAt = 0
     this.standbyUnsubs = this.wireStandby(standby)
     void standby
@@ -314,10 +333,11 @@ export class RenewingConnection implements GameConnection {
   }
 
   /**
-   * A conexão nova validou: vira a ativa, o buffer dela é reprocessado pela deduplicação e a
-   * antiga é desligada por último — só depois de tudo confirmado.
+   * A conexão nova validou: vira a ativa e o snapshot dela é reprocessado pela deduplicação —
+   * ele já carrega o estado completo, então nada anterior precisa ser rejogado. A antiga é
+   * desligada por último, só depois de tudo confirmado.
    */
-  private promoteStandby() {
+  private promoteStandby(snapshot: ServerEnvelope) {
     const next = this.standby
     if (!next) return
     this.standby = null
@@ -334,13 +354,8 @@ export class RenewingConnection implements GameConnection {
     this.renewing = false
     this.failures = 0
 
-    // O buffer pode repetir o que a conexão antiga já entregou: a deduplicação resolve
-    const buffered = this.standbyBuffer
-    this.standbyBuffer = []
-    for (const event of buffered) {
-      this.trackPhase(event)
-      if (this.accept(event)) this.emitEvent(event)
-    }
+    this.trackPhase(snapshot)
+    if (this.accept(snapshot)) this.emitEvent(snapshot)
 
     // A antiga para de ser ouvida antes de desligar: nada dela passa depois da promoção
     previousUnsubs.forEach((unsubscribe) => unsubscribe())
@@ -356,7 +371,6 @@ export class RenewingConnection implements GameConnection {
     this.standby = null
     this.standbyUnsubs.forEach((unsubscribe) => unsubscribe())
     this.standbyUnsubs = []
-    this.standbyBuffer = []
     if (this.snapshotTimer !== null) clearTimeout(this.snapshotTimer)
     this.snapshotTimer = null
     this.renewing = false
