@@ -6,6 +6,7 @@
 //
 // Só envolve a conexão real (createGameConnection): o simulado e as conexões injetadas em testes
 // não passam por aqui. Os nomes do back continuam escondidos em destinations.ts/envelope.ts.
+import { ABILITIES } from '../constants/game'
 import type { RoomPhase, RoomSnapshot } from '../types/game'
 import type { ClientCommand, ServerEnvelope, ServerEvent } from '../types/events'
 import type { ConnectionStatus, GameConnection, Unsubscribe } from './types'
@@ -53,6 +54,81 @@ const ROOM_PHASES: ReadonlySet<RoomPhase> = new Set([
 
 /** Teto do histórico de assinaturas de eventos, para deduplicar a sobreposição das duas conexões */
 const SEEN_LIMIT = 500
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value)
+
+const isSlot = (value: unknown) => value === 'P1' || value === 'P2'
+
+/** Os campos que as stores realmente leem de cada jogador do snapshot */
+function validPlayers(players: unknown): boolean {
+  return (
+    Array.isArray(players) &&
+    players.length > 0 &&
+    players.every(
+      (player) =>
+        isRecord(player) &&
+        isSlot(player.slot) &&
+        typeof player.userId === 'string' &&
+        typeof player.nickname === 'string',
+    )
+  )
+}
+
+/** Tabuleiro 4×4: cada casa tem índice, dono (ou vazio) e a lista de efeitos */
+function validBoard(board: unknown): boolean {
+  return (
+    Array.isArray(board) &&
+    board.length === 16 &&
+    board.every(
+      (cell) =>
+        isRecord(cell) &&
+        typeof cell.index === 'number' &&
+        (cell.owner === null || isSlot(cell.owner)) &&
+        Array.isArray(cell.effects),
+    )
+  )
+}
+
+/** Meu deck: habilidade do catálogo, origem e se já foi usada no round */
+function validDeck(deck: unknown): boolean {
+  const abilities: readonly string[] = ABILITIES
+  return (
+    Array.isArray(deck) &&
+    deck.every(
+      (slot) =>
+        isRecord(slot) &&
+        typeof slot.ability === 'string' &&
+        abilities.includes(slot.ability) &&
+        (slot.source === 'INITIAL' || slot.source === 'DRAWN') &&
+        typeof slot.usedThisRound === 'boolean',
+    )
+  )
+}
+
+function validTurn(turn: unknown): boolean {
+  return (
+    turn === null ||
+    (isRecord(turn) &&
+      isSlot(turn.player) &&
+      typeof turn.startedAt === 'number' &&
+      typeof turn.durationSeconds === 'number')
+  )
+}
+
+function validOutcome(outcome: unknown): boolean {
+  if (outcome === null) return true
+  if (!isRecord(outcome)) return false
+  if (outcome.kind === 'ABSOLUTE_DRAW') return true
+  if (outcome.kind !== 'WIN' && outcome.kind !== 'WO') return false
+  if (!isSlot(outcome.winner)) return false
+  return (
+    outcome.kind === 'WO' ||
+    (Array.isArray(outcome.score) &&
+      outcome.score.length === 2 &&
+      outcome.score.every((points) => typeof points === 'number'))
+  )
+}
 
 export class RenewingConnection implements GameConnection {
   private readonly options: RenewingConnectionOptions
@@ -220,8 +296,9 @@ export class RenewingConnection implements GameConnection {
   }
 
   /**
-   * O snapshot tem que ser desta sala e trazer a estrutura mínima que as stores consomem:
-   * fase válida, jogadores, tabuleiro, meu deck, resultado e o relógio do servidor
+   * O snapshot tem que ser desta sala e trazer a estrutura que as stores consomem: fase válida,
+   * rodada e morte súbita, jogadores, tabuleiro 4×4, meu deck, turno, resultado e o relógio do
+   * servidor — tudo no formato interno, não só "é um objeto"
    */
   private isRoomSnapshot(event: ServerEnvelope): boolean {
     const payload = event.payload as Partial<RoomSnapshot>
@@ -230,11 +307,13 @@ export class RenewingConnection implements GameConnection {
       (payload.mySlot === 'P1' || payload.mySlot === 'P2') &&
       typeof payload.phase === 'string' &&
       ROOM_PHASES.has(payload.phase as RoomPhase) &&
-      Array.isArray(payload.players) &&
-      Array.isArray(payload.board) &&
-      Array.isArray(payload.myDeck) &&
-      (payload.turn === null || typeof payload.turn === 'object') &&
-      (payload.outcome === null || typeof payload.outcome === 'object') &&
+      typeof payload.round === 'number' &&
+      typeof payload.suddenDeath === 'boolean' &&
+      validPlayers(payload.players) &&
+      validBoard(payload.board) &&
+      validDeck(payload.myDeck) &&
+      validTurn(payload.turn) &&
+      validOutcome(payload.outcome) &&
       typeof payload.serverTime === 'number'
     )
   }
@@ -417,6 +496,9 @@ export class RenewingConnection implements GameConnection {
     // A antiga para de ser ouvida antes de desligar: nada dela passa depois da promoção
     previousUnsubs.forEach((unsubscribe) => unsubscribe())
     previous?.disconnect()
+    // O CONNECTED da conexão nova ficou só na escuta interna: sem este aviso a tela podia ficar
+    // presa em RECONNECTING/DISCONNECTED se a antiga tivesse caído durante a troca
+    this.setStatus('CONNECTED')
     this.scheduleNextCheck()
   }
 

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { RoomPhase, RoomSnapshot } from '../types/game'
+import type { PlayerState, RoomPhase, RoomSnapshot } from '../types/game'
 import type { ClientCommand, ServerEnvelope } from '../types/events'
 import { RenewingConnection } from './renewingConnection'
 import type { ConnectionStatus, GameConnection, Unsubscribe } from './types'
@@ -56,6 +56,24 @@ class FakeConnection implements GameConnection {
   }
 }
 
+const VALID_PLAYER: PlayerState = {
+  slot: 'P1',
+  userId: 'user-1',
+  nickname: 'eu',
+  character: null,
+  roundsWon: 0,
+  consecutiveTimeouts: 0,
+  forceFieldTurnsLeft: 0,
+  silenced: false,
+  connected: true,
+}
+
+const VALID_BOARD = Array.from({ length: 16 }, (_, index) => ({
+  index,
+  owner: null,
+  effects: [],
+}))
+
 function snapshot(
   phase: RoomPhase,
   overrides: Partial<RoomSnapshot> = {},
@@ -66,11 +84,11 @@ function snapshot(
     payload: {
       code: '4821',
       phase,
-      players: [],
+      players: [VALID_PLAYER],
       mySlot: 'P1',
       round: 1,
       suddenDeath: false,
-      board: [],
+      board: VALID_BOARD,
       turn: null,
       myDeck: [],
       outcome: null,
@@ -508,11 +526,20 @@ describe('RenewingConnection', () => {
   it.each([
     ['board ausente', { board: undefined }],
     ['players que não é lista', { players: 'x' }],
+    ['players vazia', { players: [] }],
+    ['jogador sem slot válido', { players: [{ userId: 'u' }] }],
+    ['board com tamanho errado', { board: [] }],
+    ['casa do tabuleiro incompleta', { board: VALID_BOARD.map(() => ({ index: 0 })) }],
     ['myDeck ausente', { myDeck: undefined }],
+    ['deck com habilidade fora do catálogo', { myDeck: [{ ability: 'X' }] }],
     ['serverTime do payload inválido', { serverTime: 'agora' }],
     ['phase desconhecida', { phase: 'INVALIDA' }],
+    ['round ausente', { round: undefined }],
+    ['suddenDeath com tipo errado', { suddenDeath: 'não' }],
     ['outcome com tipo errado', { outcome: 42 }],
     ['turn com tipo errado', { turn: 'x' }],
+    ['turn sem os campos do turno', { turn: { player: 'P1' } }],
+    ['outcome WIN sem o placar', { outcome: { kind: 'WIN', winner: 'P1' } }],
     ['mySlot ausente', { mySlot: null }],
   ])('snapshot inválido (%s) não promove e a antiga segue ativa', async (_name, patch) => {
     const { connection, created, renewalErrors } = setup((fake, index) => {
@@ -580,6 +607,23 @@ describe('RenewingConnection', () => {
     await vi.advanceTimersByTimeAsync(0)
     connection.send({ type: 'DRAFT_CHARACTER', payload: { character: 'X' } })
     expect(newConn.sent).toContainEqual({ type: 'DRAFT_CHARACTER', payload: { character: 'X' } })
+    connection.disconnect()
+  })
+
+  it('o status volta a CONNECTED depois da promoção, mesmo se a antiga caiu', async () => {
+    const { connection, created, statuses } = setup((fake, index) => {
+      if (index === 1) fake.autoSnapshot = false
+    })
+    await connection.connect('4821')
+    created[0].emitStatus('RECONNECTING') // a antiga caiu no meio da troca
+    await vi.advanceTimersByTimeAsync(RENEW_AFTER)
+    const [, newConn] = created
+
+    newConn.emit(snapshot('WAITING', {}, 20))
+    await vi.advanceTimersByTimeAsync(0)
+
+    expect(statuses.at(-1)).toBe('CONNECTED')
+    expect(statuses).not.toContain('DISCONNECTED')
     connection.disconnect()
   })
 
