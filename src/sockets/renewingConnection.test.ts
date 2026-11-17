@@ -1,7 +1,9 @@
+import type { Client, IFrame, IMessage, StompConfig } from '@stomp/stompjs'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PlayerState, RoomPhase, RoomSnapshot } from '../types/game'
 import type { ClientCommand, ServerEnvelope } from '../types/events'
 import { RenewingConnection } from './renewingConnection'
+import { StompConnection } from './stompConnection'
 import type { ConnectionStatus, GameConnection, Unsubscribe } from './types'
 
 const MINUTE = 60_000
@@ -59,6 +61,60 @@ class FakeConnection implements GameConnection {
 
   emitStatus(status: ConnectionStatus) {
     this.statusListeners.forEach((listener) => listener(status))
+  }
+}
+
+/** Cliente STOMP falso mínimo, para o teste que usa o StompConnection de verdade */
+class FakeStompClient {
+  config: StompConfig
+  active = false
+  connected = false
+  connectHeaders: Record<string, string> = {}
+  deactivated = false
+  subscriptions: {
+    destination: string
+    callback: (m: IMessage) => void
+    unsubscribe: () => void
+  }[] = []
+  published: { destination: string; body?: string }[] = []
+
+  constructor(config: StompConfig) {
+    this.config = config
+  }
+
+  activate() {
+    this.active = true
+    void this.config.beforeConnect?.(this as unknown as Client)
+  }
+
+  deactivate() {
+    this.active = false
+    this.connected = false
+    this.deactivated = true
+    return Promise.resolve()
+  }
+
+  subscribe(destination: string, callback: (m: IMessage) => void) {
+    const subscription = { destination, callback, unsubscribe: vi.fn<() => void>() }
+    this.subscriptions.push(subscription)
+    return subscription
+  }
+
+  publish(params: { destination: string; body?: string }) {
+    this.published.push(params)
+  }
+
+  /** O "broker": conexão estabelecida, dispara o onConnect do StompConnection */
+  open() {
+    this.connected = true
+    this.config.onConnect?.({} as IFrame)
+  }
+
+  /** Entrega uma mensagem do broker numa assinatura, como o stompjs faria */
+  deliver(destination: string, body: string) {
+    this.subscriptions
+      .filter((s) => s.destination === destination)
+      .forEach((s) => s.callback({ body } as IMessage))
   }
 }
 
@@ -288,13 +344,10 @@ describe('RenewingConnection', () => {
     expect(created).toHaveLength(2)
     expect(created[0].disconnected).toBe(false)
 
-    // O handshake pediu um /sync logo após o /connect (resgate do snapshot)
-    expect(created[1].resyncCalls).toBe(1)
-
     // Primeira janela sem snapshot: um /sync de resgate e nova espera
     await vi.advanceTimersByTimeAsync(1_000)
     await vi.advanceTimersByTimeAsync(0)
-    expect(created[1].resyncCalls).toBe(2)
+    expect(created[1].resyncCalls).toBe(1)
     expect(renewalErrors).toHaveLength(0)
     expect(created[0].disconnected).toBe(false)
 
@@ -313,7 +366,7 @@ describe('RenewingConnection', () => {
     connection.disconnect()
   })
 
-  it('pede /sync após o /connect e recupera o snapshot perdido', async () => {
+  it('snapshot perdido é recuperado pelo /sync de resgate', async () => {
     const { connection, created, events } = setup((fake, index) => {
       if (index === 1) fake.autoSnapshot = false // o ROOM_SNAPSHOT do /connect se perde
     })
@@ -321,10 +374,13 @@ describe('RenewingConnection', () => {
     await vi.advanceTimersByTimeAsync(RENEW_AFTER)
     await vi.advanceTimersByTimeAsync(0)
     const [oldConn, newConn] = created
-
-    // /connect + /sync já foram enviados; o primeiro snapshot não chegou
-    expect(newConn.resyncCalls).toBe(1)
     expect(oldConn.disconnected).toBe(false)
+
+    // A primeira janela estoura: a renovação pede /sync (resgate) e continua esperando
+    await vi.advanceTimersByTimeAsync(1_000)
+    await vi.advanceTimersByTimeAsync(0)
+    expect(newConn.resyncCalls).toBe(1)
+    expect(created[0].disconnected).toBe(false)
 
     // O /sync responde com o ROOM_SNAPSHOT privado: a conexão assume
     newConn.emit(snapshot('WAITING', {}, 60))
@@ -345,13 +401,13 @@ describe('RenewingConnection', () => {
 
     await vi.advanceTimersByTimeAsync(1_000) // 1ª janela: resync de resgate
     await vi.advanceTimersByTimeAsync(0)
-    expect(newConn.resyncCalls).toBe(2)
+    expect(newConn.resyncCalls).toBe(1)
     expect(renewalErrors).toHaveLength(0)
 
     // Nem o /sync respondeu: não há mais resgates, a tentativa falha com a antiga de pé
     await vi.advanceTimersByTimeAsync(1_000)
     await vi.advanceTimersByTimeAsync(0)
-    expect(newConn.resyncCalls).toBe(2)
+    expect(newConn.resyncCalls).toBe(1)
     expect(renewalErrors).toHaveLength(1)
     expect(newConn.disconnected).toBe(true)
     expect(created[0].disconnected).toBe(false)
@@ -700,5 +756,69 @@ describe('RenewingConnection', () => {
     // Nenhuma tentativa extra depois de sair
     await vi.advanceTimersByTimeAsync(2 * FORCE_AFTER)
     expect(created).toHaveLength(2)
+  })
+
+  it('integrado: /connect+/sync no handshake e snapshot perdido recuperado via /sync', async () => {
+    // RenewingConnection de verdade sobre StompConnection de verdade (com o Client do stompjs
+    // trocado pelo falso): exercita destinos publicados, assinaturas e a entrega do snapshot
+    const clients: FakeStompClient[] = []
+    const events: ServerEnvelope[] = []
+    const connection = new RenewingConnection({
+      createConnection: () =>
+        new StompConnection({
+          brokerURL: 'ws://fake',
+          getToken: () => 'token',
+          connectTimeoutMs: 5_000,
+          createClient: (config) => {
+            const client = new FakeStompClient(config)
+            clients.push(client)
+            return client as unknown as Client
+          },
+        }),
+      renewAfterMs: RENEW_AFTER,
+      forceRenewAfterMs: FORCE_AFTER,
+      snapshotTimeoutMs: 1_000,
+      retryBaseMs: 1_000,
+      retryMaxMs: 4_000,
+      checkIntervalMs: 30_000,
+    })
+    connection.onEvent((event) => events.push(event))
+
+    // Conexão inicial: o handshake já manda /connect + /sync (subscribeRoom)
+    const joining = connection.connect('4821')
+    clients[0].open()
+    await joining
+    clients[0].deliver('/user/queue/room', JSON.stringify(snapshot('WAITING', {}, 10)))
+    expect(clients[0].published.map((p) => p.destination)).toEqual([
+      '/app/rooms/4821/connect',
+      '/app/rooms/4821/sync',
+    ])
+
+    // Aos 50 min a standby sobe: mesmo handshake, e a antiga continua ativa
+    await vi.advanceTimersByTimeAsync(RENEW_AFTER)
+    await vi.advanceTimersByTimeAsync(0)
+    expect(clients).toHaveLength(2)
+    clients[1].open()
+    await vi.advanceTimersByTimeAsync(0)
+    expect(clients[1].published.map((p) => p.destination)).toEqual([
+      '/app/rooms/4821/connect',
+      '/app/rooms/4821/sync',
+    ])
+    expect(clients[0].deactivated).toBe(false)
+
+    // O ROOM_SNAPSHOT do /connect se perde: a primeira janela estoura e o resgate publica /sync
+    await vi.advanceTimersByTimeAsync(1_000)
+    await vi.advanceTimersByTimeAsync(0)
+    expect(
+      clients[1].published.filter((p) => p.destination === '/app/rooms/4821/sync'),
+    ).toHaveLength(2)
+    expect(clients[0].deactivated).toBe(false)
+
+    // O /sync responde com o snapshot privado válido: a nova assume e a antiga desliga
+    clients[1].deliver('/user/queue/room', JSON.stringify(snapshot('WAITING', {}, 60)))
+    await vi.advanceTimersByTimeAsync(0)
+    expect(clients[0].deactivated).toBe(true)
+    expect(events.at(-1)).toMatchObject({ type: 'ROOM_SNAPSHOT' })
+    connection.disconnect()
   })
 })

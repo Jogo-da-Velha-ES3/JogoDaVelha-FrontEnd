@@ -112,7 +112,10 @@ export class StompConnection implements GameConnection {
     this.subscriptions = [roomTopic(code), PRIVATE_QUEUE, ERRORS_QUEUE].map((destination) =>
       client.subscribe(destination, (message: IMessage) => this.receive(message.body)),
     )
+    // Handshake do contrato V2: /connect pede o ROOM_SNAPSHOT e o /sync pede outro — se o
+    // primeiro se perder, o segundo recupera o estado. Vale na entrada e em toda reconexão
     client.publish({ destination: joinDestination(code), body: '{}' })
+    client.publish({ destination: syncDestination(code), body: '{}' })
   }
 
   private receive(body: string) {

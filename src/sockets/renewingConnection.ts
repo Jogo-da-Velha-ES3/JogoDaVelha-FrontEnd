@@ -454,10 +454,9 @@ export class RenewingConnection implements GameConnection {
     void standby
       .connect(this.roomCode)
       .then(() => {
+        // O handshake da conexão nova já mandou /connect + /sync (subscribeRoom do StompConnection);
+        // agora é esperar o ROOM_SNAPSHOT privado que valida a troca
         if (this.standby !== standby) return
-        // Handshake da renovação (contrato V2): o /connect já foi publicado; o /sync pede um
-        // segundo ROOM_SNAPSHOT privado, cobrindo o caso de o primeiro se perder no caminho
-        standby.resync?.()
         this.armSnapshotTimer(standby)
       })
       .catch((error: unknown) => this.failRenewal(error))
