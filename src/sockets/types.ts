@@ -14,6 +14,8 @@ export interface GameConnection {
   disconnect(): void
   /** Envia uma intenção. O resultado só chega como evento do servidor. */
   send(command: ClientCommand): void
+  /** Pede um novo ROOM_SNAPSHOT privado (`/sync` do contrato V2); nem toda conexão implementa */
+  resync?(): void
   onEvent(listener: (event: ServerEnvelope) => void): Unsubscribe
   onStatus(listener: (status: ConnectionStatus) => void): Unsubscribe
 }

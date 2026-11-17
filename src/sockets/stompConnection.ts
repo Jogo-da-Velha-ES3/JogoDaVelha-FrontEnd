@@ -9,6 +9,7 @@ import {
   joinDestination,
   PRIVATE_QUEUE,
   roomTopic,
+  syncDestination,
   toBackCommand,
 } from './destinations'
 import { parseServerMessage } from './envelope'
@@ -148,6 +149,13 @@ export class StompConnection implements GameConnection {
       return
     }
     this.client.publish(toBackCommand(this.roomCode, command))
+  }
+
+  /** Pede um novo ROOM_SNAPSHOT privado (contrato V2). No-op se a conexão caiu. */
+  resync(): void {
+    if (this.client?.connected && this.roomCode) {
+      this.client.publish({ destination: syncDestination(this.roomCode), body: '{}' })
+    }
   }
 
   onEvent(listener: (event: ServerEnvelope) => void): Unsubscribe {

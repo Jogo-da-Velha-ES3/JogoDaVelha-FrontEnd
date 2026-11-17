@@ -296,6 +296,7 @@ a tradução em `src/api/shop.ts` muda:
   | Intenção do front                    | Destino e corpo do back                                           |
   | ------------------------------------ | ----------------------------------------------------------------- |
   | entrar ou voltar                     | `/connect` → responde com o `ROOM_SNAPSHOT` privado               |
+  | resincronizar                        | `/sync` → novo `ROOM_SNAPSHOT` privado, sem repetir a entrada     |
   | `DRAFT_CHARACTER`, `DRAFT_ABILITIES` | `/draft/character` `{ character }`, `/draft/abilities`            |
   | `DRAW_PICK`                          | `/draw/pick` `{ ability, abilityToRemove? }` (abaixo)             |
   | `MOVE` `{ cell }`                    | `/move` `{ position }`                                            |

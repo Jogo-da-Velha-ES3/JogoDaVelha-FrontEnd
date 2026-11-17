@@ -1,8 +1,9 @@
-// Renovação preventiva da conexão STOMP: o Cloud Run encerra WebSocket ocioso por volta de 60
-// minutos, então a conexão é trocada antes disso — de preferência entre partidas, com limite de
-// segurança no meio da partida. A troca é make-before-break: a conexão nova só assume depois de
-// assinada e validada pelo ROOM_SNAPSHOT, e a antiga só é encerrada na promoção. A reconexão
-// automática do StompConnection continua cuidando das quedas; isto aqui é outra coisa.
+// Renovação preventiva da conexão STOMP: o Cloud Run limita a duração ABSOLUTA da requisição
+// WebSocket (~60 min), mesmo com a conexão viva e heartbeats — não é timeout de inatividade, então
+// a conexão é trocada antes disso — de preferência entre partidas, com limite de segurança no meio
+// da partida. A troca é make-before-break: a conexão nova só assume depois de assinada e validada
+// pelo ROOM_SNAPSHOT, e a antiga só é encerrada na promoção. A reconexão automática do
+// StompConnection continua cuidando das quedas; isto aqui é outra coisa.
 //
 // Só envolve a conexão real (createGameConnection): o simulado e as conexões injetadas em testes
 // não passam por aqui. Os nomes do back continuam escondidos em destinations.ts/envelope.ts.
@@ -20,7 +21,7 @@ export interface RenewingConnectionOptions {
   renewAfterMs?: number
   /** Idade em que a troca começa mesmo no meio da partida (padrão: 55 min) */
   forceRenewAfterMs?: number
-  /** Espera máxima pelo ROOM_SNAPSHOT da conexão nova (padrão: 10 s) */
+  /** Espera máxima por cada ROOM_SNAPSHOT da conexão nova (padrão: 10 s) */
   snapshotTimeoutMs?: number
   /** Backoff entre tentativas depois de uma renovação falha (padrão: 2 s, teto 30 s) */
   retryBaseMs?: number
@@ -137,6 +138,8 @@ export class RenewingConnection implements GameConnection {
   private standby: GameConnection | null = null
   private standbyUnsubs: Unsubscribe[] = []
   private standbyConnectedAt = 0
+  /** Quantos /sync de resgate já foram pedidos nesta tentativa (além do /connect) */
+  private standbyResyncs = 0
   private roomCode: string | null = null
   /** Instante em que a conexão ativa foi estabelecida; null = ainda não conectou */
   private connectedAt: number | null = null
@@ -443,6 +446,7 @@ export class RenewingConnection implements GameConnection {
   private startRenewal() {
     if (this.renewing || this.standby || !this.roomCode || !this.active) return
     this.renewing = true
+    this.standbyResyncs = 0
     const standby = this.options.createConnection()
     this.standby = standby
     this.standbyConnectedAt = 0
@@ -450,14 +454,32 @@ export class RenewingConnection implements GameConnection {
     void standby
       .connect(this.roomCode)
       .then(() => {
-        // O STOMP conectou e o /connect já foi publicado; agora é esperar o snapshot
         if (this.standby !== standby) return
-        this.snapshotTimer = setTimeout(
-          () => this.failRenewal(new Error('ROOM_SNAPSHOT não chegou na renovação')),
-          this.options.snapshotTimeoutMs ?? 10_000,
-        )
+        // Handshake da renovação (contrato V2): o /connect já foi publicado; o /sync pede um
+        // segundo ROOM_SNAPSHOT privado, cobrindo o caso de o primeiro se perder no caminho
+        standby.resync?.()
+        this.armSnapshotTimer(standby)
       })
       .catch((error: unknown) => this.failRenewal(error))
+  }
+
+  /**
+   * Espera o ROOM_SNAPSHOT privado da conexão nova. Se o prazo estourar, pede um /sync de resgate
+   * (uma vez por tentativa) e arma de novo; sem resposta na segunda janela, a tentativa falha e a
+   * conexão antiga segue intacta
+   */
+  private armSnapshotTimer(standby: GameConnection) {
+    this.snapshotTimer = setTimeout(() => {
+      this.snapshotTimer = null
+      if (this.standby !== standby) return
+      if (standby.resync && this.standbyResyncs === 0) {
+        this.standbyResyncs += 1
+        standby.resync()
+        this.armSnapshotTimer(standby)
+        return
+      }
+      this.failRenewal(new Error('ROOM_SNAPSHOT não chegou na renovação'))
+    }, this.options.snapshotTimeoutMs ?? 10_000)
   }
 
   /**

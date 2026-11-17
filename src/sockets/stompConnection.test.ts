@@ -181,6 +181,16 @@ describe('StompConnection', () => {
     ])
   })
 
+  it('resync pede um novo ROOM_SNAPSHOT privado (contrato V2)', async () => {
+    const connection = setup()
+    const connected = connection.connect('4821')
+    fake.open()
+    await connected
+
+    connection.resync?.()
+    expect(fake.published.at(-1)).toEqual({ destination: '/app/rooms/4821/sync', body: '{}' })
+  })
+
   it('sem conexão, a intenção vira um erro local (que não mexe no relógio)', () => {
     const connection = setup()
     void connection.connect('4821')

@@ -15,6 +15,7 @@ class FakeConnection implements GameConnection {
   autoSnapshot = true
   disconnected = false
   sent: ClientCommand[] = []
+  resyncCalls = 0
   private readonly eventListeners = new Set<(event: ServerEnvelope) => void>()
   private readonly statusListeners = new Set<(status: ConnectionStatus) => void>()
 
@@ -35,6 +36,11 @@ class FakeConnection implements GameConnection {
 
   send(command: ClientCommand): void {
     this.sent.push(command)
+  }
+
+  /** O /sync do contrato V2: o teste decide se e quando responde com outro snapshot */
+  resync(): void {
+    this.resyncCalls += 1
   }
 
   onEvent(listener: (event: ServerEnvelope) => void): Unsubscribe {
@@ -282,7 +288,17 @@ describe('RenewingConnection', () => {
     expect(created).toHaveLength(2)
     expect(created[0].disconnected).toBe(false)
 
-    // O snapshot não chega: depois do tempo limite a tentativa é descartada
+    // O handshake pediu um /sync logo após o /connect (resgate do snapshot)
+    expect(created[1].resyncCalls).toBe(1)
+
+    // Primeira janela sem snapshot: um /sync de resgate e nova espera
+    await vi.advanceTimersByTimeAsync(1_000)
+    await vi.advanceTimersByTimeAsync(0)
+    expect(created[1].resyncCalls).toBe(2)
+    expect(renewalErrors).toHaveLength(0)
+    expect(created[0].disconnected).toBe(false)
+
+    // Segunda janela também vazia: a tentativa é descartada, a antiga continua
     await vi.advanceTimersByTimeAsync(1_000)
     await vi.advanceTimersByTimeAsync(0)
     expect(renewalErrors).toHaveLength(1)
@@ -294,6 +310,51 @@ describe('RenewingConnection', () => {
     await vi.advanceTimersByTimeAsync(0)
     expect(created).toHaveLength(3)
     expect(created[0].disconnected).toBe(true)
+    connection.disconnect()
+  })
+
+  it('pede /sync após o /connect e recupera o snapshot perdido', async () => {
+    const { connection, created, events } = setup((fake, index) => {
+      if (index === 1) fake.autoSnapshot = false // o ROOM_SNAPSHOT do /connect se perde
+    })
+    await connection.connect('4821')
+    await vi.advanceTimersByTimeAsync(RENEW_AFTER)
+    await vi.advanceTimersByTimeAsync(0)
+    const [oldConn, newConn] = created
+
+    // /connect + /sync já foram enviados; o primeiro snapshot não chegou
+    expect(newConn.resyncCalls).toBe(1)
+    expect(oldConn.disconnected).toBe(false)
+
+    // O /sync responde com o ROOM_SNAPSHOT privado: a conexão assume
+    newConn.emit(snapshot('WAITING', {}, 60))
+    await vi.advanceTimersByTimeAsync(0)
+    expect(oldConn.disconnected).toBe(true)
+    expect(events.at(-1)).toMatchObject({ type: 'ROOM_SNAPSHOT' })
+    connection.disconnect()
+  })
+
+  it('o resgate do /sync também pode se perder: segunda janela vazia falha', async () => {
+    const { connection, created, renewalErrors } = setup((fake, index) => {
+      if (index === 1) fake.autoSnapshot = false
+    })
+    await connection.connect('4821')
+    await vi.advanceTimersByTimeAsync(RENEW_AFTER)
+    await vi.advanceTimersByTimeAsync(0)
+    const [, newConn] = created
+
+    await vi.advanceTimersByTimeAsync(1_000) // 1ª janela: resync de resgate
+    await vi.advanceTimersByTimeAsync(0)
+    expect(newConn.resyncCalls).toBe(2)
+    expect(renewalErrors).toHaveLength(0)
+
+    // Nem o /sync respondeu: não há mais resgates, a tentativa falha com a antiga de pé
+    await vi.advanceTimersByTimeAsync(1_000)
+    await vi.advanceTimersByTimeAsync(0)
+    expect(newConn.resyncCalls).toBe(2)
+    expect(renewalErrors).toHaveLength(1)
+    expect(newConn.disconnected).toBe(true)
+    expect(created[0].disconnected).toBe(false)
     connection.disconnect()
   })
 

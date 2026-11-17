@@ -34,10 +34,17 @@ export async function createGameConnection(
     import('./stompConnection'),
     import('./renewingConnection'),
   ])
-  // A renovação preventiva (Cloud Run derruba WebSocket ~60 min) troca a conexão por uma nova
-  // validada, preferindo os intervalos entre partidas — ver renewingConnection.ts
+  // A renovação preventiva troca a conexão antes do limite ABSOLUTO de ~60 min que o Cloud Run
+  // impõe à requisição WebSocket (não é inatividade), preferindo os intervalos entre partidas —
+  // ver renewingConnection.ts
   return new RenewingConnection({
     createConnection: () => new StompConnection({ brokerURL: toBrokerUrl(base) }),
+    onRenewalError: (error) => {
+      // Falha de renovação não derruba a sala: a conexão antiga segue e o backoff tenta de novo.
+      // O log fica para diagnóstico; a tela não é incomodada
+      // oxlint-disable-next-line no-console
+      console.warn('Renovação preventiva da conexão falhou; nova tentativa agendada.', error)
+    },
   })
 }
 
