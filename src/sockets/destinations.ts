@@ -13,6 +13,28 @@ export const ERRORS_QUEUE = '/user/queue/errors'
 /** Avisa que o jogador entrou (ou voltou) na sala; o servidor responde com o ROOM_SNAPSHOT */
 export const joinDestination = (roomCode: string) => `/app/rooms/${roomCode}/connect`
 
+/** Ação do back (o fim do destino) → a intenção do front que ela atende */
+const BACK_ACTIONS: Record<string, ClientCommand['type']> = {
+  'draft/character': 'DRAFT_CHARACTER',
+  'draft/abilities': 'DRAFT_ABILITIES',
+  'draw/pick': 'DRAW_PICK',
+  move: 'MOVE',
+  ability: 'USE_ABILITY',
+  'rematch/request': 'REMATCH_REQUEST',
+  'rematch/accept': 'REMATCH_RESPOND',
+  'rematch/decline': 'REMATCH_RESPOND',
+  leave: 'LEAVE',
+}
+
+/**
+ * O erro do back traz o destino da ação recusada (`path`, ex: `/app/rooms/4821/move`): diz qual
+ * intenção falhou, para o aviso explicar o motivo (SUG-02). Ação desconhecida: undefined
+ */
+export function commandFromDestination(path: string | null | undefined) {
+  const action = path?.match(/^\/app\/rooms\/\d{4}\/(.+)$/)?.[1]
+  return action ? BACK_ACTIONS[action] : undefined
+}
+
 export interface BackCommand {
   destination: string
   body: string

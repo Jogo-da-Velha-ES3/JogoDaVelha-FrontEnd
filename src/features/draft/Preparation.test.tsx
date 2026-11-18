@@ -6,6 +6,7 @@ import {
   STARTER_CHARACTERS,
 } from '../../constants/game'
 import { applyServerEvent, resetGameStores } from '../../stores/serverEvents'
+import { useToastStore } from '../../stores/toastStore'
 import type { ClientCommand, ServerEvent } from '../../types/events'
 import type { CharacterId, PlayerSlot, PlayerState } from '../../types/game'
 import { Preparation, type PreparationProps } from './Preparation'
@@ -63,9 +64,12 @@ function renderPreparation(
 
 const button = (name: string | RegExp) => screen.getByRole('button', { name })
 
+const toastMessages = () => useToastStore.getState().toasts.map((toast) => toast.message)
+
 beforeEach(() => {
   resetGameStores()
   client.sendCommand.mockClear()
+  useToastStore.setState({ toasts: [] })
 })
 
 describe('Preparação (FE-09)', () => {
@@ -127,9 +131,16 @@ describe('Preparação (FE-09)', () => {
     fireEvent.click(button(/^Escudo\./))
     fireEvent.click(button('Confirmar habilidades'))
 
-    // Sem resposta (ou com erro), dá para mudar a escolha e mandar de novo
+    // Até a resposta, o botão trava com "Confirmando…" (AMB-02), sem marcar como pronto
+    expect(button('Confirmando…')).toBeDisabled()
+    expect(button(/^Bomba\./)).toBeDisabled()
+    expect(screen.getByText('Falta: habilidades (2/2)')).toBeInTheDocument()
+
+    // Com erro, dá para mudar a escolha e mandar de novo
+    send('ERROR', { code: 'ROOM_CONFLICT', message: 'x', command: 'DRAFT_ABILITIES' })
     expect(button('Confirmar habilidades')).toBeEnabled()
     expect(button(/^Bomba\./)).toBeEnabled()
+    fireEvent.click(button('Confirmar habilidades'))
 
     draftUpdate({ P1: 'X' }, { P1: true, P2: false })
     expect(button('Aguardando oponente…')).toBeDisabled()
@@ -143,6 +154,25 @@ describe('Preparação (FE-09)', () => {
     fireEvent.click(button('Continuar para habilidades'))
     expect(screen.getByRole('button', { name: /^Tornado\./ })).toBeEnabled()
     expect(screen.getAllByRole('button', { pressed: false })).toHaveLength(10)
+  })
+
+  it('o tempo acaba sem confirmar: avisa que o jogo completou as escolhas (SUG-01)', () => {
+    renderPreparation()
+    draftUpdate({ P1: 'X' })
+    // O servidor sorteia as habilidades que faltavam e marca os dois como prontos
+    draftUpdate({ P1: 'X', P2: 'O' }, { P1: true, P2: true })
+    expect(toastMessages()).toEqual(['O tempo acabou: o jogo completou suas escolhas.'])
+  })
+
+  it('quem confirmou a tempo não recebe o aviso', () => {
+    renderPreparation()
+    draftUpdate({ P1: 'X' })
+    fireEvent.click(button('Continuar para habilidades'))
+    fireEvent.click(button(/^Bomba\./))
+    fireEvent.click(button(/^Escudo\./))
+    fireEvent.click(button('Confirmar habilidades'))
+    draftUpdate({ P1: 'X' }, { P1: true, P2: false })
+    expect(toastMessages()).toEqual([])
   })
 
   it('mostra o status do oponente em tempo real', () => {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Button, LockIcon, TimerBar } from '../../components/ui'
 import { ABILITY_INFO } from '../../constants/abilities'
 import { CHARACTER_INFO } from '../../constants/characters'
@@ -11,6 +11,7 @@ import {
   PREPARATION_WARN_SECONDS,
 } from '../../constants/game'
 import { DRAFT_TEXTS } from '../../constants/texts'
+import { usePendingIntent } from '../../hooks/usePendingIntent'
 import { useServerTimer } from '../../hooks/useServerTimer'
 import { Character } from '../characters'
 import { AbilityIcon } from '../powers/AbilityIcon'
@@ -18,6 +19,7 @@ import { otherSlot } from '../../lib/match'
 import { sendCommand } from '../../sockets/gameClient'
 import { useDraftStore } from '../../stores/draftStore'
 import { useRoomStore } from '../../stores/roomStore'
+import { showToast } from '../../stores/toastStore'
 import type { AbilityId, CharacterId } from '../../types/game'
 
 type Step = 'CHARACTER' | 'ABILITIES'
@@ -50,6 +52,10 @@ export function Preparation({
   const characterOptions = CHARACTERS
   const abilityOptions = ABILITIES.filter((ability) => unlockedAbilities.includes(ability))
   const isReady = ready[me]
+  // "Confirmar habilidades" trava até o servidor confirmar (ready) ou recusar (AMB-02)
+  const { pending: confirming, send } = usePendingIntent<'CONFIRM'>(String(isReady))
+  /** Mandei as habilidades: sem isso, ficar pronto quer dizer que o tempo acabou e o jogo escolheu */
+  const sentAbilities = useRef(false)
   const timerDeadline =
     deadline === null
       ? null
@@ -75,6 +81,11 @@ export function Preparation({
   useEffect(() => {
     let advance: ReturnType<typeof setTimeout> | undefined
     const unsubscribe = useDraftStore.subscribe((state, previous) => {
+      // O tempo acabou e o servidor completou as minhas escolhas: avisa, porque a tela da
+      // Preparação some logo em seguida (SUG-01)
+      if (state.ready[me] && !previous.ready[me] && !sentAbilities.current) {
+        showToast({ message: DRAFT_TEXTS.autoPicked, tone: 'info' })
+      }
       const confirmed = state.characters[me]
       if (!confirmed || confirmed === previous.characters[me] || state.ready[me]) return
       clearTimeout(advance)
@@ -93,7 +104,7 @@ export function Preparation({
       : DRAFT_TEXTS.missingAbilities(pickedAbilities.length, INITIAL_ABILITIES_TO_PICK)
 
   const toggleAbility = (ability: AbilityId) => {
-    if (!unlockedAbilities.includes(ability) || isReady) return
+    if (!unlockedAbilities.includes(ability) || isReady || confirming) return
     setPickedAbilities((current) => {
       if (current.includes(ability)) return current.filter((item) => item !== ability)
       if (current.length >= INITIAL_ABILITIES_TO_PICK) return current
@@ -106,7 +117,8 @@ export function Preparation({
     const [first, second] = pickedAbilities
     if (!first || !second) return
     // Só a intenção: a tela trava quando o servidor confirmar (ready[me] no DRAFT_UPDATE)
-    sendCommand({ type: 'DRAFT_ABILITIES', payload: { abilities: [first, second] } })
+    sentAbilities.current = true
+    send('CONFIRM', { type: 'DRAFT_ABILITIES', payload: { abilities: [first, second] } })
   }
 
   const selectCharacter = (character: CharacterId) => {
@@ -276,7 +288,7 @@ export function Preparation({
                 <button
                   key={ability}
                   type="button"
-                  disabled={isReady}
+                  disabled={isReady || confirming !== null}
                   onClick={() => toggleAbility(ability)}
                   aria-pressed={selected}
                   aria-label={`${info.name}. ${info.description}`}
@@ -317,9 +329,17 @@ export function Preparation({
               <Button
                 size="sm"
                 onClick={confirmAbilities}
-                disabled={pickedAbilities.length !== INITIAL_ABILITIES_TO_PICK || isReady}
+                disabled={
+                  pickedAbilities.length !== INITIAL_ABILITIES_TO_PICK ||
+                  isReady ||
+                  confirming !== null
+                }
               >
-                {isReady ? DRAFT_TEXTS.waitingOpponent : 'Confirmar habilidades'}
+                {isReady
+                  ? DRAFT_TEXTS.waitingOpponent
+                  : confirming
+                    ? 'Confirmando…'
+                    : 'Confirmar habilidades'}
               </Button>
             </div>
           </div>

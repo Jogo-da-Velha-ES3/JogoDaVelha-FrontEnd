@@ -3,6 +3,7 @@
 import { APP_TEXTS } from '../constants/texts'
 import type { ServerEnvelope } from '../types/events'
 import type { PlayerState } from '../types/game'
+import { commandFromDestination } from './destinations'
 
 type Payload = Record<string, unknown>
 
@@ -105,6 +106,8 @@ function parseBackError(data: Payload, receivedAt: number): ServerEnvelope | nul
     payload: {
       code: data.code,
       message: text(data.message) ?? text(data.error) ?? APP_TEXTS.errors.actionFailed,
+      // Qual intenção o back recusou, pelo destino dela (SUG-02)
+      command: commandFromDestination(text(data.path)),
     },
     serverTime: Number.isNaN(timestamp) ? receivedAt : timestamp,
   } as ServerEnvelope

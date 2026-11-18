@@ -275,6 +275,18 @@ export const ROOM_TEXTS = {
     createFailed: 'Não foi possível criar a sala agora.',
     joinFailed: 'Não foi possível entrar na sala agora.',
   },
+  /**
+   * Ação recusada pelo servidor, pelo motivo provável (SUG-02). O back manda o mesmo "A ação não
+   * pode ser realizada no estado atual." para quase tudo; o aviso diz o que fazer
+   */
+  actionErrors: {
+    waitRound: 'Espere o round começar.',
+    notYourTurn: 'Não é a sua vez.',
+    turnOver: 'O tempo do seu turno acabou.',
+    drawOver: 'O tempo do sorteio acabou.',
+    draftOver: 'O tempo da Preparação acabou.',
+    notNow: 'Essa ação não vale agora.',
+  },
 } as const
 
 // ── Preparação ──
@@ -293,6 +305,8 @@ export const DRAFT_TEXTS = {
   /** Reta final dos 20s: o que falta escolher */
   timeWarning: (seconds: number, missing: string) =>
     `Faltam ${seconds}s! Escolha ${missing}, senão o jogo escolhe por você.`,
+  /** O tempo acabou e o servidor completou as escolhas que faltavam (SUG-01) */
+  autoPicked: 'O tempo acabou: o jogo completou suas escolhas.',
   missingCharacterWarning: 'seu personagem',
   missingAbilitiesWarning: (total: number) => `suas ${total} habilidades`,
 } as const
@@ -454,6 +468,8 @@ export const ABILITY_TEXTS = {
     showCards: 'Ver as cartas de novo',
     deckLabel: 'Seu deck',
     chosen: 'Esta é a sua 3ª habilidade nesta rodada.',
+    /** Round 1 sem escolha: o servidor escolheu a carta (SUG-01) */
+    autoPicked: (name: string) => `O tempo acabou: o jogo escolheu ${name} para você.`,
     entered: 'Esta habilidade entrou no seu deck.',
     swapped: (name: string) => `Saiu ${name}.`,
     waitingOpponent: 'Aguardando o oponente…',

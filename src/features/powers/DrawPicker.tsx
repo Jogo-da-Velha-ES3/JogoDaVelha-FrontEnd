@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 import { useShallow } from 'zustand/react/shallow'
 import { Button, TimerBar } from '../../components/ui'
@@ -9,6 +9,7 @@ import { useServerTimer } from '../../hooks/useServerTimer'
 import { sendCommand } from '../../sockets/gameClient'
 import { selectOwnedAbilities, useProfileStore } from '../../stores/profileStore'
 import { useRoomStore } from '../../stores/roomStore'
+import { showToast } from '../../stores/toastStore'
 import type { AbilityId, DeckSlot } from '../../types/game'
 import { AbilityIcon } from './AbilityIcon'
 
@@ -66,6 +67,19 @@ export function DrawPicker({ options, deadline, deck, round }: DrawPickerProps) 
     options !== null ? deck.length >= DECK_SIZE : confirmed ? confirmed.removed !== null : round > 1
   const choosing = incoming !== null && options?.includes(incoming) ? incoming : null
   const shown = confirmed?.ability ?? recovered
+
+  // Round 1 sem escolha: o servidor escolhe a carta e o round começa logo depois, então a troca
+  // passava sem explicação. Só avisa quem viu as cartas nesta tela (não quem volta depois) (SUG-01)
+  const sawOptions = useRef(false)
+  useEffect(() => {
+    if (options !== null) {
+      sawOptions.current = true
+      return
+    }
+    if (recovered === null || sent !== null || !sawOptions.current) return
+    sawOptions.current = false
+    showToast({ message: T.autoPicked(ABILITY_INFO[recovered].name), tone: 'info' })
+  }, [options, recovered, sent])
 
   const submit = (ability: AbilityId, removed: AbilityId | null) => {
     setSent({ ability, removed, error: useRoomStore.getState().lastError })
