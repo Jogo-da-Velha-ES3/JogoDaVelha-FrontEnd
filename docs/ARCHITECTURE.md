@@ -110,6 +110,13 @@ também (PROJECT_CONTEXT §9). Os efeitos da Morte Súbita ficam em `SuddenDeath
 A Arena fica em `src/features/match/Arena.tsx`, com as regiões prontas para as faixas e banners
 (FE-05), o deck (FE-11) e a mira (FE-27).
 
+Sair da página da sala manda o `/leave`, então o voltar do navegador passa pelo
+`BackNavigationGuard` (`src/routes/room/`, FRT-03): com o `useBlocker` do React Router, ele barra
+só a navegação do histórico (POP) nas fases em que sair custa algo ao oponente
+(`leaveConsequence`, `src/lib/roomExit.ts`) e abre o `QuitModal` ("Desistir?" na partida, "Sair da
+sala?" no Match feito e na Preparação). As saídas pelos botões do jogo e os redirecionamentos
+(sala encerrada, sessão vencida) são PUSH/REPLACE e passam direto.
+
 A mira (FE-27) fica em `src/features/powers/useAbilityAim.ts`: alvos da etapa atual (com
 `getAimTargets`, de `src/lib/abilityTargets.ts`), o envio da intenção e a espera pelo servidor,
 com o tabuleiro travado até o `ABILITY_RESOLVED` ou um erro. O resultado aparece em duas peças: a

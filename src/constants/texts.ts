@@ -392,6 +392,11 @@ export const ARENA_TEXTS = {
     title: 'Desistir?',
     body: 'A partida conta como derrota e o oponente vence por W.O.',
   },
+  /** Voltar do navegador no Match feito ou na Preparação: a sala fecha sem partida (FRT-03) */
+  leaveRoom: {
+    title: 'Sair da sala?',
+    body: 'A sala fecha e o oponente volta para o Hub.',
+  },
 } as const
 
 // ── Habilidades: aviso da habilidade resolvida, deck, mira e sorteio ──
