@@ -66,7 +66,7 @@ export function SuddenDeathLayer() {
           <motion.div
             aria-hidden="true"
             key="sd-tape-top"
-            className="pointer-events-none absolute inset-x-0 top-0 z-[21] h-3 motion-safe:animate-sd-tape short:h-[10px]"
+            className="pointer-events-none absolute inset-x-0 top-0 z-[21] h-3 motion-safe:animate-sd-tape short:h-2.5"
             style={TAPE_STYLE}
             initial={{ y: '-100%' }}
             animate={{ y: 0 }}
@@ -80,7 +80,7 @@ export function SuddenDeathLayer() {
           <motion.div
             aria-hidden="true"
             key="sd-tape-bottom"
-            className="pointer-events-none absolute inset-x-0 bottom-0 z-[21] h-3 motion-safe:animate-sd-tape short:h-[10px]"
+            className="pointer-events-none absolute inset-x-0 bottom-0 z-[21] h-3 motion-safe:animate-sd-tape short:h-2.5"
             style={TAPE_STYLE}
             initial={{ y: '100%' }}
             animate={{ y: 0 }}

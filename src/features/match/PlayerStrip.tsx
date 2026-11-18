@@ -68,7 +68,7 @@ export function PlayerStrip({ player, isMe, active, roundsWon, timeouts }: Playe
               <span
                 aria-hidden="true"
                 title={`Campo de Força ativo (${forceFieldTurns} turno${forceFieldTurns > 1 ? 's' : ''})`}
-                className="flex shrink-0 items-center gap-0.5 font-mono text-[10px] font-semibold leading-none"
+                className="flex shrink-0 items-center gap-0.5 font-mono text-[0.625rem] font-semibold leading-none"
                 style={{ color }}
               >
                 <AbilityIcon ability="CAMPO_DE_FORCA" className="size-3.5" />
@@ -98,7 +98,7 @@ export function PlayerStrip({ player, isMe, active, roundsWon, timeouts }: Playe
               />
             ))}
             <span
-              className={`ml-1 font-mono text-[10px] ${timeouts > 0 ? 'text-danger' : 'text-text-muted'}`}
+              className={`ml-1 font-mono text-[0.625rem] ${timeouts > 0 ? 'text-danger' : 'text-text-muted'}`}
             >
               {timeouts}/{MAX_CONSECUTIVE_TIMEOUTS}
             </span>

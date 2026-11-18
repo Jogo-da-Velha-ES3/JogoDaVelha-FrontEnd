@@ -82,7 +82,7 @@ export function TurnTimeoutToast() {
             >
               {title}
             </p>
-            <p className="font-body text-xs text-text-muted short:text-[11px] short:leading-tight">
+            <p className="font-body text-xs text-text-muted short:text-[0.6875rem] short:leading-tight">
               {subtitle}
             </p>
           </div>

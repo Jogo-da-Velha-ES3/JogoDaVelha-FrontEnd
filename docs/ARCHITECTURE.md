@@ -11,7 +11,7 @@ src/
 ├── assets/             # sons (Howler), imagens, ícones, fontes
 ├── components/         # componentes reutilizáveis e "burros" (sem lógica de negócio)
 │   ├── ui/              # botões, modais, inputs, toast, banner, carregando (`Spinner`), ícones (cadeado, pausa) — puramente visuais
-│   └── layout/          # LandscapeShell (safe-area, sem overflow) e o aviso "Gire o celular"
+│   └── layout/          # LandscapeShell (safe-area, sem overflow) e o aviso "Gire a tela"
 ├── features/           # lógica de domínio, isolada por área do jogo
 │   ├── auth/            # login, cadastro, sessão
 │   ├── hub/             # Hub, menu lateral, Como Jogar, Instalar App

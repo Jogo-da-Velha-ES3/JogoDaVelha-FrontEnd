@@ -144,7 +144,7 @@ export function Preparation({
           </p>
         </div>
         <div className="w-32 sm:w-48">
-          <p className="mb-1 text-center font-display text-[10px] font-bold tracking-widest text-text-muted uppercase tiny:sr-only">
+          <p className="mb-1 text-center font-display text-[0.625rem] font-bold tracking-widest text-text-muted uppercase tiny:sr-only">
             Tempo restante
           </p>
           <TimerBar deadline={timerDeadline} label="Tempo da Preparação" />
@@ -229,14 +229,14 @@ export function Preparation({
                 >
                   <Character
                     id={character}
-                    className={`h-[58%] min-h-12 max-h-36 w-auto max-w-full shrink-0 short:h-[88%] short:min-h-0 short:max-w-[45%] tiny:h-[58%] tiny:max-w-full ${locked || reservedByOpponent ? 'grayscale opacity-50' : ''}`}
+                    className={`h-[58%] min-h-12 max-h-36 w-auto max-w-full shrink-0 tall:max-h-56 short:h-[88%] short:min-h-0 short:max-w-[45%] tiny:h-[58%] tiny:max-w-full ${locked || reservedByOpponent ? 'grayscale opacity-50' : ''}`}
                     decorative
                   />
                   <span className="flex min-w-0 flex-col items-center short:items-start tiny:items-center">
-                    <span className="mt-1 font-display text-sm font-bold text-primary short:mt-0">
+                    <span className="mt-1 font-display text-sm font-bold text-primary short:mt-0 tall:text-lg">
                       {info.name}
                     </span>
-                    <span className="text-center text-[10px] leading-tight text-text-muted short:text-left tiny:text-center sm:text-xs">
+                    <span className="text-center text-[0.625rem] leading-tight text-text-muted short:text-left tiny:text-center sm:text-xs tall:text-sm">
                       {(reservedByOpponent || locked) && (
                         <LockIcon className="mr-0.5 size-3 align-[-2px]" />
                       )}
@@ -281,7 +281,7 @@ export function Preparation({
           </div>
           {/* Até 3: uma linha; mais que isso (compradas na Loja): 2 linhas de 5, sem rolar */}
           <div
-            className={`grid min-h-0 flex-1 gap-2 tiny:gap-1.5 sm:gap-3 ${manyAbilities ? 'grid-cols-5 grid-rows-2' : 'grid-cols-3 grid-rows-1'}`}
+            className={`grid min-h-0 flex-1 gap-2 tiny:gap-1.5 sm:gap-3 ${manyAbilities ? 'grid-cols-5 grid-rows-2' : 'grid-cols-3 grid-rows-1 tall:grid-rows-[minmax(0,22rem)] tall:content-center'}`}
           >
             {abilityOptions.map((ability) => {
               const info = ABILITY_INFO[ability]
@@ -294,19 +294,19 @@ export function Preparation({
                   onClick={() => toggleAbility(ability)}
                   aria-pressed={selected}
                   aria-label={`${info.name}. ${info.description}`}
-                  className={`relative flex min-h-0 flex-col items-center justify-center gap-1 overflow-hidden rounded-xl border-2 bg-bg-panel px-2 py-1 text-center transition short:gap-0.5 short:py-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${selected ? 'border-primary shadow-glow shadow-primary/30' : 'border-line'} hover:border-primary/60`}
+                  className={`relative flex min-h-0 flex-col items-center justify-center gap-1 overflow-hidden rounded-xl border-2 bg-bg-panel px-2 py-1 text-center transition short:gap-0.5 short:py-0.5 tall:gap-2 tall:px-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${selected ? 'border-primary shadow-glow shadow-primary/30' : 'border-line'} hover:border-primary/60`}
                 >
                   <AbilityIcon
                     ability={ability}
-                    className="size-6 shrink-0 text-primary short:size-5"
+                    className="size-6 shrink-0 text-primary short:size-5 tall:size-12"
                   />
-                  <span className="font-display text-xs leading-tight font-bold text-primary sm:text-sm tiny:text-xs">
+                  <span className="font-display text-xs leading-tight font-bold text-primary sm:text-sm tiny:text-xs tall:text-lg">
                     {info.name}
                   </span>
                   {/* Em 2 linhas de 5, o celular deitado só tem altura para o ícone e o nome: a
                       descrição continua no nome acessível do botão */}
                   <span
-                    className={`line-clamp-2 text-[9px] leading-tight text-text-muted tiny:hidden sm:text-[10px] ${manyAbilities ? 'short:hidden' : ''}`}
+                    className={`line-clamp-2 text-[0.625rem] leading-tight text-text-muted tiny:hidden tall:line-clamp-3 tall:text-sm ${manyAbilities ? 'short:hidden' : ''}`}
                   >
                     {info.description}
                   </span>
@@ -323,7 +323,7 @@ export function Preparation({
             })}
           </div>
           <div className="mt-2 flex shrink-0 flex-col items-center gap-1 tiny:mt-1">
-            <p className="text-center text-[10px] text-text-muted tiny:hidden sm:text-xs">
+            <p className="text-center text-[0.625rem] text-text-muted tiny:hidden sm:text-xs">
               {DRAFT_TEXTS.shopHint}
             </p>
             <div className="flex items-center gap-2">
@@ -388,7 +388,7 @@ function StepButton({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-full border px-3 py-1 font-display text-[10px] font-bold uppercase transition sm:px-4 sm:text-xs ${active ? 'border-primary bg-primary/15 text-primary' : 'border-line text-text-muted hover:border-primary/50'} ${pending && !active ? 'border-primary text-primary motion-safe:animate-glow-pulse' : ''}`}
+      className={`min-h-8 rounded-full border px-3 py-1 font-display text-[0.625rem] font-bold uppercase transition sm:px-4 sm:text-xs ${active ? 'border-primary bg-primary/15 text-primary' : 'border-line text-text-muted hover:border-primary/50'} ${pending && !active ? 'border-primary text-primary motion-safe:animate-glow-pulse' : ''}`}
     >
       {children}
       {done ? ' ✓' : ''}

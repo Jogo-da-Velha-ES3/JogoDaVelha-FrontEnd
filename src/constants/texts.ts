@@ -35,8 +35,8 @@ const timeoutCount = (count: number) => `${count}/${MAX_CONSECUTIVE_TIMEOUTS}`
 
 // ── App: avisos que valem para qualquer tela ──
 export const APP_TEXTS = {
-  rotateTitle: 'Gire o celular',
-  rotateBody: 'O Jogo do Velho é jogado com o celular deitado.',
+  rotateTitle: 'Gire a tela',
+  rotateBody: 'O Jogo do Velho é jogado com a tela na horizontal.',
   notFoundTitle: 'Página não encontrada',
   notFoundBody: 'Esse endereço não existe ou o link da sala está errado.',
   /** Aviso global quando o servidor demora a responder (FE-51): a piada vem antes, o tempo depois */

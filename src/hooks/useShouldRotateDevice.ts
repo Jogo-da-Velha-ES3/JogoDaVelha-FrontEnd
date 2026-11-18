@@ -6,7 +6,7 @@ import { useMediaQuery } from './useMediaQuery'
  */
 export const ROTATE_DEVICE_QUERY = '(orientation: portrait) and (pointer: coarse)'
 
-/** true quando é preciso mostrar o aviso "Gire o celular" */
+/** true quando é preciso mostrar o aviso "Gire a tela" */
 export function useShouldRotateDevice(): boolean {
   return useMediaQuery(ROTATE_DEVICE_QUERY)
 }

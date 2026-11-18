@@ -9,7 +9,7 @@ export interface ModalProps {
   children?: ReactNode
   /** Botões do rodapé */
   actions?: ReactNode
-  /** false = só sai por uma ação do conteúdo (ex: "Gire o celular") */
+  /** false = só sai por uma ação do conteúdo (ex: "Gire a tela") */
   dismissible?: boolean
   size?: 'sm' | 'md' | 'lg'
   /** Classes extras do corpo (ex: subir o corpo para o conteúdo passar sob o cabeçalho sem ser cortado) */

@@ -67,7 +67,7 @@ export function HowToPlayDeck({ points, onLeave }: HowToPlayDeckProps) {
       onKeyDown={onKeyDown}
       className="grid min-w-0 flex-1 grid-cols-[minmax(0,0.85fr)_minmax(0,1fr)] items-center gap-x-5 short:gap-x-4 tiny:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] tiny:gap-x-3"
     >
-      <ul className="flex flex-col gap-1 text-sm leading-snug font-medium text-text tiny:gap-0.5 tiny:text-[13px] tiny:leading-tight">
+      <ul className="flex flex-col gap-1 text-sm leading-snug font-medium text-text tiny:gap-0.5 tiny:text-[0.8125rem] tiny:leading-tight">
         {points.map((point) => (
           <li key={point}>
             <HowToPlayRichText text={point} />
@@ -205,14 +205,14 @@ function AbilityItem({ id }: { id: AbilityId }) {
       />
       <div className="min-w-0">
         <p className="flex flex-wrap items-center gap-x-2">
-          <span className="font-display text-[22px] leading-tight font-bold tracking-wide text-text uppercase [text-shadow:0_0_12px_color-mix(in_srgb,var(--color-primary)_65%,transparent)] short:text-xl tiny:text-lg">
+          <span className="font-display text-[1.375rem] leading-tight font-bold tracking-wide text-text uppercase [text-shadow:0_0_12px_color-mix(in_srgb,var(--color-primary)_65%,transparent)] short:text-xl tiny:text-lg">
             {info.name}
           </span>
-          <span className="rounded-full border border-line px-1.5 font-mono text-[10px] tracking-wide text-text-muted uppercase">
+          <span className="rounded-full border border-line px-1.5 font-mono text-[0.625rem] tracking-wide text-text-muted uppercase">
             {TEXTS.abilityKinds[info.kind]}
           </span>
         </p>
-        <p className="mt-0.5 text-sm leading-snug font-medium text-text tiny:text-[13px] tiny:leading-tight">
+        <p className="mt-0.5 text-sm leading-snug font-medium text-text tiny:text-[0.8125rem] tiny:leading-tight">
           {info.description}
         </p>
       </div>
