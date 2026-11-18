@@ -112,7 +112,7 @@ function ModalDialog({
         if (canClose && e.target === e.currentTarget) onClose()
       }}
       className={[
-        'fixed inset-0 m-0 h-dvh max-h-none w-full max-w-none border-0 p-4 px-safe short:py-3',
+        'fixed inset-0 m-0 h-dvh max-h-none w-full max-w-none border-0 p-4 px-safe short:py-3 tiny:py-1.5',
         'bg-bg-deep/80 text-text backdrop-blur-sm backdrop:bg-transparent',
         'open:flex items-center justify-center',
         placement === 'top' ? 'short:items-start' : '',
@@ -157,13 +157,13 @@ function ModalDialog({
         </header>
         {children && (
           <div
-            className={`min-h-0 overflow-y-auto px-5 py-3 text-text-muted short:px-4 short:py-2 ${bodyClassName}`}
+            className={`min-h-0 overflow-y-auto px-5 py-3 text-text-muted short:px-4 short:py-2 tiny:pb-0.5 ${bodyClassName}`}
           >
             {children}
           </div>
         )}
         {actions && (
-          <footer className="flex flex-wrap justify-end gap-3 px-5 pt-1 pb-4 short:px-4 short:pb-3">
+          <footer className="flex flex-wrap justify-end gap-3 px-5 pt-1 pb-4 short:px-4 short:pb-3 tiny:pb-2">
             {actions}
           </footer>
         )}

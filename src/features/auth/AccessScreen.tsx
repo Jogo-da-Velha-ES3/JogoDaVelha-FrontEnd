@@ -282,7 +282,7 @@ function RegisterForm({ onAccountCreated }: { onAccountCreated: (username: strin
   return (
     <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-3 short:gap-2">
       {/* Celular deitado: usuário, e-mail, senha e botão numa linha só, acima do teclado */}
-      <div className="grid items-start gap-3 short:grid-cols-[1fr_1.3fr_1fr_auto] short:gap-2">
+      <div className="grid items-start gap-3 short:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)_minmax(0,1fr)_auto] short:gap-2">
         <TextField
           label="Nome de usuário"
           autoComplete="username"
@@ -313,7 +313,12 @@ function RegisterForm({ onAccountCreated }: { onAccountCreated: (username: strin
           error={errors.password}
         />
         {/* No celular deitado o botão fica na linha, alinhado com os campos (abaixo do rótulo) */}
-        <Button type="submit" block disabled={pending} className="short:mt-5 short:w-auto">
+        <Button
+          type="submit"
+          block
+          disabled={pending}
+          className="short:mt-5 short:w-auto short:whitespace-nowrap"
+        >
           {pending ? 'Criando…' : 'Criar conta'}
         </Button>
       </div>

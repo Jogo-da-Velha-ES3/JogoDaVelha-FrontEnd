@@ -308,7 +308,9 @@ export function ProfileScreen() {
             </ul>
           </section>
           {/* No celular deitado estreito não cabe; ali os cadeados já dizem que é para a Loja */}
-          <p className="text-xs text-text-muted max-sm:short:hidden">{T.collectionHint}</p>
+          <p className="text-xs text-text-muted max-sm:short:hidden tiny:hidden">
+            {T.collectionHint}
+          </p>
         </div>
       </div>
     </section>

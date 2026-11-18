@@ -102,7 +102,7 @@ export function RoomPage() {
   if (!isValid) return <NotFoundPage />
 
   return (
-    <div className="flex h-dvh flex-col py-2">
+    <div className="flex h-dvh flex-col py-2 tiny:py-1">
       <ConnectionNotice />
       {/* Voltar do navegador na partida, no Match feito ou na Preparação pede confirmação (FRT-03) */}
       <BackNavigationGuard />

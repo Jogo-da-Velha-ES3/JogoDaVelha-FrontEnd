@@ -394,6 +394,15 @@ Abrir o jogo → [sem sessão] Acesso → Hub (Jogar; abas Loja / Perfil)
 - O iPhone não permite travar a orientação, então existe o modal **"Gire o celular"**, que
   aparece sempre que a tela estiver em pé.
 - Altura útil no celular deitado: ~330–390px. O tabuleiro ocupa a altura toda.
+- **Celular no navegador (decidido em 17/11, FRT-02):** com a barra de endereço, a altura cai para
+  ~280–340px. As telas têm uma faixa compacta para isso (`tiny:`, até 340px): na Preparação, os 6
+  personagens ficam numa linha e as habilidades só com ícone e nome. No Android, o toque em Criar
+  sala ou Entrar põe o jogo em tela cheia e trava a paisagem, como no app instalado; o iPhone não
+  deixa fora do app instalado.
+- **Faixa da câmera no app instalado (17/11, FRT-02):** no Android, a lateral da câmera ficava
+  branca (Samsung Internet, S23). No app instalado, o primeiro toque põe a página em tela cheia pela
+  Fullscreen API, e a faixa passa a ter o fundo do jogo; os botões continuam longe da câmera
+  (`px-safe`).
 - O teclado cobre metade da tela: em login, cadastro e código, campo e botão ficam na metade de
   cima.
 - Respeitar `env(safe-area-inset-left/right)`.

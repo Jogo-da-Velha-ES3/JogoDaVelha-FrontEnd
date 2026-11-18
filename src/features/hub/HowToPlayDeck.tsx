@@ -65,9 +65,9 @@ export function HowToPlayDeck({ points, onLeave }: HowToPlayDeckProps) {
   return (
     <div
       onKeyDown={onKeyDown}
-      className="grid min-w-0 flex-1 grid-cols-[minmax(0,0.85fr)_minmax(0,1fr)] items-center gap-x-5 short:gap-x-4"
+      className="grid min-w-0 flex-1 grid-cols-[minmax(0,0.85fr)_minmax(0,1fr)] items-center gap-x-5 short:gap-x-4 tiny:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] tiny:gap-x-3"
     >
-      <ul className="flex flex-col gap-1 text-sm leading-snug font-medium text-text">
+      <ul className="flex flex-col gap-1 text-sm leading-snug font-medium text-text tiny:gap-0.5 tiny:text-[13px] tiny:leading-tight">
         {points.map((point) => (
           <li key={point}>
             <HowToPlayRichText text={point} />
@@ -79,7 +79,7 @@ export function HowToPlayDeck({ points, onLeave }: HowToPlayDeckProps) {
         role="group"
         aria-roledescription="carrossel"
         aria-label={TEXTS.deckCarousel}
-        className="flex flex-col rounded-xl border-2 border-primary/35 bg-bg-base/60 p-2.5"
+        className="flex flex-col rounded-xl border-2 border-primary/35 bg-bg-base/60 p-2.5 tiny:p-1.5"
       >
         {/* Altura mínima = a de 3 linhas de descrição: a caixa não muda de tamanho entre habilidades.
             O conteúdo fica colado embaixo (justify-end), perto do indicador, qualquer que seja o
@@ -198,18 +198,23 @@ function StepButton({
 function AbilityItem({ id }: { id: AbilityId }) {
   const info = ABILITY_INFO[id]
   return (
-    <div className="flex min-w-0 items-start gap-3">
-      <AbilityIcon ability={id} className="size-10 text-primary short:size-9" />
+    <div className="flex min-w-0 items-start gap-3 tiny:gap-2">
+      <AbilityIcon
+        ability={id}
+        className="size-10 shrink-0 text-primary short:size-9 tiny:size-7"
+      />
       <div className="min-w-0">
         <p className="flex flex-wrap items-center gap-x-2">
-          <span className="font-display text-[22px] leading-tight font-bold tracking-wide text-text uppercase [text-shadow:0_0_12px_color-mix(in_srgb,var(--color-primary)_65%,transparent)] short:text-xl">
+          <span className="font-display text-[22px] leading-tight font-bold tracking-wide text-text uppercase [text-shadow:0_0_12px_color-mix(in_srgb,var(--color-primary)_65%,transparent)] short:text-xl tiny:text-lg">
             {info.name}
           </span>
           <span className="rounded-full border border-line px-1.5 font-mono text-[10px] tracking-wide text-text-muted uppercase">
             {TEXTS.abilityKinds[info.kind]}
           </span>
         </p>
-        <p className="mt-0.5 text-sm leading-snug font-medium text-text">{info.description}</p>
+        <p className="mt-0.5 text-sm leading-snug font-medium text-text tiny:text-[13px] tiny:leading-tight">
+          {info.description}
+        </p>
       </div>
     </div>
   )

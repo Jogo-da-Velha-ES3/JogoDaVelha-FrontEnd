@@ -51,6 +51,8 @@ export function Preparation({
   const opponentCharacter = characters[opponentSlot]
   const characterOptions = CHARACTERS
   const abilityOptions = ABILITIES.filter((ability) => unlockedAbilities.includes(ability))
+  /** Mais de 3 (compradas na Loja): 2 linhas de 5 */
+  const manyAbilities = abilityOptions.length > 3
   const isReady = ready[me]
   // "Confirmar habilidades" trava até o servidor confirmar (ready) ou recusar (AMB-02)
   const { pending: confirming, send } = usePendingIntent<'CONFIRM'>(String(isReady))
@@ -128,10 +130,10 @@ export function Preparation({
   }
 
   return (
-    <main className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-3 px-3 pb-2 short:gap-2 short:px-safe sm:px-6">
-      <header className="grid shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-3 rounded-2xl border border-primary/25 bg-bg-panel px-4 py-2 shadow-glow shadow-primary/10 short:py-1.5">
+    <main className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-3 px-3 pb-2 short:gap-2 short:px-safe tiny:gap-1 tiny:pb-1 sm:px-6">
+      <header className="grid shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-3 rounded-2xl border border-primary/25 bg-bg-panel px-4 py-2 shadow-glow shadow-primary/10 short:py-1.5 tiny:rounded-xl tiny:py-1">
         <div className="min-w-0">
-          <h1 className="font-display text-xs font-bold tracking-[0.2em] text-text-muted uppercase">
+          <h1 className="font-display text-xs font-bold tracking-[0.2em] text-text-muted uppercase tiny:sr-only">
             Preparação
           </h1>
           <p className="truncate font-display text-sm font-bold text-primary sm:text-base">
@@ -142,13 +144,13 @@ export function Preparation({
           </p>
         </div>
         <div className="w-32 sm:w-48">
-          <p className="mb-1 text-center font-display text-[10px] font-bold tracking-widest text-text-muted uppercase">
+          <p className="mb-1 text-center font-display text-[10px] font-bold tracking-widest text-text-muted uppercase tiny:sr-only">
             Tempo restante
           </p>
           <TimerBar deadline={timerDeadline} label="Tempo da Preparação" />
         </div>
         <div className="min-w-0 text-right">
-          <p className="font-display text-xs font-bold tracking-[0.2em] text-text-muted uppercase">
+          <p className="font-display text-xs font-bold tracking-[0.2em] text-text-muted uppercase tiny:sr-only">
             Você
           </p>
           <p className="truncate font-display text-sm font-bold text-primary sm:text-base">
@@ -181,10 +183,10 @@ export function Preparation({
 
       {step === 'CHARACTER' ? (
         <section aria-labelledby="character-title" className="flex min-h-0 flex-1 flex-col">
-          <div className="mb-2 shrink-0 text-center">
+          <div className="mb-2 shrink-0 text-center tiny:mb-0.5">
             <h2
               id="character-title"
-              className="font-display text-lg font-black tracking-wide text-primary uppercase sm:text-xl"
+              className="font-display text-lg font-black tracking-wide text-primary uppercase tiny:sr-only sm:text-xl"
             >
               {DRAFT_TEXTS.chooseCharacter}
             </h2>
@@ -194,12 +196,12 @@ export function Preparation({
                 missing={DRAFT_TEXTS.missingCharacterWarning}
               />
             ) : (
-              <p className="text-xs text-text-muted">{DRAFT_TEXTS.characterHint}</p>
+              <p className="text-xs text-text-muted tiny:hidden">{DRAFT_TEXTS.characterHint}</p>
             )}
           </div>
           {/* Linhas fixas (metade da altura cada): o tamanho do cartão não depende do personagem.
               Sem isso o Safari entra em ciclo (o desenho é % do cartão) e a linha fica pulsando */}
-          <div className="grid min-h-0 flex-1 grid-cols-3 grid-rows-2 gap-2 sm:gap-3">
+          <div className="grid min-h-0 flex-1 grid-cols-3 grid-rows-2 gap-2 tiny:grid-cols-6 tiny:grid-rows-1 tiny:gap-1.5 sm:gap-3">
             {characterOptions.map((character) => {
               const info = CHARACTER_INFO[character]
               const locked = !unlockedCharacters.includes(character)
@@ -223,18 +225,18 @@ export function Preparation({
                   onClick={() => selectCharacter(character)}
                   aria-label={label}
                   aria-pressed={selected}
-                  className={`relative flex min-h-0 flex-col items-center justify-center overflow-hidden rounded-2xl border-2 bg-bg-panel p-2 transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary short:flex-row short:justify-start short:gap-2 short:px-2 short:py-1 ${selected ? 'border-primary shadow-glow shadow-primary/35' : 'border-line'} ${locked || reservedByOpponent ? 'cursor-not-allowed' : 'hover:border-primary/60'}`}
+                  className={`relative flex min-h-0 flex-col items-center justify-center overflow-hidden rounded-2xl border-2 bg-bg-panel p-2 transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary short:flex-row short:justify-start short:gap-2 short:px-2 short:py-1 tiny:flex-col tiny:justify-center tiny:gap-0.5 tiny:px-1 ${selected ? 'border-primary shadow-glow shadow-primary/35' : 'border-line'} ${locked || reservedByOpponent ? 'cursor-not-allowed' : 'hover:border-primary/60'}`}
                 >
                   <Character
                     id={character}
-                    className={`h-[58%] min-h-12 max-h-36 w-auto max-w-full shrink-0 short:h-[88%] short:min-h-0 short:max-w-[45%] ${locked || reservedByOpponent ? 'grayscale opacity-50' : ''}`}
+                    className={`h-[58%] min-h-12 max-h-36 w-auto max-w-full shrink-0 short:h-[88%] short:min-h-0 short:max-w-[45%] tiny:h-[58%] tiny:max-w-full ${locked || reservedByOpponent ? 'grayscale opacity-50' : ''}`}
                     decorative
                   />
-                  <span className="flex min-w-0 flex-col items-center short:items-start">
+                  <span className="flex min-w-0 flex-col items-center short:items-start tiny:items-center">
                     <span className="mt-1 font-display text-sm font-bold text-primary short:mt-0">
                       {info.name}
                     </span>
-                    <span className="text-center text-[10px] leading-tight text-text-muted short:text-left sm:text-xs">
+                    <span className="text-center text-[10px] leading-tight text-text-muted short:text-left tiny:text-center sm:text-xs">
                       {(reservedByOpponent || locked) && (
                         <LockIcon className="mr-0.5 size-3 align-[-2px]" />
                       )}
@@ -251,7 +253,7 @@ export function Preparation({
               )
             })}
           </div>
-          <div className="mt-2 flex shrink-0 justify-center">
+          <div className="mt-2 flex shrink-0 justify-center tiny:mt-1">
             <Button size="sm" disabled={!myCharacter} onClick={() => setStep('ABILITIES')}>
               Continuar para habilidades
             </Button>
@@ -259,10 +261,10 @@ export function Preparation({
         </section>
       ) : (
         <section aria-labelledby="abilities-title" className="flex min-h-0 flex-1 flex-col">
-          <div className="mb-2 shrink-0 text-center">
+          <div className="mb-2 shrink-0 text-center tiny:mb-0.5">
             <h2
               id="abilities-title"
-              className="font-display text-lg font-black tracking-wide text-primary uppercase sm:text-xl"
+              className="font-display text-lg font-black tracking-wide text-primary uppercase tiny:sr-only sm:text-xl"
             >
               Habilidades iniciais
             </h2>
@@ -272,14 +274,14 @@ export function Preparation({
                 missing={DRAFT_TEXTS.missingAbilitiesWarning(INITIAL_ABILITIES_TO_PICK)}
               />
             ) : (
-              <p className="text-xs text-text-muted">
+              <p className="text-xs text-text-muted tiny:hidden">
                 {DRAFT_TEXTS.abilitiesHint(pickedAbilities.length, INITIAL_ABILITIES_TO_PICK)}
               </p>
             )}
           </div>
           {/* Até 3: uma linha; mais que isso (compradas na Loja): 2 linhas de 5, sem rolar */}
           <div
-            className={`grid min-h-0 flex-1 gap-2 sm:gap-3 ${abilityOptions.length > 3 ? 'grid-cols-5 grid-rows-2' : 'grid-cols-3 grid-rows-1'}`}
+            className={`grid min-h-0 flex-1 gap-2 tiny:gap-1.5 sm:gap-3 ${manyAbilities ? 'grid-cols-5 grid-rows-2' : 'grid-cols-3 grid-rows-1'}`}
           >
             {abilityOptions.map((ability) => {
               const info = ABILITY_INFO[ability]
@@ -292,13 +294,20 @@ export function Preparation({
                   onClick={() => toggleAbility(ability)}
                   aria-pressed={selected}
                   aria-label={`${info.name}. ${info.description}`}
-                  className={`relative flex min-h-0 flex-col items-center justify-center gap-1 rounded-xl border-2 bg-bg-panel px-2 py-1 text-center transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${selected ? 'border-primary shadow-glow shadow-primary/30' : 'border-line'} hover:border-primary/60`}
+                  className={`relative flex min-h-0 flex-col items-center justify-center gap-1 overflow-hidden rounded-xl border-2 bg-bg-panel px-2 py-1 text-center transition short:gap-0.5 short:py-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${selected ? 'border-primary shadow-glow shadow-primary/30' : 'border-line'} hover:border-primary/60`}
                 >
-                  <AbilityIcon ability={ability} className="size-6 text-primary" />
-                  <span className="font-display text-xs font-bold text-primary sm:text-sm">
+                  <AbilityIcon
+                    ability={ability}
+                    className="size-6 shrink-0 text-primary short:size-5"
+                  />
+                  <span className="font-display text-xs leading-tight font-bold text-primary sm:text-sm tiny:text-xs">
                     {info.name}
                   </span>
-                  <span className="line-clamp-2 text-[9px] leading-tight text-text-muted sm:text-[10px]">
+                  {/* Em 2 linhas de 5, o celular deitado só tem altura para o ícone e o nome: a
+                      descrição continua no nome acessível do botão */}
+                  <span
+                    className={`line-clamp-2 text-[9px] leading-tight text-text-muted tiny:hidden sm:text-[10px] ${manyAbilities ? 'short:hidden' : ''}`}
+                  >
                     {info.description}
                   </span>
                   {selected && (
@@ -313,8 +322,8 @@ export function Preparation({
               )
             })}
           </div>
-          <div className="mt-2 flex shrink-0 flex-col items-center gap-1">
-            <p className="text-center text-[10px] text-text-muted sm:text-xs">
+          <div className="mt-2 flex shrink-0 flex-col items-center gap-1 tiny:mt-1">
+            <p className="text-center text-[10px] text-text-muted tiny:hidden sm:text-xs">
               {DRAFT_TEXTS.shopHint}
             </p>
             <div className="flex items-center gap-2">

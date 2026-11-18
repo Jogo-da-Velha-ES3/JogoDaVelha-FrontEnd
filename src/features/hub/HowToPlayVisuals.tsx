@@ -33,7 +33,7 @@ const DEMO_TIMER_SECONDS = TURN_DURATION_SECONDS / 2
 export function SideVisual({ kind }: { kind: Exclude<HowToPlayVisual, 'coins' | 'deck'> }) {
   if (kind === 'board') {
     return (
-      <div aria-hidden="true" className="size-50 shrink-0 short:size-40">
+      <div aria-hidden="true" className="size-50 shrink-0 short:size-40 tiny:size-32">
         <Board cells={DEMO_CELLS} characters={{ P1: 'X', P2: 'O' }} winningLine={DEMO_LINE} />
       </div>
     )

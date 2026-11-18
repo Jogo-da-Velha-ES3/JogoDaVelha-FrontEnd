@@ -441,3 +441,12 @@ e o service worker (Workbox) no `npm run build`. O registro fica em `src/pwa/reg
   `InstallAppButton` do Hub decidem o botão pela regra pura de `src/lib/installPlatform.ts`: janela
   de instalação do navegador (Chrome/Edge/Android), passo a passo do Compartilhar (iPhone/iPad) ou
   botão escondido (já instalado, ou navegador que não instala sites, como o Firefox no computador).
+- **Tela cheia no Android (FRT-02):** o `enterGameFullscreen` (`src/pwa/gameFullscreen.ts`) pede a
+  tela cheia da Fullscreen API e trava a paisagem; é chamado direto num toque (o navegador só deixa
+  com um gesto). A regra de quando pedir é pura (`src/lib/gameFullscreen.ts`): celular ou tablet
+  com toque, com a Fullscreen API e fora do iPhone/iPad.
+  - No navegador, só no toque de Criar sala e de Entrar: a barra de endereço some na sala.
+  - No app instalado, em qualquer toque (`keepInstalledAppFullscreen`, ligado no `main.tsx`). O
+    manifest já abre em tela cheia, mas só a Fullscreen API faz o navegador desenhar a página por
+    baixo da câmera (com `viewport-fit=cover`); sem ela, a faixa da câmera fica com a cor da
+    janela do navegador (branca na Samsung Internet, no S23 em 17/11).
