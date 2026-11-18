@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 import { useShallow } from 'zustand/react/shallow'
 import { Button, TimerBar } from '../../components/ui'
@@ -9,6 +9,7 @@ import { useServerTimer } from '../../hooks/useServerTimer'
 import { sendCommand } from '../../sockets/gameClient'
 import { selectOwnedAbilities, useProfileStore } from '../../stores/profileStore'
 import { useRoomStore } from '../../stores/roomStore'
+import { showToast } from '../../stores/toastStore'
 import type { AbilityId, DeckSlot } from '../../types/game'
 import { AbilityIcon } from './AbilityIcon'
 
@@ -66,6 +67,19 @@ export function DrawPicker({ options, deadline, deck, round }: DrawPickerProps) 
     options !== null ? deck.length >= DECK_SIZE : confirmed ? confirmed.removed !== null : round > 1
   const choosing = incoming !== null && options?.includes(incoming) ? incoming : null
   const shown = confirmed?.ability ?? recovered
+
+  // Round 1 sem escolha: o servidor escolhe a carta e o round começa logo depois, então a troca
+  // passava sem explicação. Só avisa quem viu as cartas nesta tela (não quem volta depois) (SUG-01)
+  const sawOptions = useRef(false)
+  useEffect(() => {
+    if (options !== null) {
+      sawOptions.current = true
+      return
+    }
+    if (recovered === null || sent !== null || !sawOptions.current) return
+    sawOptions.current = false
+    showToast({ message: T.autoPicked(ABILITY_INFO[recovered].name), tone: 'info' })
+  }, [options, recovered, sent])
 
   const submit = (ability: AbilityId, removed: AbilityId | null) => {
     setSent({ ability, removed, error: useRoomStore.getState().lastError })
@@ -158,7 +172,7 @@ export function DrawPicker({ options, deadline, deck, round }: DrawPickerProps) 
         ) : options && choosing ? (
           <div className="flex flex-col items-center gap-2">
             <p className="flex items-center gap-2">
-              <span className="font-display text-[10px] font-bold tracking-wider text-text-muted uppercase">
+              <span className="font-display text-[0.625rem] font-bold tracking-wider text-text-muted uppercase">
                 {T.incomingLabel}
               </span>
               <span className="flex items-center gap-1.5 rounded-full border-2 border-primary bg-primary/10 px-2.5 py-0.5 font-display text-sm font-extrabold text-primary uppercase">
@@ -266,15 +280,15 @@ function CardContent({ ability, experiment }: { ability: AbilityId; experiment: 
           </span>
         </span>
         {experiment && (
-          <span className="shrink-0 rounded-full border border-coin/50 bg-coin/10 px-1.5 py-0.5 font-display text-[9px] font-bold tracking-wide text-coin uppercase sm:text-[10px]">
+          <span className="shrink-0 rounded-full border border-coin/50 bg-coin/10 px-1.5 py-0.5 font-display text-[0.625rem] font-bold tracking-wide text-coin uppercase">
             {T.experimentTag}
           </span>
         )}
       </span>
-      <span className="text-xs leading-snug text-text-muted short:text-[10px] sm:text-sm">
+      <span className="text-xs leading-snug text-text-muted short:text-[0.625rem] sm:text-sm">
         {info.description}
       </span>
-      <span className="font-display text-[10px] font-bold tracking-wider text-text-muted uppercase">
+      <span className="font-display text-[0.625rem] font-bold tracking-wider text-text-muted uppercase">
         {info.kind}
       </span>
     </>
@@ -292,7 +306,7 @@ function DeckCardContent({ slot }: { slot: DeckSlot }) {
           {info.name}
         </span>
       </span>
-      <span className="font-display text-[10px] font-bold tracking-wider text-text-muted uppercase">
+      <span className="font-display text-[0.625rem] font-bold tracking-wider text-text-muted uppercase">
         {slot.source === 'DRAWN' ? T.drawnTag : T.initialTag} · {info.kind}
       </span>
     </>

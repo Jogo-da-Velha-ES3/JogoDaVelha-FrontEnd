@@ -77,7 +77,11 @@ describe('RematchPanel', () => {
     renderResult()
     fireEvent.click(button('Revanche'))
     expect(client.sendCommand).toHaveBeenCalledWith({ type: 'REMATCH_REQUEST', payload: {} })
-    expect(button('Revanche')).toBeEnabled() // nada otimista
+    // Nada otimista: o pedido ainda não aparece, mas o botão trava até a resposta (AMB-02)
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    expect(button('Pedindo…')).toBeDisabled()
+    fireEvent.click(button('Pedindo…'))
+    expect(client.sendCommand).toHaveBeenCalledTimes(1)
 
     send('REMATCH_REQUESTED', { by: 'P1', deadline: deadline() })
     expect(screen.getByRole('status')).toHaveTextContent('Revanche pedida! Esperando Vini aceitar…')
@@ -99,11 +103,30 @@ describe('RematchPanel', () => {
       type: 'REMATCH_RESPOND',
       payload: { accept: true },
     })
+    // Até a resposta, os dois botões travam: um segundo toque daria erro no back (AMB-02)
+    expect(button('Aceitando…')).toBeDisabled()
+    expect(button('Recusar')).toBeDisabled()
+
+    // Recusado pelo servidor (ex: o prazo acabou no caminho): os botões voltam
+    send('ERROR', { code: 'ROOM_CONFLICT', message: 'x', command: 'REMATCH_RESPOND' })
     fireEvent.click(button('Recusar'))
     expect(client.sendCommand).toHaveBeenLastCalledWith({
       type: 'REMATCH_RESPOND',
       payload: { accept: false },
     })
+    expect(button('Recusando…')).toBeDisabled()
+  })
+
+  it('os dois pedem juntos: o pedido do oponente chega antes e vale como aceite', () => {
+    renderResult()
+    fireEvent.click(button('Revanche'))
+    // O back registrou o pedido do Vini primeiro e vai recusar o meu
+    send('REMATCH_REQUESTED', { by: 'P2', deadline: deadline() })
+    expect(client.sendCommand).toHaveBeenLastCalledWith({
+      type: 'REMATCH_RESPOND',
+      payload: { accept: true },
+    })
+    expect(button('Aceitando…')).toBeDisabled()
   })
 
   it('oponente saiu: a revanche fica desabilitada na hora [RN-POS-02]', () => {

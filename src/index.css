@@ -190,6 +190,11 @@
 
 /* Celular deitado: altura útil de ~330–390px */
 @custom-variant short (@media (max-height: 430px));
+/* Celular deitado no navegador, com a barra de endereço: ~280–340px (FRT-02). Vem depois do
+   `short`, então ganha dele quando os dois valem */
+@custom-variant tiny (@media (max-height: 340px));
+/* Tablet e computador: altura de sobra para cartões com conteúdo maior (Preparação, Loja) */
+@custom-variant tall (@media (min-height: 600px));
 
 /* Respeita o notch / a ilha do celular deitado sem colar o conteúdo na borda */
 @utility px-safe {
@@ -199,6 +204,10 @@
 
 @layer base {
   html {
+    /* Telas grandes (decidido em 17/11): acima de 1600×900, o tamanho base cresce com a tela, até
+       160% (2560×1440), e tudo em rem acompanha. Abaixo disso, vale o tamanho do navegador. As
+       faixas `short`, `tiny` e `tall` e os breakpoints não mudam: media query não usa esse valor */
+    font-size: clamp(100%, min(100dvh / 56.25, 100vw / 100), 160%);
     color-scheme: dark;
     background: var(--color-bg-deep);
     -webkit-text-size-adjust: 100%;

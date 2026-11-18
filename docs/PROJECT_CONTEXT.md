@@ -149,7 +149,9 @@ estratégico e competitivo, **sem pay-to-win**.
    `[RN-DRAFT-03]` e o jogador escolhe 1 em **8 segundos**. Esse tempo não faz parte dos 20s da
    Preparação.
    - **Round 1:** a carta escolhida completa o deck (2 iniciais + 1 sorteada). Sem escolha, uma
-     carta é escolhida automaticamente `[RN-DRAFT-05]`.
+     carta é escolhida automaticamente `[RN-DRAFT-05]`, e um aviso diz qual entrou ("O tempo
+     acabou: o jogo escolheu Silêncio para você.", SUG-01). O mesmo vale para a Preparação ("O
+     tempo acabou: o jogo completou suas escolhas.").
    - **Do round 2 em diante:** o jogador escolhe a carta nova e depois qual habilidade do deck
      sai, que pode ser qualquer uma das 3, inclusive uma inicial. **Sem escolha, o deck fica como
      está.** O botão "Manter meu deck" só esconde as cartas: o servidor não recebe nada e mantém
@@ -177,6 +179,8 @@ estratégico e competitivo, **sem pay-to-win**.
 - Exemplo: Jogador 1 usa a habilidade (turno 1), Jogador 2 joga uma peça (turno 2) → o efeito
   expira ao final do turno 2.
 - A interface mostra o contador nas casas e peças afetadas.
+- Nas descrições das habilidades, a interface diz "até o fim do próximo turno do oponente" em vez
+  de "por 2 turnos", que confundia nos testes (SUG-03, decidido em 17/11).
 
 ## 6. Regras da partida
 
@@ -298,12 +302,17 @@ A ERS não define a regra; o back decidiu usar a mesma do W.O. por tempo `[RN-AR
   Hub quando ela é cancelada (recusa, 15s sem resposta ou saída do outro). Quem não pediu continua
   no Resultado para ver placar e Coins, com o aviso ("O oponente saiu da sala.", "O tempo para
   aceitar a revanche acabou.") e a revanche desabilitada; sai pelo "Voltar ao Lobby". Se os dois
-  pedirem ao mesmo tempo, vale como aceite. No back, o pedido chega no `rematch` do snapshot e o
+  pedirem ao mesmo tempo, vale como aceite: o back recusa o segundo pedido, e o front de quem
+  pediu manda o aceite quando o pedido do outro chega (17/11). No back, o pedido chega no `rematch` do snapshot e o
   cancelamento é a própria sala encerrada (`ROOM_CLOSED` com `REMATCH_DECLINED`,
   `REMATCH_EXPIRED`, `RETURN_TO_LOBBY` ou `REMATCH_DISCONNECTED`).
 - **Sair antes da partida (decidido em 06/11):** sair no MATCH FEITO ou na Preparação encerra a
   sala, sem partida e sem Coins (`ROOM_CLOSED` com `PLAYER_LEFT`); quem ficou volta ao Hub com
   "O oponente saiu da sala.". Durante a partida, sair é desistência (W.O. para o outro).
+- **Voltar do navegador (decidido em 17/11, FRT-03):** na partida, no MATCH FEITO e na Preparação,
+  o voltar do navegador (ou o gesto de voltar do Android) pede confirmação antes de sair, com o
+  mesmo modal do "Desistir" da pausa ("Desistir?" na partida, "Sair da sala?" antes dela). Na
+  Sala de Espera e no Resultado, sai direto.
 - **Cor da derrota no Resultado (decidido na FE-15):** a derrota e a derrota por W.O. aparecem em
   vermelho (título, borda do painel e etiqueta W.O.). É uma exceção à regra de "vermelho só para
   quem está em perigo" usada na Arena (§9), decidido na FE-15. A vitória usa a cor do personagem e
@@ -361,8 +370,8 @@ A ERS não define a regra; o back decidiu usar a mesma do W.O. por tempo `[RN-AR
 8. **Resultado** — vencedor, placar, Coins, revanche
 
 Modais globais: Entrar com Código, Como Jogar, Comprar Coins, Configurações (música, efeitos,
-vibração, Vitão, volume da voz e filtro de palavrões), Sair da partida, Conexão perdida, Gire o
-celular.
+vibração, Vitão, volume da voz e filtro de palavrões), Sair da partida, Conexão perdida, Gire a
+tela.
 
 ### Fluxo
 
@@ -382,9 +391,23 @@ Abrir o jogo → [sem sessão] Acesso → Hub (Jogar; abas Loja / Perfil)
 ### Paisagem
 
 - Mesmo layout em celular deitado e monitor.
-- O iPhone não permite travar a orientação, então existe o modal **"Gire o celular"**, que
-  aparece sempre que a tela estiver em pé.
+- O iPhone não permite travar a orientação, então existe o modal **"Gire a tela"**, que
+  aparece sempre que a tela estiver em pé, no celular e no tablet (o texto era "Gire o celular"
+  até 17/11).
 - Altura útil no celular deitado: ~330–390px. O tabuleiro ocupa a altura toda.
+- **Celular no navegador (decidido em 17/11, FRT-02):** com a barra de endereço, a altura cai para
+  ~280–340px. As telas têm uma faixa compacta para isso (`tiny:`, até 340px): na Preparação, os 6
+  personagens ficam numa linha e as habilidades só com ícone e nome. No Android, o toque em Criar
+  sala ou Entrar põe o jogo em tela cheia e trava a paisagem, como no app instalado; o iPhone não
+  deixa fora do app instalado.
+- **Telas grandes (decidido em 17/11):** acima de 1600×900, tudo cresce junto com a tela, até 160%
+  em 2560×1440 (o tamanho base da página acompanha a altura e a largura). No tablet e no
+  computador, os cartões da Preparação e da Loja mostram personagens, ícones e textos maiores, e o
+  Hub e a Sala de Espera têm largura máxima. Texto de no mínimo 10px e toques de pelo menos 32px.
+- **Faixa da câmera no app instalado (17/11, FRT-02):** no Android, a lateral da câmera ficava
+  branca (Samsung Internet, S23). No app instalado, o primeiro toque põe a página em tela cheia pela
+  Fullscreen API, e a faixa passa a ter o fundo do jogo; os botões continuam longe da câmera
+  (`px-safe`).
 - O teclado cobre metade da tela: em login, cadastro e código, campo e botão ficam na metade de
   cima.
 - Respeitar `env(safe-area-inset-left/right)`.
@@ -401,7 +424,9 @@ minutinhos". O aviso some quando o servidor responde. Nenhuma chamada é cortada
 - Toda espera por uma resposta do back mostra o anel neon de carregamento (`Spinner`) com o texto
   do que está carregando ("Carregando a Loja…"). Onde o formato já é conhecido, a tela mostra o
   formato vazio no lugar: os cartões dos pacotes de Coins pulsando e "–" nas estatísticas do Perfil
-  (nunca um 0 que depois muda). Botões que mandam algo trocam o texto ("Criando sala…").
+  (nunca um 0 que depois muda). Botões que mandam algo trocam o texto ("Criando sala…") e ficam
+  travados até o servidor responder ou recusar, para um segundo toque não virar erro (AMB-02):
+  Revanche, Aceitar, Recusar e Confirmar habilidades.
 - **Entrada na sala:** "Sala 4821" com "Entrando na sala…" e o botão "Voltar ao Hub" até o servidor
   mandar o estado da sala. Se a conexão falhar, o erro fica na tela com "Tentar de novo".
 
@@ -599,7 +624,7 @@ dela. Ordem e responsáveis em `docs/INITIAL_BACKLOG.md`.
 7. Habilidades: sorteio de 8s por round, deck, mira, as 10 habilidades e seus efeitos visuais
 8. Resultado, Coins e revanche (15s)
 9. Loja (personagens, habilidades, Coins simbólicos) e Perfil (estatísticas e coleção)
-10. PWA (instalável, paisagem, "Gire o celular") e polimento (personagens neon, pacote da Morte
+10. PWA (instalável, paisagem, "Gire a tela") e polimento (personagens neon, pacote da Morte
     Súbita, sons)
 11. **Personalidade (terceiro grupo, em paralelo desde 15/10):** sonoplastia, Configurações, voz
     do jogo e o Vitão com a voz do Rafik (FE-37 a FE-48)

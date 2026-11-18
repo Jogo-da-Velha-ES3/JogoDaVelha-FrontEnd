@@ -14,6 +14,7 @@ import {
   typedText,
   type CodeDigits,
 } from '../../lib/roomCodeInput'
+import { enterGameFullscreen } from '../../pwa/gameFullscreen'
 import { JOINED_ROOM_STATE, roomPath } from '../../routes/paths'
 
 interface JoinRoomModalProps {
@@ -96,6 +97,8 @@ function JoinRoomForm({ pending, setPending }: JoinRoomFormProps) {
       noValidate
       onSubmit={(e) => {
         e.preventDefault()
+        // Android: tela cheia já no toque, antes de esperar o servidor (FRT-02)
+        if (complete && !pending) enterGameFullscreen()
         void handleSubmit()
       }}
       className="flex flex-col items-center gap-2 pb-1"

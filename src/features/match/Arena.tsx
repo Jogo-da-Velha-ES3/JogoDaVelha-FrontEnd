@@ -212,7 +212,7 @@ export function Arena({ onQuit }: ArenaProps) {
             <p
               role="timer"
               aria-live="polite"
-              className="self-start font-display text-[62px] leading-[0.85] font-bold text-danger tabular-nums short:text-[42px]"
+              className="self-start font-display text-[3.875rem] leading-[0.85] font-bold text-danger tabular-nums short:text-[2.625rem]"
               style={{
                 // Brilho vermelho e as cores dos dois personagens deslocadas (efeito do esboço)
                 textShadow: `0 0 18px var(--color-danger), 3px 0 color-mix(in srgb, ${colorOf(characters[opp]) ?? 'var(--color-primary)'} 50%, transparent), -3px 0 color-mix(in srgb, ${colorOf(characters[me]) ?? 'var(--color-primary)'} 55%, transparent)`,

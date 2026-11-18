@@ -3,10 +3,15 @@ import { ARENA_TEXTS } from '../../constants/texts'
 
 interface QuitModalProps {
   open: boolean
-  /** Volta ao menu de pausa */
+  /** Volta ao menu de pausa (ou fica na sala, no voltar do navegador) */
   onContinue: () => void
   /** Sai da partida (a Arena volta ao Hub; ao sair, a sala avisa o servidor) */
   onQuit: () => void
+  /**
+   * `closeRoom`: no Match feito e na Preparação, sair fecha a sala sem partida (FRT-03).
+   * Padrão: na partida, sair é desistência
+   */
+  variant?: 'forfeit' | 'closeRoom'
 }
 
 /**
@@ -15,11 +20,12 @@ interface QuitModalProps {
  * Não fecha no clique fora — o jogador precisa escolher explicitamente.
  * O resultado da desistência é do servidor: o `/leave` vira W.O. para o oponente.
  */
-export function QuitModal({ open, onContinue, onQuit }: QuitModalProps) {
+export function QuitModal({ open, onContinue, onQuit, variant = 'forfeit' }: QuitModalProps) {
+  const texts = variant === 'closeRoom' ? ARENA_TEXTS.leaveRoom : ARENA_TEXTS.quit
   return (
     <Modal
       open={open}
-      title={<span className="text-danger">{ARENA_TEXTS.quit.title}</span>}
+      title={<span className="text-danger">{texts.title}</span>}
       dismissible={false}
       size="sm"
       actions={
@@ -28,12 +34,12 @@ export function QuitModal({ open, onContinue, onQuit }: QuitModalProps) {
             Continuar
           </Button>
           <Button variant="danger" size="sm" block onClick={onQuit}>
-            Desistir
+            {variant === 'closeRoom' ? 'Sair' : 'Desistir'}
           </Button>
         </div>
       }
     >
-      <p className="py-2 text-sm text-text-muted">{ARENA_TEXTS.quit.body}</p>
+      <p className="py-2 text-sm text-text-muted">{texts.body}</p>
     </Modal>
   )
 }

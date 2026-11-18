@@ -164,7 +164,7 @@ function BuyCoinsDialog({ open, onClose }: BuyCoinsModalProps) {
         )}
 
         {/* Aviso fixo: compra simbólica, sem pagamento nem cartão [RN-LOJ-04] */}
-        <p className="text-center text-xs text-text-muted short:text-[11px]">
+        <p className="text-center text-xs text-text-muted short:text-[0.6875rem]">
           {COINS_TEXTS.notice}
         </p>
         {buyFailed && (
@@ -194,7 +194,7 @@ function PackageContent({ pkg }: { pkg: CoinPackage | null }) {
         {(pkg?.coins ?? 0).toLocaleString('pt-BR')}
       </span>
       <span
-        className={`font-display text-[11px] font-semibold tracking-wider text-text-muted uppercase ${hidden}`}
+        className={`font-display text-[0.6875rem] font-semibold tracking-wider text-text-muted uppercase ${hidden}`}
       >
         {COINS_TEXTS.coins}
       </span>

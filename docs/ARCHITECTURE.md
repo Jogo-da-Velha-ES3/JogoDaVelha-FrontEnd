@@ -11,7 +11,7 @@ src/
 ├── assets/             # sons (Howler), imagens, ícones, fontes
 ├── components/         # componentes reutilizáveis e "burros" (sem lógica de negócio)
 │   ├── ui/              # botões, modais, inputs, toast, banner, carregando (`Spinner`), ícones (cadeado, pausa) — puramente visuais
-│   └── layout/          # LandscapeShell (safe-area, sem overflow) e o aviso "Gire o celular"
+│   └── layout/          # LandscapeShell (safe-area, sem overflow) e o aviso "Gire a tela"
 ├── features/           # lógica de domínio, isolada por área do jogo
 │   ├── auth/            # login, cadastro, sessão
 │   ├── hub/             # Hub, menu lateral, Como Jogar, Instalar App
@@ -109,6 +109,13 @@ W.O., a Arena segura o banner por `RESULT_HOLD_SECONDS` antes do Resultado; no e
 também (PROJECT_CONTEXT §9). Os efeitos da Morte Súbita ficam em `SuddenDeathLayer` (FE-13).
 A Arena fica em `src/features/match/Arena.tsx`, com as regiões prontas para as faixas e banners
 (FE-05), o deck (FE-11) e a mira (FE-27).
+
+Sair da página da sala manda o `/leave`, então o voltar do navegador passa pelo
+`BackNavigationGuard` (`src/routes/room/`, FRT-03): com o `useBlocker` do React Router, ele barra
+só a navegação do histórico (POP) nas fases em que sair custa algo ao oponente
+(`leaveConsequence`, `src/lib/roomExit.ts`) e abre o `QuitModal` ("Desistir?" na partida, "Sair da
+sala?" no Match feito e na Preparação). As saídas pelos botões do jogo e os redirecionamentos
+(sala encerrada, sessão vencida) são PUSH/REPLACE e passam direto.
 
 A mira (FE-27) fica em `src/features/powers/useAbilityAim.ts`: alvos da etapa atual (com
 `getAimTargets`, de `src/lib/abilityTargets.ts`), o envio da intenção e a espera pelo servidor,
@@ -290,7 +297,10 @@ a tradução em `src/api/shop.ts` muda:
 - `CONNECT` com `Authorization: Bearer <token>`: a identidade vem do token, nunca do corpo.
 - **Assinaturas:** `/topic/rooms/{code}` (eventos públicos), `/user/queue/room` (privados: o
   snapshot completo, as minhas cartas do sorteio, o meu deck, a queda do oponente) e
-  `/user/queue/errors` (erros das minhas ações, no formato do REST, sem envelope).
+  `/user/queue/errors` (erros das minhas ações, no formato do REST, sem envelope). O `path` do
+  erro é o destino da ação recusada: a tradução guarda a intenção (`command`, por
+  `commandFromDestination`) e o aviso sai de `roomErrorMessage` (`src/lib/roomErrors.ts`), pela
+  ação e pela fase, porque o back manda o mesmo `ROOM_CONFLICT` genérico para quase tudo (SUG-02).
 - **Envio, prefixo `/app/rooms/{code}`** (`toBackCommand`):
 
   | Intenção do front                    | Destino e corpo do back                                           |
@@ -310,6 +320,12 @@ a tradução em `src/api/shop.ts` muda:
     mais antigo que o último aplicado também (`roomStore.snapshotTime`). O snapshot que o back
     manda depois do `MATCH_END` e a cada pedido de revanche não apaga o fim da partida que a tela
     ainda mostra (a hora do resultado, o fim do round, a linha vencedora).
+  - Também é descartado o snapshot que faria a sala andar para trás: o da partida que a revanche
+    deixou para trás (`gameId` igual ao `roomStore.leftGameId`, FRT-01) e o da Sala de Espera ou do
+    Match feito depois que a Preparação começou (AMB-03). O back manda um snapshot a cada
+    `DRAFT_UPDATE`, então cada store é trocada de uma vez (`setState` com `replace`), sem passar
+    pelo estado zerado: quem observa a store (o avanço da Preparação, o saldo depois da partida, o
+    Vitão) vê só o antes e o depois (FRT-04).
   - `PLAYER_JOINED`: vira o jogador P2 (`{ player }`); o snapshot logo depois completa o resto.
   - `ROUND_START`: `firstPlayer` vira `startingPlayer`.
   - `ABILITY_RESOLVED`: `skillCode`/`targetPosition`/`destinationPosition` viram
@@ -426,3 +442,12 @@ e o service worker (Workbox) no `npm run build`. O registro fica em `src/pwa/reg
   `InstallAppButton` do Hub decidem o botão pela regra pura de `src/lib/installPlatform.ts`: janela
   de instalação do navegador (Chrome/Edge/Android), passo a passo do Compartilhar (iPhone/iPad) ou
   botão escondido (já instalado, ou navegador que não instala sites, como o Firefox no computador).
+- **Tela cheia no Android (FRT-02):** o `enterGameFullscreen` (`src/pwa/gameFullscreen.ts`) pede a
+  tela cheia da Fullscreen API e trava a paisagem; é chamado direto num toque (o navegador só deixa
+  com um gesto). A regra de quando pedir é pura (`src/lib/gameFullscreen.ts`): celular ou tablet
+  com toque, com a Fullscreen API e fora do iPhone/iPad.
+  - No navegador, só no toque de Criar sala e de Entrar: a barra de endereço some na sala.
+  - No app instalado, em qualquer toque (`keepInstalledAppFullscreen`, ligado no `main.tsx`). O
+    manifest já abre em tela cheia, mas só a Fullscreen API faz o navegador desenhar a página por
+    baixo da câmera (com `viewport-fit=cover`); sem ela, a faixa da câmera fica com a cor da
+    janela do navegador (branca na Samsung Internet, no S23 em 17/11).

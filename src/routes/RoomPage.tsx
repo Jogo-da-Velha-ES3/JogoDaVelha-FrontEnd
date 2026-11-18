@@ -12,12 +12,14 @@ import { stopVoice } from '../features/sound/soundManager'
 import { useRoomMusic } from '../features/sound/useRoomMusic'
 import { useIsBefore } from '../hooks/useIsBefore'
 import { isValidRoomCode } from '../lib/roomCode'
+import { roomErrorMessage } from '../lib/roomErrors'
 import { joinRoom, leaveRoom } from '../sockets/gameClient'
 import { useMatchStore } from '../stores/matchStore'
 import { useRoomStore } from '../stores/roomStore'
 import { showToast } from '../stores/toastStore'
 import { NotFoundPage } from './NotFoundPage'
 import { PATHS, type RoomLocationState } from './paths'
+import { BackNavigationGuard } from './room/BackNavigationGuard'
 import { PreparationPlaceholder } from './room/RoomPlaceholders'
 
 /** A sala inteira (Sala de Espera, Preparação, Arena, Resultado), escolhida pela `phase` */
@@ -77,10 +79,18 @@ export function RoomPage() {
     setAttempt((n) => n + 1)
   }
 
-  // Erros do servidor (jogada inválida, sem conexão…) aparecem como aviso [FE-18]
+  // Erros do servidor (jogada inválida, sem conexão…) aparecem como aviso [FE-18], com o motivo
+  // pela ação e pela fase (SUG-02); some quando a tela já explica (ex: a revanche)
   const lastError = useRoomStore((s) => s.lastError)
   useEffect(() => {
-    if (lastError) showToast({ message: lastError.message, tone: 'danger' })
+    if (!lastError) return
+    const { rematch, rematchCancelled } = useMatchStore.getState()
+    const { phase, closedReason } = useRoomStore.getState()
+    const message = roomErrorMessage(lastError, {
+      phase,
+      rematchShown: rematch !== null || rematchCancelled !== null || closedReason !== null,
+    })
+    if (message) showToast({ message, tone: 'danger' })
   }, [lastError])
 
   // Revanche cancelada para quem pediu ou sala encerrada: avisa e volta ao Hub [RN-POS-02]
@@ -92,8 +102,10 @@ export function RoomPage() {
   if (!isValid) return <NotFoundPage />
 
   return (
-    <div className="flex h-dvh flex-col py-2">
+    <div className="flex h-dvh flex-col py-2 tiny:py-1">
       <ConnectionNotice />
+      {/* Voltar do navegador na partida, no Match feito ou na Preparação pede confirmação (FRT-03) */}
+      <BackNavigationGuard />
       <RoomScreen
         code={codigo}
         loading={

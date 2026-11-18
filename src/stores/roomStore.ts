@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 import type { ConnectionStatus } from '../sockets/types'
-import type { RoomClosedReason } from '../types/events'
+import type { ClientCommandType, RoomClosedReason } from '../types/events'
 import type { PlayerSlot, PlayerState, RoomPhase } from '../types/game'
 
 export interface RoomGameState {
@@ -16,7 +16,17 @@ export interface RoomGameState {
    * de ordem) é descartado
    */
   snapshotTime: number
-  lastError: { code: string; message: string; serverTime: number } | null
+  /** Partida do último snapshot aplicado (null antes de a partida existir) */
+  gameId: string | null
+  /** Partida que a revanche deixou para trás: um snapshot dela que chegue depois é descartado */
+  leftGameId: string | null
+  lastError: {
+    code: string
+    message: string
+    serverTime: number
+    /** A intenção recusada, quando o back diz qual foi */
+    command?: ClientCommandType
+  } | null
   connection: ConnectionStatus
 }
 
@@ -38,6 +48,8 @@ export const INITIAL_ROOM_STATE: RoomGameState = {
   mySlot: null,
   closedReason: null,
   snapshotTime: 0,
+  gameId: null,
+  leftGameId: null,
   lastError: null,
   connection: 'IDLE',
 }

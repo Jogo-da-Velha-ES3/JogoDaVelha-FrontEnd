@@ -308,7 +308,9 @@ export function ProfileScreen() {
             </ul>
           </section>
           {/* No celular deitado estreito não cabe; ali os cadeados já dizem que é para a Loja */}
-          <p className="text-xs text-text-muted max-sm:short:hidden">{T.collectionHint}</p>
+          <p className="text-xs text-text-muted max-sm:short:hidden tiny:hidden">
+            {T.collectionHint}
+          </p>
         </div>
       </div>
     </section>
@@ -339,7 +341,7 @@ function StatCard({ label, value }: { label: string; value: string }) {
       <p className="font-display text-xl leading-none font-extrabold text-primary short:text-lg">
         {value}
       </p>
-      <p className="mt-1 text-[11px] leading-tight text-text-muted short:mt-0.5 short:text-[10px]">
+      <p className="mt-1 text-[0.6875rem] leading-tight text-text-muted short:mt-0.5 short:text-[0.625rem]">
         {label}
       </p>
     </div>

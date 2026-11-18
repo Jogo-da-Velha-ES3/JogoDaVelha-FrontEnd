@@ -112,10 +112,14 @@ describe('tradução das mensagens reais do back (contrato V2)', () => {
     expect(parse(M.roomClosed)?.payload).toMatchObject({ reason: 'PLAYER_LEFT' })
   })
 
-  it('erro da fila de erros vira ERROR com o código do back', () => {
+  it('erro da fila de erros vira ERROR com o código do back e a ação recusada', () => {
     expect(parse(M.error)).toEqual({
       type: 'ERROR',
-      payload: { code: 'ROOM_NOT_FOUND', message: 'Sala não encontrada ou encerrada.' },
+      payload: {
+        code: 'ROOM_NOT_FOUND',
+        message: 'Sala não encontrada ou encerrada.',
+        command: 'DRAFT_ABILITIES', // path: /app/rooms/0689/draft/abilities
+      },
       serverTime: Date.parse('2026-11-06T03:33:16.211274Z'),
     })
   })

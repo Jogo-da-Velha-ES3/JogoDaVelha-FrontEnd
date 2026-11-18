@@ -151,7 +151,7 @@ function HubTopBar() {
             onClick={() => setBuyCoinsOpen(true)}
             disabled={coins === null}
             aria-label={COINS_TEXTS.balanceLabel(balance)}
-            className="ml-auto rounded-lg font-display text-lg font-bold text-coin transition hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coin short:text-base"
+            className="ml-auto min-h-8 rounded-lg px-1 font-display text-lg font-bold text-coin transition hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coin short:text-base"
           >
             <span aria-hidden>
               {balance} {COINS_TEXTS.coins}

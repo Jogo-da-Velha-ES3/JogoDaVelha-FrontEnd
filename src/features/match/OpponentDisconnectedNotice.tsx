@@ -36,7 +36,7 @@ export function OpponentDisconnectedNotice() {
       <p className="min-w-0 font-display text-xs leading-tight font-bold tracking-wide uppercase">
         {ARENA_TEXTS.opponentDisconnected.title}
       </p>
-      <p className="shrink-0 font-mono text-[10px]">
+      <p className="shrink-0 font-mono text-[0.625rem]">
         {consecutiveTimeouts}/{MAX_CONSECUTIVE_TIMEOUTS}
       </p>
     </div>
