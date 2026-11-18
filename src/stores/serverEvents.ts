@@ -1,7 +1,7 @@
 // Ponto único de entrada dos eventos do servidor (ARCHITECTURE §3). O cliente STOMP (FE-18) e o
 // servidor simulado (FE-35) chamam applyServerEvent; nenhum componente assina eventos direto.
 // Cada store reflete o que o servidor confirmou: nada aqui calcula placar, vencedor ou timeout.
-import type { CharacterId, PlayerSlot, PlayerState } from '../types/game'
+import type { CharacterId, PlayerSlot, PlayerState, RoomPhase } from '../types/game'
 import { otherSlot } from '../lib/match'
 import type { RoomClosedReason, ServerEnvelope, ServerEvent } from '../types/events'
 import { initialBoardState, useBoardStore } from './boardStore'
@@ -9,7 +9,7 @@ import { useClockStore } from './clockStore'
 import { INITIAL_DRAFT_STATE, useDraftStore } from './draftStore'
 import { INITIAL_MATCH_STATE, type RematchCancelReason, useMatchStore } from './matchStore'
 import { INITIAL_POWERS_DATA, usePowersStore } from './powersStore'
-import { INITIAL_ROOM_STATE, useRoomStore } from './roomStore'
+import { INITIAL_ROOM_STATE, type RoomGameState, useRoomStore } from './roomStore'
 import { INITIAL_TIMER_STATE, useTimerStore } from './timerStore'
 import { playSoundForServerEvent } from '../features/sound'
 import { playAnnouncementForServerEvent } from '../features/vitao/vitaoVoices'
@@ -24,6 +24,17 @@ const REMATCH_CANCEL_REASON: Partial<Record<RoomClosedReason, RematchCancelReaso
   RETURN_TO_LOBBY: 'LEFT',
   REMATCH_DISCONNECTED: 'LEFT',
   PLAYER_LEFT: 'LEFT',
+}
+
+/** Sala de Espera e Match feito: a sala não volta para elas depois da Preparação */
+const isLobbyPhase = (phase: RoomPhase) => phase === 'WAITING' || phase === 'MATCHED'
+
+/**
+ * A partida que fica para trás quando a sala vai para `next`: sair do Resultado para a Preparação
+ * é a revanche aceita. Fora disso, continua a que já estava guardada
+ */
+function leftGameAfter(room: RoomGameState, next: RoomPhase): string | null {
+  return room.phase === 'RESULT' && next === 'DRAFT' ? room.gameId : room.leftGameId
 }
 
 /** Limpa o estado da partida (Preparação, placar, tabuleiro, habilidades, turno) */
@@ -59,6 +70,13 @@ export function applyServerEvent(envelope: ServerEnvelope, receivedAt = Date.now
       const sameRoom = room.code === s.code
       // Mais antigo que o último aplicado: chegou fora de ordem
       if (sameRoom && s.serverTime < room.snapshotTime) return
+      // Resultado da partida que a revanche já deixou para trás (FRT-01): o back mandava o
+      // Resultado antigo entre o fim da Preparação da revanche e a partida nova
+      if (sameRoom && s.gameId != null && s.gameId === room.leftGameId) return
+      // A sala nunca volta para a Sala de Espera nem para o Match feito depois da Preparação:
+      // um snapshot assim foi montado antes e chegou atrasado (AMB-03)
+      if (sameRoom && isLobbyPhase(s.phase) && room.phase !== null && !isLobbyPhase(room.phase))
+        return
       const previous = useMatchStore.getState()
       const previousWinningLine = useBoardStore.getState().winningLine
       const draftVersion = useDraftStore.getState().version
@@ -67,7 +85,11 @@ export function applyServerEvent(envelope: ServerEnvelope, receivedAt = Date.now
       // banner do W.O. e toca a comemoração; o fim do round mostra o EMPATE ABSOLUTO
       const keepResult = sameRoom && previous.outcome !== null && s.outcome !== null
       const of = (slot: PlayerSlot) => s.players.find((p) => p.slot === slot)
-      resetMatchStores()
+      const characters: Partial<Record<PlayerSlot, CharacterId>> = {}
+      for (const p of s.players) if (p.character) characters[p.slot] = p.character
+      // Cada store é trocada de uma vez, sem passar pelo estado zerado: quem observa a store (o
+      // avanço da Preparação, o saldo depois da partida, o Vitão) só vê o antes e o depois.
+      // Antes, cada snapshot da Preparação parecia uma confirmação nova do personagem (FRT-04)
       useRoomStore.setState({
         code: s.code,
         phase: s.phase,
@@ -75,41 +97,56 @@ export function applyServerEvent(envelope: ServerEnvelope, receivedAt = Date.now
         mySlot: s.mySlot,
         closedReason: null,
         snapshotTime: s.serverTime,
+        gameId: s.gameId ?? null,
+        leftGameId: sameRoom ? leftGameAfter(room, s.phase) : null,
       })
-      useMatchStore.setState({
-        round: s.round,
-        suddenDeath: s.suddenDeath,
-        score: { P1: of('P1')?.roundsWon ?? 0, P2: of('P2')?.roundsWon ?? 0 },
-        consecutiveTimeouts: {
-          P1: of('P1')?.consecutiveTimeouts ?? 0,
-          P2: of('P2')?.consecutiveTimeouts ?? 0,
+      useMatchStore.setState(
+        {
+          ...INITIAL_MATCH_STATE,
+          round: s.round,
+          suddenDeath: s.suddenDeath,
+          score: { P1: of('P1')?.roundsWon ?? 0, P2: of('P2')?.roundsWon ?? 0 },
+          consecutiveTimeouts: {
+            P1: of('P1')?.consecutiveTimeouts ?? 0,
+            P2: of('P2')?.consecutiveTimeouts ?? 0,
+          },
+          outcome: s.outcome,
+          coins: s.coins ?? null,
+          rematch: s.rematch ? { requestedBy: s.rematch.by, deadline: s.rematch.deadline } : null,
+          ...(keepResult && {
+            outcomeReceivedAt: previous.outcomeReceivedAt,
+            roundEnd: previous.roundEnd,
+            lastTimeout: previous.lastTimeout,
+          }),
         },
-        outcome: s.outcome,
-        coins: s.coins ?? null,
-        rematch: s.rematch ? { requestedBy: s.rematch.by, deadline: s.rematch.deadline } : null,
-        ...(keepResult && {
-          outcomeReceivedAt: previous.outcomeReceivedAt,
-          roundEnd: previous.roundEnd,
-          lastTimeout: previous.lastTimeout,
-        }),
+        true,
+      )
+      useDraftStore.setState(
+        s.draft
+          ? {
+              deadline: s.draft.deadline,
+              ready: s.draft.ready,
+              characters,
+              // O snapshot não traz a versão: na mesma Preparação, continua valendo a última aplicada
+              version: sameRoom && s.phase === 'DRAFT' ? draftVersion : null,
+            }
+          : INITIAL_DRAFT_STATE,
+        true,
+      )
+      useBoardStore.setState(
+        {
+          ...initialBoardState(),
+          cells: s.board,
+          ...(keepResult && { winningLine: previousWinningLine }),
+        },
+        true,
+      )
+      usePowersStore.setState({
+        ...INITIAL_POWERS_DATA,
+        deck: s.myDeck,
+        drawOptions: s.drawOptions ?? null,
       })
-      if (s.draft) {
-        const characters: Partial<Record<PlayerSlot, CharacterId>> = {}
-        for (const p of s.players) if (p.character) characters[p.slot] = p.character
-        useDraftStore.setState({
-          deadline: s.draft.deadline,
-          ready: s.draft.ready,
-          characters,
-          // O snapshot não traz a versão: na mesma Preparação, continua valendo a última aplicada
-          version: sameRoom && s.phase === 'DRAFT' ? draftVersion : null,
-        })
-      }
-      useBoardStore.setState({
-        cells: s.board,
-        ...(keepResult && { winningLine: previousWinningLine }),
-      })
-      usePowersStore.setState({ deck: s.myDeck, drawOptions: s.drawOptions ?? null })
-      useTimerStore.setState({ turn: s.turn })
+      useTimerStore.setState({ turn: s.turn }, true)
       return
     }
 
@@ -137,9 +174,14 @@ export function applyServerEvent(envelope: ServerEnvelope, receivedAt = Date.now
       return
     }
 
-    case 'PHASE_CHANGE':
-      // Revanche aceita: tudo recomeça do zero na Preparação [RN-POS-03]
-      if (event.payload.phase === 'DRAFT') resetMatchStores()
+    case 'PHASE_CHANGE': {
+      const room = useRoomStore.getState()
+      // Revanche aceita: tudo recomeça do zero na Preparação [RN-POS-03], e a partida que acabou
+      // fica para trás
+      if (event.payload.phase === 'DRAFT') {
+        resetMatchStores()
+        useRoomStore.setState({ leftGameId: leftGameAfter(room, 'DRAFT') })
+      }
       // Fim do sorteio: começa a apresentação do round, antes do primeiro turno
       if (event.payload.phase === 'PLAYING') useMatchStore.setState({ introStartedAt: receivedAt })
       // As cartas do sorteio valem só nele. Do round 2 em diante, o tempo esgotado não manda
@@ -147,6 +189,7 @@ export function applyServerEvent(envelope: ServerEnvelope, receivedAt = Date.now
       if (event.payload.phase !== 'ROUND_DRAW') usePowersStore.setState({ drawOptions: null })
       useRoomStore.setState({ phase: event.payload.phase })
       return
+    }
 
     case 'DRAFT_UPDATE': {
       const { deadline, characters, ready, version = null } = event.payload

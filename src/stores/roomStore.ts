@@ -16,6 +16,10 @@ export interface RoomGameState {
    * de ordem) é descartado
    */
   snapshotTime: number
+  /** Partida do último snapshot aplicado (null antes de a partida existir) */
+  gameId: string | null
+  /** Partida que a revanche deixou para trás: um snapshot dela que chegue depois é descartado */
+  leftGameId: string | null
   lastError: { code: string; message: string; serverTime: number } | null
   connection: ConnectionStatus
 }
@@ -38,6 +42,8 @@ export const INITIAL_ROOM_STATE: RoomGameState = {
   mySlot: null,
   closedReason: null,
   snapshotTime: 0,
+  gameId: null,
+  leftGameId: null,
   lastError: null,
   connection: 'IDLE',
 }

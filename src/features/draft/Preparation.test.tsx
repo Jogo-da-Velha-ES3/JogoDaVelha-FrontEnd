@@ -206,6 +206,48 @@ describe('Preparação: guiar o jogador pelas 2 etapas', () => {
     expect(heading('Habilidades iniciais')).toBeInTheDocument()
   })
 
+  it('na reta final, o Voltar continua levando ao personagem (FRT-04)', () => {
+    renderPreparation()
+    draftUpdate({ P1: 'X' })
+    tick(PREPARATION_AUTO_ADVANCE_MS)
+    tick(12_500) // reta final: já está nas habilidades
+    fireEvent.click(button('Voltar'))
+    expect(heading('Escolha seu personagem')).toBeInTheDocument()
+
+    tick(1000) // o aviso continua, mas a tela não volta sozinha para as habilidades
+    expect(screen.getByRole('alert')).toBeInTheDocument()
+    expect(heading('Escolha seu personagem')).toBeInTheDocument()
+  })
+
+  it('o snapshot do back a cada escolha não empurra a tela para as habilidades (FRT-04)', () => {
+    renderPreparation()
+    draftUpdate({ P1: 'X' })
+    tick(PREPARATION_AUTO_ADVANCE_MS)
+    fireEvent.click(button('1 · Personagem ✓'))
+
+    // O oponente escolhe: o back manda o DRAFT_UPDATE e, logo depois, o snapshot da sala
+    draftUpdate({ P1: 'X', P2: 'O' })
+    send('ROOM_SNAPSHOT', {
+      code: '4821',
+      phase: 'DRAFT',
+      players: [
+        { ...player('P1'), character: 'X' },
+        { ...player('P2'), character: 'O' },
+      ],
+      mySlot: 'P1',
+      round: 0,
+      suddenDeath: false,
+      board: [],
+      turn: null,
+      myDeck: [],
+      outcome: null,
+      serverTime: Date.now(),
+      draft: { deadline: Date.now() + 15_000, ready: { P1: false, P2: false } },
+    })
+    tick(PREPARATION_AUTO_ADVANCE_MS)
+    expect(heading('Escolha seu personagem')).toBeInTheDocument()
+  })
+
   it('sem personagem, o aviso pede o personagem', () => {
     renderPreparation()
     tick(12_500)

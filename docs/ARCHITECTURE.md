@@ -309,6 +309,12 @@ a tradução em `src/api/shop.ts` muda:
     mais antigo que o último aplicado também (`roomStore.snapshotTime`). O snapshot que o back
     manda depois do `MATCH_END` e a cada pedido de revanche não apaga o fim da partida que a tela
     ainda mostra (a hora do resultado, o fim do round, a linha vencedora).
+  - Também é descartado o snapshot que faria a sala andar para trás: o da partida que a revanche
+    deixou para trás (`gameId` igual ao `roomStore.leftGameId`, FRT-01) e o da Sala de Espera ou do
+    Match feito depois que a Preparação começou (AMB-03). O back manda um snapshot a cada
+    `DRAFT_UPDATE`, então cada store é trocada de uma vez (`setState` com `replace`), sem passar
+    pelo estado zerado: quem observa a store (o avanço da Preparação, o saldo depois da partida, o
+    Vitão) vê só o antes e o depois (FRT-04).
   - `PLAYER_JOINED`: vira o jogador P2 (`{ player }`); o snapshot logo depois completa o resto.
   - `ROUND_START`: `firstPlayer` vira `startingPlayer`.
   - `ABILITY_RESOLVED`: `skillCode`/`targetPosition`/`destinationPosition` viram

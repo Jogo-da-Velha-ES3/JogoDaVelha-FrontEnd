@@ -56,13 +56,20 @@ export function Preparation({
       : { startedAt: deadline - PREPARATION_SECONDS * 1000, durationSeconds: PREPARATION_SECONDS }
   const timer = useServerTimer(timerDeadline, 250)
 
-  // Reta final: avisa o que falta; com o personagem já escolhido, fica nas habilidades
+  // Reta final: avisa o que falta
   const warning =
     !isReady &&
     timer !== null &&
     timer.remainingMs > 0 &&
     timer.remainingSeconds <= PREPARATION_WARN_SECONDS
-  const step: Step = warning && myCharacter ? 'ABILITIES' : chosenStep
+  // Com o personagem já escolhido, a reta final leva às habilidades uma vez só: o Voltar continua
+  // valendo até o fim (FRT-04). Antes a tela ficava presa nas habilidades nos últimos segundos
+  const [finalStretchJumped, setFinalStretchJumped] = useState(false)
+  if (warning && myCharacter && !finalStretchJumped) {
+    setFinalStretchJumped(true)
+    setStep('ABILITIES')
+  }
+  const step = chosenStep
 
   // O servidor confirmou o personagem: segue sozinho para as habilidades (dá para voltar)
   useEffect(() => {

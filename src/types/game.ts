@@ -66,6 +66,11 @@ export type MatchOutcome =
   | { kind: 'WO'; winner: PlayerSlot }
 
 export interface RoomSnapshot {
+  /**
+   * A partida a que o snapshot se refere (null na Sala de Espera e na Preparação). Com ela o front
+   * descarta o Resultado de uma partida que a revanche já deixou para trás. Opcional: só o back manda
+   */
+  gameId?: string | null
   code: string
   phase: RoomPhase
   players: PlayerState[]
