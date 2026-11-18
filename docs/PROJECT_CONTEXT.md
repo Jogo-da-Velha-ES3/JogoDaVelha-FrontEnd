@@ -149,7 +149,9 @@ estratégico e competitivo, **sem pay-to-win**.
    `[RN-DRAFT-03]` e o jogador escolhe 1 em **8 segundos**. Esse tempo não faz parte dos 20s da
    Preparação.
    - **Round 1:** a carta escolhida completa o deck (2 iniciais + 1 sorteada). Sem escolha, uma
-     carta é escolhida automaticamente `[RN-DRAFT-05]`.
+     carta é escolhida automaticamente `[RN-DRAFT-05]`, e um aviso diz qual entrou ("O tempo
+     acabou: o jogo escolheu Silêncio para você.", SUG-01). O mesmo vale para a Preparação ("O
+     tempo acabou: o jogo completou suas escolhas.").
    - **Do round 2 em diante:** o jogador escolhe a carta nova e depois qual habilidade do deck
      sai, que pode ser qualquer uma das 3, inclusive uma inicial. **Sem escolha, o deck fica como
      está.** O botão "Manter meu deck" só esconde as cartas: o servidor não recebe nada e mantém
@@ -177,6 +179,8 @@ estratégico e competitivo, **sem pay-to-win**.
 - Exemplo: Jogador 1 usa a habilidade (turno 1), Jogador 2 joga uma peça (turno 2) → o efeito
   expira ao final do turno 2.
 - A interface mostra o contador nas casas e peças afetadas.
+- Nas descrições das habilidades, a interface diz "até o fim do próximo turno do oponente" em vez
+  de "por 2 turnos", que confundia nos testes (SUG-03, decidido em 17/11).
 
 ## 6. Regras da partida
 
@@ -298,7 +302,8 @@ A ERS não define a regra; o back decidiu usar a mesma do W.O. por tempo `[RN-AR
   Hub quando ela é cancelada (recusa, 15s sem resposta ou saída do outro). Quem não pediu continua
   no Resultado para ver placar e Coins, com o aviso ("O oponente saiu da sala.", "O tempo para
   aceitar a revanche acabou.") e a revanche desabilitada; sai pelo "Voltar ao Lobby". Se os dois
-  pedirem ao mesmo tempo, vale como aceite. No back, o pedido chega no `rematch` do snapshot e o
+  pedirem ao mesmo tempo, vale como aceite: o back recusa o segundo pedido, e o front de quem
+  pediu manda o aceite quando o pedido do outro chega (17/11). No back, o pedido chega no `rematch` do snapshot e o
   cancelamento é a própria sala encerrada (`ROOM_CLOSED` com `REMATCH_DECLINED`,
   `REMATCH_EXPIRED`, `RETURN_TO_LOBBY` ou `REMATCH_DISCONNECTED`).
 - **Sair antes da partida (decidido em 06/11):** sair no MATCH FEITO ou na Preparação encerra a
@@ -401,7 +406,9 @@ minutinhos". O aviso some quando o servidor responde. Nenhuma chamada é cortada
 - Toda espera por uma resposta do back mostra o anel neon de carregamento (`Spinner`) com o texto
   do que está carregando ("Carregando a Loja…"). Onde o formato já é conhecido, a tela mostra o
   formato vazio no lugar: os cartões dos pacotes de Coins pulsando e "–" nas estatísticas do Perfil
-  (nunca um 0 que depois muda). Botões que mandam algo trocam o texto ("Criando sala…").
+  (nunca um 0 que depois muda). Botões que mandam algo trocam o texto ("Criando sala…") e ficam
+  travados até o servidor responder ou recusar, para um segundo toque não virar erro (AMB-02):
+  Revanche, Aceitar, Recusar e Confirmar habilidades.
 - **Entrada na sala:** "Sala 4821" com "Entrando na sala…" e o botão "Voltar ao Hub" até o servidor
   mandar o estado da sala. Se a conexão falhar, o erro fica na tela com "Tentar de novo".
 

@@ -112,7 +112,11 @@ export type ServerEvent =
   | { type: 'REMATCH_REQUESTED'; payload: { by: PlayerSlot; deadline: number } }
   | { type: 'REMATCH_CANCELLED'; payload: { reason: 'TIMEOUT' | 'DECLINED' | 'LEFT' } }
   | { type: 'ROOM_CLOSED'; payload: { reason: RoomClosedReason } }
-  | { type: 'ERROR'; payload: { code: string; message: string } }
+  | {
+      type: 'ERROR'
+      /** `command`: a intenção recusada, quando o back diz qual foi (pelo destino da ação) */
+      payload: { code: string; message: string; command?: ClientCommandType }
+    }
 
 export type ServerEventType = ServerEvent['type']
 

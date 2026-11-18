@@ -290,7 +290,10 @@ a tradução em `src/api/shop.ts` muda:
 - `CONNECT` com `Authorization: Bearer <token>`: a identidade vem do token, nunca do corpo.
 - **Assinaturas:** `/topic/rooms/{code}` (eventos públicos), `/user/queue/room` (privados: o
   snapshot completo, as minhas cartas do sorteio, o meu deck, a queda do oponente) e
-  `/user/queue/errors` (erros das minhas ações, no formato do REST, sem envelope).
+  `/user/queue/errors` (erros das minhas ações, no formato do REST, sem envelope). O `path` do
+  erro é o destino da ação recusada: a tradução guarda a intenção (`command`, por
+  `commandFromDestination`) e o aviso sai de `roomErrorMessage` (`src/lib/roomErrors.ts`), pela
+  ação e pela fase, porque o back manda o mesmo `ROOM_CONFLICT` genérico para quase tudo (SUG-02).
 - **Envio, prefixo `/app/rooms/{code}`** (`toBackCommand`):
 
   | Intenção do front                    | Destino e corpo do back                                           |

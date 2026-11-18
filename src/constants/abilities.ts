@@ -36,7 +36,8 @@ export const ABILITY_INFO: Record<AbilityId, AbilityInfo> = {
     target: 'EMPTY_CELL',
     needsDestination: false,
     blockedByForceField: false,
-    description: 'Bloqueia 1 casa vazia por 2 turnos contra marcações do oponente.',
+    description:
+      'Bloqueia 1 casa vazia contra marcações do oponente até o fim do próximo turno dele.',
   },
   AMPULHETA: {
     name: 'Ampulheta',
@@ -68,7 +69,8 @@ export const ABILITY_INFO: Record<AbilityId, AbilityInfo> = {
     target: 'OPPONENT_PIECE',
     needsDestination: false,
     blockedByForceField: true,
-    description: 'Congela 1 peça do oponente por 2 turnos: ela não conta para a vitória.',
+    description:
+      'Congela 1 peça do oponente até o fim do próximo turno dele: ela não conta para a vitória.',
   },
   CAMPO_DE_FORCA: {
     name: 'Campo de Força',
@@ -76,7 +78,8 @@ export const ABILITY_INFO: Record<AbilityId, AbilityInfo> = {
     target: 'NONE',
     needsDestination: false,
     blockedByForceField: false,
-    description: 'Por 2 turnos, anula a primeira habilidade ofensiva recebida.',
+    description:
+      'Até o fim do próximo turno do oponente, anula a primeira habilidade ofensiva recebida.',
   },
   SILENCIO: {
     name: 'Silêncio',
@@ -101,6 +104,6 @@ export const ABILITY_INFO: Record<AbilityId, AbilityInfo> = {
     needsDestination: false,
     blockedByForceField: false,
     description:
-      'Protege 1 peça sua contra Bomba, Tornado e Buraco Negro por 2 turnos. Não protege contra Congelar.',
+      'Protege 1 peça sua contra Bomba, Tornado e Buraco Negro até o fim do próximo turno do oponente. Não protege contra Congelar.',
   },
 }
