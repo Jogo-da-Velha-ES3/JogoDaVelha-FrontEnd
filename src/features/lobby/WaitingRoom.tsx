@@ -26,7 +26,7 @@ export function WaitingRoom({ code }: { code: string }) {
   const opponent = players.find((p) => p.slot === otherSlot(mySlot))
 
   return (
-    <section className="flex flex-1 items-stretch gap-6 px-2 py-2 short:gap-4 short:py-0">
+    <section className="mx-auto flex w-full max-w-5xl flex-1 items-stretch gap-6 px-2 py-2 short:gap-4 short:py-0">
       <div className="flex flex-1 flex-col gap-3 short:gap-2">
         {/* A sala chama o leaveRoom sozinha ao sair da página */}
         <Button

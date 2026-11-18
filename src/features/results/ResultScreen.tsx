@@ -253,7 +253,7 @@ export function ResultScreen({ onLeave }: ResultScreenProps) {
         {isWo && (
           <span
             style={{ color: accent ?? undefined, borderColor: accent ?? undefined }}
-            className="rounded-full border px-2 py-0.5 font-mono text-xs tracking-widest short:text-[10px]"
+            className="rounded-full border px-2 py-0.5 font-mono text-xs tracking-widest short:text-[0.625rem]"
           >
             W.O.
           </span>

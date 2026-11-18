@@ -11,7 +11,7 @@ export function TextField({ label, error, ...props }: TextFieldProps) {
   const id = useId()
   const errorId = `${id}-erro`
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex min-w-0 flex-col gap-1">
       <label htmlFor={id} className="text-xs font-bold tracking-wide text-text-muted uppercase">
         {label}
       </label>
@@ -20,7 +20,7 @@ export function TextField({ label, error, ...props }: TextFieldProps) {
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? errorId : undefined}
         className={[
-          'min-h-11 rounded-xl border-2 bg-bg-panel px-3 text-base text-text outline-none short:min-h-10',
+          'min-h-11 w-full min-w-0 rounded-xl border-2 bg-bg-panel px-3 text-base text-text outline-none short:min-h-10',
           'transition focus:border-primary focus:shadow-glow focus:shadow-primary/20',
           error ? 'border-danger' : 'border-line',
         ].join(' ')}

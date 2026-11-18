@@ -48,7 +48,7 @@ export function AbilityNotice() {
                 <p className="font-display text-sm leading-tight font-bold uppercase short:text-xs">
                   {result.absorbed ? T.absorbed : T.noEffect}
                 </p>
-                <p className="font-body text-xs text-text-muted short:text-[11px] short:leading-tight">
+                <p className="font-body text-xs text-text-muted short:text-[0.6875rem] short:leading-tight">
                   {used}
                 </p>
               </>

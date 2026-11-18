@@ -4,7 +4,7 @@ import { useShouldRotateDevice } from '../../hooks/useShouldRotateDevice'
 import { Modal } from '../ui/Modal'
 
 /**
- * Aviso "Gire o celular". O iPhone não deixa travar a orientação,
+ * Aviso "Gire a tela". O iPhone não deixa travar a orientação,
  * então o jogo bloqueia a tela em pé até o aparelho ser deitado. [RNF-ARQ-03]
  */
 export function RotateDeviceModal() {

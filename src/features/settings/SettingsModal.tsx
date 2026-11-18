@@ -118,7 +118,7 @@ function Row({
         {children}
         {control}
       </div>
-      {hint && <p className="text-[11px] leading-tight">{hint}</p>}
+      {hint && <p className="text-[0.6875rem] leading-tight">{hint}</p>}
     </div>
   )
 }
@@ -149,7 +149,7 @@ function SwitchRow({
           aria-checked={checked}
           aria-labelledby={labelId}
           onClick={() => onChange(!checked)}
-          className={`relative h-6 w-11 shrink-0 rounded-full border-2 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${checked ? 'border-primary bg-primary/25' : 'border-line bg-bg-deep'}`}
+          className={`relative h-6 w-11 shrink-0 rounded-full border-2 transition-colors after:absolute after:-inset-1 after:content-[''] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${checked ? 'border-primary bg-primary/25' : 'border-line bg-bg-deep'}`}
         >
           <span
             aria-hidden
@@ -190,7 +190,7 @@ function VolumeSlider({
       onChange={(event) => onChange(Number(event.target.value) / 100)}
       onPointerUp={onCommit}
       onKeyUp={onCommit}
-      className="w-24 accent-(--color-primary) disabled:opacity-40 short:w-20"
+      className="h-8 w-24 accent-(--color-primary) disabled:opacity-40 short:w-20"
     />
   )
 }

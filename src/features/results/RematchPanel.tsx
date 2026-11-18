@@ -4,15 +4,18 @@ import { Button, TimerBar } from '../../components/ui'
 import { REMATCH_WINDOW_SECONDS } from '../../constants/game'
 import { RESULT_TEXTS } from '../../constants/texts'
 import { useLanguageFilter, useVoice } from '../../hooks/useLanguageFilter'
+import { usePendingIntent } from '../../hooks/usePendingIntent'
 import { otherSlot } from '../../lib/match'
 import { PATHS } from '../../routes/paths'
-import { leaveRoom, sendCommand } from '../../sockets/gameClient'
+import { leaveRoom } from '../../sockets/gameClient'
 import { useMatchStore } from '../../stores/matchStore'
 import { useRoomStore } from '../../stores/roomStore'
 import { rematchCancelledMessage } from './rematch'
 import { playVoice } from '../sound/soundManager'
 import { OPPONENT_LEFT_VOICE, pickVoice } from '../vitao/vitaoVoices'
 import { roomClosedMessage } from './roomClosed'
+
+type RematchIntent = 'REQUEST' | 'ACCEPT' | 'DECLINE'
 
 export interface RematchPanelProps {
   /** "Voltar ao Lobby". Padrão: sai da sala e vai para o Hub */
@@ -32,8 +35,21 @@ export function RematchPanel({ onLeave, className = '' }: RematchPanelProps) {
   const me = useRoomStore((s) => s.mySlot) ?? 'P1'
   const opponent = useRoomStore((s) => s.players.find((p) => p.slot === otherSlot(me)))
   const closedReason = useRoomStore((s) => s.closedReason)
+  const phase = useRoomStore((s) => s.phase)
   const rematch = useMatchStore((s) => s.rematch)
   const cancelled = useMatchStore((s) => s.rematchCancelled)
+  // Cada toque trava o botão até o servidor responder (AMB-02): a resposta é o pedido aparecer,
+  // ser cancelado, a sala fechar ou a fase mudar (revanche aceita), ou um erro
+  const answer = [
+    rematch?.requestedBy,
+    rematch?.deadline,
+    cancelled?.reason,
+    closedReason,
+    phase,
+  ].join('|')
+  const { pending: sending, send } = usePendingIntent<RematchIntent>(answer)
+  /** Toquei em Revanche: se o pedido do oponente chegar antes do meu, vale como aceite */
+  const wantsRematch = useRef(false)
 
   const leave =
     onLeave ??
@@ -66,6 +82,19 @@ export function RematchPanel({ onLeave, className = '' }: RematchPanelProps) {
   let status: string | null = ended
   if (pending) {
     status = askedByOpponent ? T.opponentWants(opponentName) : T.waiting(opponentName)
+  }
+
+  // Os dois pediram juntos: o pedido do oponente chegou primeiro e o back recusa o segundo. Pela
+  // regra, os dois pedidos valem como aceite (PROJECT_CONTEXT §7)
+  useEffect(() => {
+    if (!askedByOpponent || !wantsRematch.current) return
+    wantsRematch.current = false
+    send('ACCEPT', { type: 'REMATCH_RESPOND', payload: { accept: true } })
+  }, [askedByOpponent, send])
+
+  const request = () => {
+    wantsRematch.current = true
+    send('REQUEST', { type: 'REMATCH_REQUEST', payload: {} })
   }
 
   return (
@@ -102,23 +131,27 @@ export function RematchPanel({ onLeave, className = '' }: RematchPanelProps) {
         {askedByOpponent ? (
           <>
             <Button
-              onClick={() => sendCommand({ type: 'REMATCH_RESPOND', payload: { accept: true } })}
+              disabled={sending !== null}
+              onClick={() => send('ACCEPT', { type: 'REMATCH_RESPOND', payload: { accept: true } })}
             >
-              Aceitar
+              {sending === 'ACCEPT' ? 'Aceitando…' : 'Aceitar'}
             </Button>
             <Button
               variant="secondary"
-              onClick={() => sendCommand({ type: 'REMATCH_RESPOND', payload: { accept: false } })}
+              disabled={sending !== null}
+              onClick={() =>
+                send('DECLINE', { type: 'REMATCH_RESPOND', payload: { accept: false } })
+              }
             >
-              Recusar
+              {sending === 'DECLINE' ? 'Recusando…' : 'Recusar'}
             </Button>
           </>
         ) : (
           <Button
-            disabled={ended !== null || pending !== null}
-            onClick={() => sendCommand({ type: 'REMATCH_REQUEST', payload: {} })}
+            disabled={ended !== null || pending !== null || sending !== null}
+            onClick={request}
           >
-            {pending ? 'Revanche pedida' : 'Revanche'}
+            {sending === 'REQUEST' ? 'Pedindo…' : pending ? 'Revanche pedida' : 'Revanche'}
           </Button>
         )}
         <Button variant={askedByOpponent ? 'ghost' : 'secondary'} onClick={leave}>

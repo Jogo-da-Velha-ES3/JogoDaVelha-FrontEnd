@@ -1,5 +1,12 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import type { Cell, DeckSlot, PlayerSlot, PlayerState, RoomSnapshot } from '../types/game'
+import type {
+  Cell,
+  DeckSlot,
+  MatchOutcome,
+  PlayerSlot,
+  PlayerState,
+  RoomSnapshot,
+} from '../types/game'
 import type { ServerEvent } from '../types/events'
 import { useBoardStore } from './boardStore'
 import { useClockStore } from './clockStore'
@@ -422,6 +429,8 @@ describe('contrato do back (FE-18, FE-19)', () => {
     serverTime: clock,
     ...patch,
   })
+  const draftOf = (now: number) => ({ deadline: now + 20_000, ready: { P1: false, P2: false } })
+  const rematchOf = () => ({ by: 'P2' as const, deadline: clock + 15_000 })
 
   it('DRAFT_UPDATE mais antigo que o último aplicado é descartado', () => {
     const update = (version: number, characters: object) =>
@@ -475,6 +484,70 @@ describe('contrato do back (FE-18, FE-19)', () => {
       }),
     )
     expect(match().outcomeReceivedAt).toBeNull()
+  })
+
+  describe('revanche: o Resultado da partida anterior não volta (FRT-01)', () => {
+    const win = { kind: 'WIN', winner: 'P1', score: [2, 0] } satisfies MatchOutcome
+    const previousResult = () =>
+      snapshot({ gameId: 'g1', phase: 'RESULT', outcome: win, coins: { P1: 50, P2: 10 } })
+
+    beforeEach(() => {
+      send('ROOM_SNAPSHOT', previousResult())
+      send('MATCH_END', { outcome: win, coins: { P1: 50, P2: 10 } })
+    })
+
+    it('depois do PHASE_CHANGE da revanche, o snapshot da partida antiga é descartado', () => {
+      send('PHASE_CHANGE', { phase: 'DRAFT' })
+      send('ROOM_SNAPSHOT', previousResult())
+      expect(useRoomStore.getState().phase).toBe('DRAFT')
+      expect(match()).toMatchObject({ outcome: null, coins: null })
+    })
+
+    it('também quando o snapshot da Preparação chega antes do PHASE_CHANGE', () => {
+      send('ROOM_SNAPSHOT', snapshot({ gameId: null, phase: 'DRAFT', round: 0 }))
+      send('PHASE_CHANGE', { phase: 'DRAFT' })
+      send('ROOM_SNAPSHOT', previousResult())
+      expect(useRoomStore.getState().phase).toBe('DRAFT')
+      expect(match().outcome).toBeNull()
+    })
+
+    it('o Resultado da partida nova da revanche vale normalmente', () => {
+      send('PHASE_CHANGE', { phase: 'DRAFT' })
+      send('ROOM_SNAPSHOT', snapshot({ gameId: 'g2', phase: 'PLAYING', round: 1 }))
+      const loss = { kind: 'WIN', winner: 'P2', score: [0, 2] } satisfies MatchOutcome
+      send('ROOM_SNAPSHOT', snapshot({ gameId: 'g2', phase: 'RESULT', outcome: loss }))
+      expect(useRoomStore.getState().phase).toBe('RESULT')
+      expect(match().outcome).toEqual(loss)
+    })
+  })
+
+  it('snapshot da Sala de Espera ou do Match feito depois da Preparação é descartado (AMB-03)', () => {
+    send('ROOM_SNAPSHOT', snapshot({ phase: 'MATCHED', round: 0 }))
+    send('PHASE_CHANGE', { phase: 'DRAFT' })
+    send('ROOM_SNAPSHOT', snapshot({ phase: 'MATCHED', round: 0 }))
+    expect(useRoomStore.getState().phase).toBe('DRAFT')
+    send('ROOM_SNAPSHOT', snapshot({ phase: 'WAITING', round: 0 }))
+    expect(useRoomStore.getState().phase).toBe('DRAFT')
+  })
+
+  it('o snapshot troca cada store de uma vez, sem passar pelo estado zerado (FRT-04)', () => {
+    send('ROOM_SNAPSHOT', snapshot({ phase: 'DRAFT', round: 0 }))
+    const draftChanges: object[] = []
+    const outcomeChanges: unknown[] = []
+    const stopDraft = useDraftStore.subscribe((s) => draftChanges.push(s.characters))
+    const stopMatch = useMatchStore.subscribe((s) => outcomeChanges.push(s.outcome))
+
+    send('ROOM_SNAPSHOT', snapshot({ phase: 'DRAFT', round: 0, draft: draftOf(clock) }))
+    expect(draftChanges).toEqual([{ P1: 'X', P2: 'O' }])
+
+    // No Resultado, um pedido de revanche manda outro snapshot: o resultado nunca some no meio
+    const win = { kind: 'WIN', winner: 'P1', score: [2, 0] } satisfies MatchOutcome
+    send('ROOM_SNAPSHOT', snapshot({ phase: 'RESULT', outcome: win }))
+    outcomeChanges.length = 0
+    send('ROOM_SNAPSHOT', snapshot({ phase: 'RESULT', outcome: win, rematch: rematchOf() }))
+    expect(outcomeChanges).toEqual([win])
+    stopDraft()
+    stopMatch()
   })
 
   it('o Silêncio oficial do TURN_START vale no lugar da dedução', () => {

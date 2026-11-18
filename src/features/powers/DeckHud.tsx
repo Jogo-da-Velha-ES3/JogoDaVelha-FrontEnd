@@ -147,13 +147,13 @@ export function DeckHud({
                       </span>
                     </span>
                     {slot.source === 'DRAWN' && (
-                      <span className="shrink-0 rounded-full border border-coin/60 px-1.5 py-0.5 font-display text-[9px] font-bold text-coin uppercase">
+                      <span className="shrink-0 rounded-full border border-coin/60 px-1.5 py-0.5 font-display text-[0.625rem] font-bold text-coin uppercase">
                         Sorteada
                       </span>
                     )}
                   </span>
                   <span
-                    className={`font-display text-[10px] font-semibold tracking-wide uppercase short:text-[9px] ${silenced && !slot.usedThisRound ? 'text-danger' : 'text-text-muted'}`}
+                    className={`font-display text-[0.625rem] font-semibold tracking-wide uppercase short:text-[0.625rem] ${silenced && !slot.usedThisRound ? 'text-danger' : 'text-text-muted'}`}
                   >
                     {status}
                   </span>

@@ -64,7 +64,9 @@ export function VsBanner() {
             >
               {me?.nickname ?? 'Você'}
             </p>
-            <p className="font-mono text-[9px] uppercase tracking-widest text-text-muted">VOCÊ</p>
+            <p className="font-mono text-[0.625rem] uppercase tracking-widest text-text-muted">
+              VOCÊ
+            </p>
           </div>
 
           {/* Painel direito (oponente) */}
@@ -94,7 +96,7 @@ export function VsBanner() {
             >
               {opp?.nickname ?? 'Oponente'}
             </p>
-            <p className="font-mono text-[9px] uppercase tracking-widest text-text-muted">
+            <p className="font-mono text-[0.625rem] uppercase tracking-widest text-text-muted">
               OPONENTE
             </p>
           </div>

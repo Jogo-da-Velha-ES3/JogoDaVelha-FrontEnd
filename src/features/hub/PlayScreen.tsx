@@ -6,6 +6,7 @@ import { createRoom } from '../../api/rooms'
 import { ApiError } from '../../api/client'
 import { Button } from '../../components/ui'
 import { ROOM_TEXTS } from '../../constants/texts'
+import { enterGameFullscreen } from '../../pwa/gameFullscreen'
 import { JOINED_ROOM_STATE, roomPath } from '../../routes/paths'
 import { selectFavoriteCharacter, useProfileStore } from '../../stores/profileStore'
 import { showToast } from '../../stores/toastStore'
@@ -38,7 +39,7 @@ export function PlayScreen() {
   }
 
   return (
-    <section className="flex flex-1 items-center gap-6 py-2 short:gap-4 short:py-0">
+    <section className="mx-auto flex w-full max-w-5xl flex-1 items-center gap-6 py-2 short:gap-4 short:py-0">
       <div className="flex flex-1 items-center justify-center">
         <Character
           id={favoriteCharacter}
@@ -62,7 +63,16 @@ export function PlayScreen() {
           </h1>
         </div>
 
-        <Button size="lg" block disabled={creating} onClick={() => void handleCreateRoom()}>
+        <Button
+          size="lg"
+          block
+          disabled={creating}
+          onClick={() => {
+            // Android: tela cheia já no toque, antes de esperar o servidor (FRT-02)
+            enterGameFullscreen()
+            void handleCreateRoom()
+          }}
+        >
           {creating ? 'Criando sala…' : 'Criar sala'}
         </Button>
         <Button variant="secondary" block onClick={() => setJoinOpen(true)}>

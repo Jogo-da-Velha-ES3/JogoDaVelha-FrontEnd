@@ -18,6 +18,9 @@ import { sendCommand } from '../../sockets/gameClient'
 import type { ShopItem } from '../../api/shop'
 import { usePowersStore } from '../../stores/powersStore'
 import { resetProfile, useProfileStore } from '../../stores/profileStore'
+import { useToastStore } from '../../stores/toastStore'
+
+const toastMessages = () => useToastStore.getState().toasts.map((toast) => toast.message)
 
 /** O aviso de turno perdido: o contador 1/3 também aparece na faixa do jogador */
 const timeoutToast = () =>
@@ -105,6 +108,7 @@ afterAll(() => {
 beforeEach(() => {
   vi.useFakeTimers()
   resetGameStores()
+  useToastStore.setState({ toasts: [] })
 })
 
 afterEach(() => {
@@ -241,6 +245,16 @@ describe('sorteio da 3ª habilidade (FE-10)', () => {
     ).toBeInTheDocument()
     expect(sendCommand).not.toHaveBeenCalled()
     expect(usePowersStore.getState().deck).toEqual([])
+
+    // O servidor escolhe: o aviso explica a carta que entrou, porque o round começa logo (SUG-01)
+    send('DECK_UPDATE', {
+      deck: [
+        { ability: 'BOMBA', source: 'INITIAL', usedThisRound: false },
+        { ability: 'ESCUDO', source: 'INITIAL', usedThisRound: false },
+        { ability: 'SILENCIO', source: 'DRAWN', usedThisRound: false },
+      ],
+    })
+    expect(toastMessages()).toContain('O tempo acabou: o jogo escolheu Silêncio para você.')
   })
 
   it('depois da confirmação, mostra a carta escolhida e espera o oponente', () => {
@@ -266,6 +280,7 @@ describe('sorteio da 3ª habilidade (FE-10)', () => {
     expect(screen.getByText('Aguardando o oponente…')).toBeInTheDocument()
     expect(screen.queryByText('Aguardando as cartas do servidor…')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Tornado, ofensiva, sorteada/i })).toBeInTheDocument()
+    expect(toastMessages()).toEqual([]) // escolheu sozinho: nada de aviso
   })
 
   it('se a escolha volta com erro, as cartas destravam para tentar de novo', () => {

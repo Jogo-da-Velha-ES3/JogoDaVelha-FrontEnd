@@ -181,7 +181,7 @@ export function HowToPlayModal({ open, onClose, closeLabel = TEXTS.close }: HowT
             transition={{ duration: reduceMotion ? 0 : 0.15 }}
             // -mt-6 sobe o conteúdo para o espaço livre abaixo do título (que já foi para a linha do
             // indicador). A altura mínima é igual em todas as páginas: o modal não muda de tamanho
-            className="-mt-6 flex min-h-52 items-center justify-center gap-5 short:min-h-41 short:gap-3"
+            className="-mt-6 flex min-h-52 items-center justify-center gap-5 short:min-h-41 short:gap-3 tiny:min-h-0"
           >
             {current.visual === 'deck' ? (
               <HowToPlayDeck points={current.points} onLeave={leaveCarousel} />
@@ -208,7 +208,7 @@ function PageContent({ page }: { page: HowToPlayPage }) {
           className={[
             'flex flex-col font-medium text-text',
             page.largeText
-              ? 'gap-2 text-base leading-snug short:gap-1.5 short:text-[15px]'
+              ? 'gap-2 text-base leading-snug short:gap-1.5 short:text-[0.9375rem]'
               : 'gap-1 text-sm leading-snug',
           ].join(' ')}
         >

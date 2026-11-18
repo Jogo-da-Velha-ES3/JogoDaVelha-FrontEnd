@@ -120,7 +120,11 @@ describe('StompConnection', () => {
       '/user/queue/room',
       '/user/queue/errors',
     ])
-    expect(fake.published).toEqual([{ destination: '/app/rooms/4821/connect', body: '{}' }])
+    // Handshake do contrato V2: /connect e /sync pedem o ROOM_SNAPSHOT (e a ressincronização)
+    expect(fake.published).toEqual([
+      { destination: '/app/rooms/4821/connect', body: '{}' },
+      { destination: '/app/rooms/4821/sync', body: '{}' },
+    ])
   })
 
   it('sem token, conecta sem o header (o servidor decide se aceita)', () => {
@@ -175,10 +179,20 @@ describe('StompConnection', () => {
 
     connection.send({ type: 'MOVE', payload: { cell: 5 } })
     connection.send({ type: 'DRAFT_CHARACTER', payload: { character: 'ESTRELA' } })
-    expect(fake.published.slice(1)).toEqual([
+    expect(fake.published.slice(2)).toEqual([
       { destination: '/app/rooms/4821/move', body: '{"position":5}' },
       { destination: '/app/rooms/4821/draft/character', body: '{"character":"ESTRELA"}' },
     ])
+  })
+
+  it('resync pede um novo ROOM_SNAPSHOT privado (contrato V2)', async () => {
+    const connection = setup()
+    const connected = connection.connect('4821')
+    fake.open()
+    await connected
+
+    connection.resync?.()
+    expect(fake.published.at(-1)).toEqual({ destination: '/app/rooms/4821/sync', body: '{}' })
   })
 
   it('sem conexão, a intenção vira um erro local (que não mexe no relógio)', () => {

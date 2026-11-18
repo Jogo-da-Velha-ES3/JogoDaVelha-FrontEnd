@@ -42,7 +42,10 @@ O pre-commit (Husky + lint-staged) roda oxlint e Prettier nos arquivos alterados
 As cores, fontes e brilhos neon são tokens do Tailwind, definidos no `@theme` de
 `src/index.css`: `text-char-x`, `bg-danger`, `text-coin`, `bg-primary`, `bg-bg-panel`,
 `font-display`, `shadow-glow shadow-char-o/50`... O variant `short:` vale para o celular
-deitado (altura até 430px) e `px-safe` respeita o notch nas laterais. Componentes base em
+deitado (altura até 430px), o `tiny:` para o celular deitado no navegador, com a barra de endereço
+(até 340px), o `tall:` para tablet e computador (altura a partir de 600px), e `px-safe` respeita o
+notch nas laterais. Acima de 1600×900, o tamanho base (`html`) cresce com a tela até 160%: use
+`rem` (as classes do Tailwind já usam), não `px`, para o tamanho acompanhar. Componentes base em
 `src/components/ui` (Button, Modal, Toaster/`showToast`, Banner) e moldura de tela em
 `src/components/layout/LandscapeShell`. Tudo isso aparece em `/vitrine`.
 

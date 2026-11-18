@@ -213,3 +213,67 @@ describe('Arena', () => {
     expect(screen.queryByRole('group', { name: 'Tabuleiro' })).not.toBeInTheDocument()
   })
 })
+
+describe('voltar do navegador (FRT-03)', () => {
+  /** A sala aberta a partir do Hub: o voltar do navegador volta para ele */
+  function renderFromHub(scenario: string) {
+    window.history.replaceState({}, '', `/?cenario=${scenario}&revanche=aceita`)
+    const router = createMemoryRouter(routes, {
+      initialEntries: ['/', '/sala/4821'],
+      initialIndex: 1,
+    })
+    render(<RouterProvider router={router} />)
+    return router
+  }
+  const back = (router: ReturnType<typeof renderFromHub>) => act(() => router.navigate(-1))
+  const button = (name: string) => screen.getAllByRole('button', { name }).at(-1)!
+
+  it('na partida, pede confirmação antes de desistir', async () => {
+    const router = renderFromHub('normal')
+    await toPlaying()
+
+    await back(router)
+    expect(screen.getByText('Desistir?')).toBeInTheDocument()
+    expect(screen.getByText(/oponente vence por W\.O\./)).toBeInTheDocument()
+    fireEvent.click(button('Continuar'))
+    expect(router.state.location.pathname).toBe('/sala/4821')
+    expect(board()).toBeInTheDocument()
+
+    await back(router)
+    fireEvent.click(button('Desistir'))
+    await tick(0) // o voltar liberado termina na próxima volta do roteador
+    expect(router.state.location.pathname).toBe('/')
+  })
+
+  it('na Preparação, avisa que a sala fecha para o oponente', async () => {
+    const router = renderFromHub('normal')
+    await tick(NET + MOCK_TIMINGS.botJoin + MOCK_TIMINGS.matched + NET)
+    expect(screen.getByRole('heading', { name: 'Preparação' })).toBeInTheDocument()
+
+    await back(router)
+    expect(screen.getByText('Sair da sala?')).toBeInTheDocument()
+    expect(screen.getByText('A sala fecha e o oponente volta para o Hub.')).toBeInTheDocument()
+    fireEvent.click(button('Sair'))
+    await tick(0)
+    expect(router.state.location.pathname).toBe('/')
+  })
+
+  it('na Sala de Espera, sem oponente, sai direto', async () => {
+    const router = renderFromHub('normal')
+    await tick(NET)
+    expect(screen.getByText('Aguardando adversário…')).toBeInTheDocument()
+
+    await back(router)
+    expect(router.state.location.pathname).toBe('/')
+  })
+
+  it('o "Desistir" da pausa continua saindo sem pedir de novo', async () => {
+    const router = renderFromHub('normal')
+    await toPlaying()
+    fireEvent.click(screen.getByRole('button', { name: 'Pausa' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Desistir' }))
+    fireEvent.click(button('Desistir'))
+    expect(router.state.location.pathname).toBe('/')
+    expect(screen.queryByText('Desistir?')).not.toBeInTheDocument()
+  })
+})

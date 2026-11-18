@@ -30,8 +30,22 @@ export async function createGameConnection(
 
   const base = import.meta.env.VITE_WEBSOCKET_URL
   if (!base) throw new Error('VITE_WEBSOCKET_URL não está configurada.')
-  const { StompConnection, toBrokerUrl } = await import('./stompConnection')
-  return new StompConnection({ brokerURL: toBrokerUrl(base) })
+  const [{ StompConnection, toBrokerUrl }, { RenewingConnection }] = await Promise.all([
+    import('./stompConnection'),
+    import('./renewingConnection'),
+  ])
+  // A renovação preventiva troca a conexão antes do limite ABSOLUTO de ~60 min que o Cloud Run
+  // impõe à requisição WebSocket (não é inatividade), preferindo os intervalos entre partidas —
+  // ver renewingConnection.ts
+  return new RenewingConnection({
+    createConnection: () => new StompConnection({ brokerURL: toBrokerUrl(base) }),
+    onRenewalError: (error) => {
+      // Falha de renovação não derruba a sala: a conexão antiga segue e o backoff tenta de novo.
+      // O log fica para diagnóstico; a tela não é incomodada
+      // oxlint-disable-next-line no-console
+      console.warn('Renovação preventiva da conexão falhou; nova tentativa agendada.', error)
+    },
+  })
 }
 
 let connection: GameConnection | null = null

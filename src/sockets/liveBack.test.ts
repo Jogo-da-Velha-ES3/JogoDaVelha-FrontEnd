@@ -17,6 +17,7 @@ import { useRoomStore } from '../stores/roomStore'
 import { useTimerStore } from '../stores/timerStore'
 import type { AbilityId, RoomPhase } from '../types/game'
 import { joinRoom, leaveRoom, onServerEventForDebug, sendCommand } from './gameClient'
+import { RenewingConnection } from './renewingConnection'
 import { StompConnection, toBrokerUrl } from './stompConnection'
 
 const BASE = import.meta.env.VITE_LIVE_BACK_URL
@@ -348,6 +349,70 @@ describe.skipIf(!BASE)('front contra o back de verdade (FE-18, FE-19, FE-20, FE-
     },
     MATCH_TIMEOUT,
   )
+
+  it(
+    'renovação preventiva: a conexão nova assume sem derrubar a presença do jogador',
+    async () => {
+      // P1 entra pelo RenewingConnection com limites curtos: a renovação dispara no lobby (WAITING)
+      const [host, guest] = await Promise.all([account('liverenewh'), account('liverenewg')])
+      const { code } = await rest<{ code: string }>('POST', '/rooms', host.token)
+      const timeline: string[] = []
+      let connections = 0
+      const renewing = new RenewingConnection({
+        renewAfterMs: 400,
+        forceRenewAfterMs: 10_000,
+        snapshotTimeoutMs: 15_000,
+        checkIntervalMs: 100,
+        retryBaseMs: 500,
+        createConnection: () => {
+          connections += 1
+          const id = connections
+          const connection = new StompConnection({
+            brokerURL: toBrokerUrl(BASE ?? ''),
+            getToken: () => host.token,
+          })
+          const disconnect = connection.disconnect.bind(connection)
+          connection.disconnect = () => {
+            timeline.push(`dc${id}`)
+            disconnect()
+          }
+          timeline.push(`c${id}`)
+          return connection
+        },
+      })
+      const stopLog = onServerEventForDebug((event) => {
+        recent.push(`${event.type} ${JSON.stringify(event.payload).slice(0, 80)}`)
+        if (event.type === 'ROOM_SNAPSHOT') timeline.push('snap')
+      })
+      cleanups.push(stopLog)
+      await joinRoom(code, { connection: renewing })
+      cleanups.push(() => renewing.disconnect())
+      await until(() => useRoomStore.getState().mySlot === 'P1', 'snapshot do P1')
+      await rest('POST', `/rooms/${code}/join`, guest.token)
+      const p2 = botP2(code, guest, 'play')
+      cleanups.push(p2.stop)
+
+      // A segunda conexão física sobe enquanto a primeira continua ativa (make-before-break)
+      await until(() => connections >= 2, 'segunda conexão STOMP', 15_000)
+      // A antiga só cai depois do ROOM_SNAPSHOT que validou a nova
+      await until(() => timeline.includes('dc1'), 'conexão antiga desligada', 15_000)
+      const created = timeline.indexOf('c2')
+      const validated = timeline.findIndex((mark, index) => mark === 'snap' && index > created)
+      const retired = timeline.indexOf('dc1')
+      expect(validated).toBeGreaterThan(created)
+      expect(retired).toBeGreaterThan(validated)
+      expect(useRoomStore.getState().connection).toBe('CONNECTED')
+
+      // A sessão antiga caiu, mas a nova do mesmo jogador segue ativa: o back não pode ter
+      // publicado PLAYER_DISCONNECTED do P1 (chega só à fila privada do adversário, contrato V2)
+      await new Promise((resolve) => setTimeout(resolve, 1_000))
+      expect(
+        p2.received.filter((m) => m.type === 'PLAYER_DISCONNECTED' && m.payload?.slot === 'P1'),
+      ).toHaveLength(0)
+    },
+    MATCH_TIMEOUT,
+  )
+
   it('token vencido no link direto da sala: o back recusa e a sessão cai (FE-49)', async () => {
     // O front inteiro como nas telas: conexão criada pelo gameClient, token do localStorage
     vi.resetModules()

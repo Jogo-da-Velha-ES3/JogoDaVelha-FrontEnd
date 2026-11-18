@@ -9,6 +9,7 @@ import {
   joinDestination,
   PRIVATE_QUEUE,
   roomTopic,
+  syncDestination,
   toBackCommand,
 } from './destinations'
 import { parseServerMessage } from './envelope'
@@ -111,7 +112,10 @@ export class StompConnection implements GameConnection {
     this.subscriptions = [roomTopic(code), PRIVATE_QUEUE, ERRORS_QUEUE].map((destination) =>
       client.subscribe(destination, (message: IMessage) => this.receive(message.body)),
     )
+    // Handshake do contrato V2: /connect pede o ROOM_SNAPSHOT e o /sync pede outro — se o
+    // primeiro se perder, o segundo recupera o estado. Vale na entrada e em toda reconexão
     client.publish({ destination: joinDestination(code), body: '{}' })
+    client.publish({ destination: syncDestination(code), body: '{}' })
   }
 
   private receive(body: string) {
@@ -148,6 +152,13 @@ export class StompConnection implements GameConnection {
       return
     }
     this.client.publish(toBackCommand(this.roomCode, command))
+  }
+
+  /** Pede um novo ROOM_SNAPSHOT privado (contrato V2). No-op se a conexão caiu. */
+  resync(): void {
+    if (this.client?.connected && this.roomCode) {
+      this.client.publish({ destination: syncDestination(this.roomCode), body: '{}' })
+    }
   }
 
   onEvent(listener: (event: ServerEnvelope) => void): Unsubscribe {

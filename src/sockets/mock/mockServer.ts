@@ -144,6 +144,9 @@ export class MockGameServer {
   private drawDeadline = 0
   private outcome: MatchOutcome | null = null
   private coins: Record<PlayerSlot, number> | null = null
+  /** Partida atual, como o `gameId` do back: nasce no fim da Preparação, some na revanche */
+  private gameId: string | null = null
+  private gamesStarted = 0
   private botDropped = false
   private timers = new Set<ReturnType<typeof setTimeout>>()
   private turnTimer: ReturnType<typeof setTimeout> | null = null
@@ -185,6 +188,7 @@ export class MockGameServer {
       ready[s] = p.character !== null && p.initialAbilities !== null
     }
     return {
+      gameId: this.gameId,
       code: this.options.roomCode,
       phase: this.phase,
       players: present.map((s) => this.publicState(s)),
@@ -368,6 +372,7 @@ export class MockGameServer {
 
   private startDraft() {
     this.rematch = null
+    this.gameId = null
     this.outcome = null
     this.coins = null
     for (const slot of ['P1', 'P2'] as const) {
@@ -451,6 +456,7 @@ export class MockGameServer {
       p.deck = [...p.initialAbilities]
     }
     this.emitDraft()
+    this.gameId = `mock-${++this.gamesStarted}`
     this.setPhase('VERSUS')
     this.firstStarter = this.random() < 0.5 ? 'P1' : 'P2'
     this.later(MOCK_TIMINGS.versus, () => this.startRound())

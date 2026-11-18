@@ -101,19 +101,19 @@ export function RoundStartBanner() {
           transition={{ duration: 0.2 }}
           className="pointer-events-none absolute inset-0 z-[5] flex flex-col items-center justify-center gap-3 bg-bg-deep/75 px-3.5 py-3.5 text-center short:gap-[7px]"
         >
-          <p className="font-mono text-sm tracking-[0.06em] text-text-muted uppercase short:text-[9.5px]">
+          <p className="font-mono text-sm tracking-[0.06em] text-text-muted uppercase short:text-[0.625rem]">
             {T.bestOf}
           </p>
 
           {matchPoint ? (
             <p
-              className="font-display text-6xl leading-none font-bold tracking-[0.08em] uppercase short:text-[30px]"
+              className="font-display text-6xl leading-none font-bold tracking-[0.08em] uppercase short:text-[1.875rem]"
               style={{ color: leadColor, textShadow: `0 0 18px ${leadColor}` }}
             >
               {T.matchPoint(leadName)}
             </p>
           ) : (
-            <p className="font-display text-6xl leading-none font-bold tracking-[0.08em] text-text uppercase short:text-[30px]">
+            <p className="font-display text-6xl leading-none font-bold tracking-[0.08em] text-text uppercase short:text-[1.875rem]">
               {T.title(round)}
             </p>
           )}
@@ -126,7 +126,7 @@ export function RoundStartBanner() {
             {round === 1 ? (
               <motion.span
                 aria-hidden="true"
-                className="grid size-[72px] place-items-center rounded-full border-[3px] border-coin font-display text-3xl font-bold text-coin short:size-10 short:border-2 short:text-[17px]"
+                className="grid size-18 place-items-center rounded-full border-[3px] border-coin font-display text-3xl font-bold text-coin short:size-10 short:border-2 short:text-[1.0625rem]"
                 style={{ boxShadow: '0 0 16px var(--color-coin)' }}
                 animate={reduceMotion || !flipping ? { rotateY: 0 } : { rotateY: 360 }}
                 transition={
@@ -138,7 +138,7 @@ export function RoundStartBanner() {
                 ?
               </motion.span>
             ) : (
-              <span className="font-mono text-[10px] tracking-widest text-text-muted uppercase">
+              <span className="font-mono text-[0.625rem] tracking-widest text-text-muted uppercase">
                 ⇄
               </span>
             )}
@@ -147,13 +147,13 @@ export function RoundStartBanner() {
 
           {/* Round 1: primeiro a moeda gira, depois revela quem começa */}
           {round === 1 && flipping ? (
-            <p className="font-mono text-sm tracking-[0.06em] text-text-muted short:text-[9.5px]">
+            <p className="font-mono text-sm tracking-[0.06em] text-text-muted short:text-[0.625rem]">
               {T.flipping}
             </p>
           ) : (
             <>
               {round > 1 && (
-                <p className="font-mono text-sm tracking-[0.06em] text-text-muted short:text-[9.5px]">
+                <p className="font-mono text-sm tracking-[0.06em] text-text-muted short:text-[0.625rem]">
                   {T.alternates}
                 </p>
               )}
