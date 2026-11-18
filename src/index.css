@@ -190,6 +190,9 @@
 
 /* Celular deitado: altura útil de ~330–390px */
 @custom-variant short (@media (max-height: 430px));
+/* Celular deitado no navegador, com a barra de endereço: ~280–340px (FRT-02). Vem depois do
+   `short`, então ganha dele quando os dois valem */
+@custom-variant tiny (@media (max-height: 340px));
 
 /* Respeita o notch / a ilha do celular deitado sem colar o conteúdo na borda */
 @utility px-safe {

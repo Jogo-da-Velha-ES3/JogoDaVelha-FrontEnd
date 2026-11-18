@@ -149,7 +149,7 @@ export function ShopScreen({ initialTab = 'characters' }: { initialTab?: Tab }) 
               'grid min-h-0 flex-1 gap-2 overflow-y-auto p-0.5 short:gap-1.5',
               tab === 'characters'
                 ? 'grid-cols-3 grid-rows-2'
-                : 'auto-rows-[minmax(5.5rem,1fr)] grid-cols-3 sm:grid-cols-5',
+                : 'auto-rows-[minmax(5.5rem,1fr)] grid-cols-3 tiny:auto-rows-[minmax(4.75rem,1fr)] sm:grid-cols-5',
             ].join(' ')}
           >
             {(tab === 'characters' ? characterItems : skillItems).map((item) => (
@@ -234,13 +234,13 @@ function ItemCard({
         type="button"
         onClick={onDetails}
         aria-label={SHOP_TEXTS.details(item.name)}
-        className="flex min-h-0 flex-1 flex-col items-center justify-center gap-1 p-2 focus-visible:outline-2 focus-visible:outline-offset-[-4px] focus-visible:outline-primary short:flex-row short:justify-start short:gap-2 short:p-1.5"
+        className="flex min-h-0 flex-1 flex-col items-center justify-center gap-1 p-2 focus-visible:outline-2 focus-visible:outline-offset-[-4px] focus-visible:outline-primary short:flex-row short:justify-start short:gap-2 short:p-1.5 max-[700px]:short:flex-col max-[700px]:short:justify-center max-[700px]:short:gap-0.5"
       >
         <ItemVisual
           item={item}
-          className="h-[60%] max-h-24 min-h-8 w-auto max-w-full shrink-0 short:h-[85%] short:max-w-[45%]"
+          className="h-[60%] max-h-24 min-h-8 w-auto max-w-full shrink-0 short:h-[85%] short:max-w-[45%] max-[700px]:short:h-[45%] max-[700px]:short:min-h-6 max-[700px]:short:max-w-full"
         />
-        <span className="flex min-w-0 flex-col items-center short:items-start">
+        <span className="flex min-w-0 flex-col items-center short:items-start max-[700px]:short:items-center max-[700px]:short:text-center">
           <span className="line-clamp-2 font-display text-sm leading-tight font-bold text-primary short:text-xs">
             {item.name}
           </span>
