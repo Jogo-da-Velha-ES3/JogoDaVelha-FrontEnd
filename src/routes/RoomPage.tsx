@@ -19,6 +19,7 @@ import { useRoomStore } from '../stores/roomStore'
 import { showToast } from '../stores/toastStore'
 import { NotFoundPage } from './NotFoundPage'
 import { PATHS, type RoomLocationState } from './paths'
+import { BackNavigationGuard } from './room/BackNavigationGuard'
 import { PreparationPlaceholder } from './room/RoomPlaceholders'
 
 /** A sala inteira (Sala de Espera, Preparação, Arena, Resultado), escolhida pela `phase` */
@@ -103,6 +104,8 @@ export function RoomPage() {
   return (
     <div className="flex h-dvh flex-col py-2">
       <ConnectionNotice />
+      {/* Voltar do navegador na partida, no Match feito ou na Preparação pede confirmação (FRT-03) */}
+      <BackNavigationGuard />
       <RoomScreen
         code={codigo}
         loading={

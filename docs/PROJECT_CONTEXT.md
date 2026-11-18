@@ -309,6 +309,10 @@ A ERS não define a regra; o back decidiu usar a mesma do W.O. por tempo `[RN-AR
 - **Sair antes da partida (decidido em 06/11):** sair no MATCH FEITO ou na Preparação encerra a
   sala, sem partida e sem Coins (`ROOM_CLOSED` com `PLAYER_LEFT`); quem ficou volta ao Hub com
   "O oponente saiu da sala.". Durante a partida, sair é desistência (W.O. para o outro).
+- **Voltar do navegador (decidido em 17/11, FRT-03):** na partida, no MATCH FEITO e na Preparação,
+  o voltar do navegador (ou o gesto de voltar do Android) pede confirmação antes de sair, com o
+  mesmo modal do "Desistir" da pausa ("Desistir?" na partida, "Sair da sala?" antes dela). Na
+  Sala de Espera e no Resultado, sai direto.
 - **Cor da derrota no Resultado (decidido na FE-15):** a derrota e a derrota por W.O. aparecem em
   vermelho (título, borda do painel e etiqueta W.O.). É uma exceção à regra de "vermelho só para
   quem está em perigo" usada na Arena (§9), decidido na FE-15. A vitória usa a cor do personagem e
