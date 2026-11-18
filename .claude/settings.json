@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -)",
+      "Bash(npx prettier *)",
+      "Bash(npx tsc *)",
+      "Bash(npm run *)",
+      "Bash(npm test *)",
+      "Bash(git add *)",
+      "Bash(python3 -c ' *)",
+      "Bash(gh api *)",
+      "Bash(npx vitest *)",
+      "Bash(gh issue *)"
+    ]
+  }
+}

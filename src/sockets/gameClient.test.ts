@@ -12,8 +12,8 @@ import {
   leaveRoom,
   sendCommand,
 } from './gameClient'
-import { StompConnection } from './stompConnection'
 import { MockConnection } from './mock/mockConnection'
+import { RenewingConnection } from './renewingConnection'
 import { MOCK_TIMINGS } from './mock/mockServer'
 import { SCENARIOS } from './mock/scenarios'
 import type { GameConnection } from './types'
@@ -164,7 +164,7 @@ describe('createGameConnection', () => {
     vi.stubEnv('VITE_USE_MOCK_SERVER', undefined)
     vi.stubEnv('VITE_WEBSOCKET_URL', 'http://localhost:8080')
     expect(isMockServerEnabled()).toBe(false)
-    expect(await createGameConnection()).toBeInstanceOf(StompConnection)
+    expect(await createGameConnection()).toBeInstanceOf(RenewingConnection)
   })
 
   it('com opções do simulado (a vitrine), usa o simulado mesmo desligado', async () => {
@@ -178,7 +178,7 @@ describe('createGameConnection', () => {
     vi.stubEnv('VITE_USE_MOCK_SERVER', 'false')
     vi.stubEnv('VITE_WEBSOCKET_URL', 'http://localhost:8080')
     expect(isMockServerEnabled()).toBe(false)
-    expect(await createGameConnection()).toBeInstanceOf(StompConnection)
+    expect(await createGameConnection()).toBeInstanceOf(RenewingConnection)
   })
 
   it('real sem VITE_WEBSOCKET_URL avisa a configuração que falta', async () => {

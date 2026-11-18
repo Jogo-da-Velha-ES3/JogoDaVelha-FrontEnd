@@ -13,6 +13,12 @@ export const ERRORS_QUEUE = '/user/queue/errors'
 /** Avisa que o jogador entrou (ou voltou) na sala; o servidor responde com o ROOM_SNAPSHOT */
 export const joinDestination = (roomCode: string) => `/app/rooms/${roomCode}/connect`
 
+/**
+ * Resincronização sob demanda (contrato V2): o servidor responde com um novo ROOM_SNAPSHOT
+ * privado, sem repetir a transição de entrada. Usado para recuperar um snapshot perdido
+ */
+export const syncDestination = (roomCode: string) => `/app/rooms/${roomCode}/sync`
+
 /** Ação do back (o fim do destino) → a intenção do front que ela atende */
 const BACK_ACTIONS: Record<string, ClientCommand['type']> = {
   'draft/character': 'DRAFT_CHARACTER',
