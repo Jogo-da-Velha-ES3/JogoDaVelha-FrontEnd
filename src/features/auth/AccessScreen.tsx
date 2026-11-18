@@ -114,7 +114,7 @@ function Brand({ hiddenWhenShort }: { hiddenWhenShort: boolean }) {
         {/* Espaço do logo com a carinha do Vitão: a arte vem com a FE-41 (flag desligada) */}
         <div
           aria-hidden
-          className="grid size-14 place-items-center rounded-full border-2 border-dashed border-line font-mono text-[10px] text-text-muted short:size-11"
+          className="grid size-14 place-items-center rounded-full border-2 border-dashed border-line font-mono text-[0.625rem] text-text-muted short:size-11"
         >
           logo
         </div>

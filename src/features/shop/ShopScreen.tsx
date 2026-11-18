@@ -99,7 +99,7 @@ export function ShopScreen({ initialTab = 'characters' }: { initialTab?: Tab }) 
             >
               {SHOP_TEXTS.tabs[t]}
               {t === 'cosmetics' && (
-                <span className="ml-1 font-sans text-[10px] font-normal tracking-normal normal-case">
+                <span className="ml-1 font-sans text-[0.625rem] font-normal tracking-normal normal-case">
                   · {SHOP_TEXTS.soon.toLowerCase()}
                 </span>
               )}
@@ -238,13 +238,17 @@ function ItemCard({
       >
         <ItemVisual
           item={item}
-          className="h-[60%] max-h-24 min-h-8 w-auto max-w-full shrink-0 short:h-[85%] short:max-w-[45%] max-[700px]:short:h-[45%] max-[700px]:short:min-h-6 max-[700px]:short:max-w-full"
+          className="h-[60%] max-h-24 min-h-8 w-auto max-w-full shrink-0 tall:max-h-48 short:h-[85%] short:max-w-[45%] max-[700px]:short:h-[45%] max-[700px]:short:min-h-6 max-[700px]:short:max-w-full"
         />
         <span className="flex min-w-0 flex-col items-center short:items-start max-[700px]:short:items-center max-[700px]:short:text-center">
-          <span className="line-clamp-2 font-display text-sm leading-tight font-bold text-primary short:text-xs">
+          <span className="line-clamp-2 font-display text-sm leading-tight font-bold text-primary short:text-xs tall:text-lg">
             {item.name}
           </span>
-          {subtitle && <span className="text-[10px] text-text-muted sm:text-xs">{subtitle}</span>}
+          {subtitle && (
+            <span className="text-[0.625rem] text-text-muted sm:text-xs tall:text-sm">
+              {subtitle}
+            </span>
+          )}
         </span>
       </button>
 

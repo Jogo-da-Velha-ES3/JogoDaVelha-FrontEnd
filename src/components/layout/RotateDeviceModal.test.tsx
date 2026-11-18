@@ -22,7 +22,7 @@ describe('RotateDeviceModal', () => {
     const media = mockMatchMedia(true)
     render(<RotateDeviceModal />)
 
-    const dialog = screen.getByRole('dialog', { name: 'Gire o celular' })
+    const dialog = screen.getByRole('dialog', { name: 'Gire a tela' })
     expect(screen.queryByRole('button', { name: 'Fechar' })).not.toBeInTheDocument()
 
     fireEvent(dialog, createEvent('cancel', dialog, { cancelable: true }))
@@ -32,6 +32,6 @@ describe('RotateDeviceModal', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
 
     act(() => media.set(true))
-    expect(screen.getByRole('dialog', { name: 'Gire o celular' })).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: 'Gire a tela' })).toBeInTheDocument()
   })
 })

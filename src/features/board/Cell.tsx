@@ -141,7 +141,7 @@ export function Cell(props: CellProps) {
           {effects.map((e) => (
             <span
               key={e.kind}
-              className={`grid size-4 place-items-center rounded-full font-mono text-[10px] leading-none font-medium ${BADGE_CLASSES[e.kind]}`}
+              className={`grid size-4 place-items-center rounded-full font-mono text-[0.625rem] leading-none font-medium ${BADGE_CLASSES[e.kind]}`}
             >
               {e.turnsLeft}
             </span>

@@ -91,7 +91,7 @@ function StaticStrip({
               <span key={i} className="size-2 rounded-full border border-(--side)" />
             ))}
             <span
-              className={`ml-1 font-mono text-[10px] ${timeouts > 0 ? 'text-danger' : 'text-text-muted'}`}
+              className={`ml-1 font-mono text-[0.625rem] ${timeouts > 0 ? 'text-danger' : 'text-text-muted'}`}
             >
               {timeouts}/{MAX_CONSECUTIVE_TIMEOUTS}
             </span>
@@ -141,7 +141,7 @@ function SuddenDeathVisual() {
         {TEXTS.suddenDeathRound}
       </p>
       <p
-        className="font-display text-[62px] leading-[0.85] font-bold text-danger tabular-nums short:text-[42px]"
+        className="font-display text-[3.875rem] leading-[0.85] font-bold text-danger tabular-nums short:text-[2.625rem]"
         style={{
           // Brilho vermelho e as cores dos dois personagens deslocadas, igual à Arena
           textShadow: `0 0 18px var(--color-danger), 3px 0 color-mix(in srgb, ${CHARACTER_INFO.O.color} 50%, transparent), -3px 0 color-mix(in srgb, ${CHARACTER_INFO.X.color} 55%, transparent)`,

@@ -370,8 +370,8 @@ A ERS não define a regra; o back decidiu usar a mesma do W.O. por tempo `[RN-AR
 8. **Resultado** — vencedor, placar, Coins, revanche
 
 Modais globais: Entrar com Código, Como Jogar, Comprar Coins, Configurações (música, efeitos,
-vibração, Vitão, volume da voz e filtro de palavrões), Sair da partida, Conexão perdida, Gire o
-celular.
+vibração, Vitão, volume da voz e filtro de palavrões), Sair da partida, Conexão perdida, Gire a
+tela.
 
 ### Fluxo
 
@@ -391,14 +391,19 @@ Abrir o jogo → [sem sessão] Acesso → Hub (Jogar; abas Loja / Perfil)
 ### Paisagem
 
 - Mesmo layout em celular deitado e monitor.
-- O iPhone não permite travar a orientação, então existe o modal **"Gire o celular"**, que
-  aparece sempre que a tela estiver em pé.
+- O iPhone não permite travar a orientação, então existe o modal **"Gire a tela"**, que
+  aparece sempre que a tela estiver em pé, no celular e no tablet (o texto era "Gire o celular"
+  até 17/11).
 - Altura útil no celular deitado: ~330–390px. O tabuleiro ocupa a altura toda.
 - **Celular no navegador (decidido em 17/11, FRT-02):** com a barra de endereço, a altura cai para
   ~280–340px. As telas têm uma faixa compacta para isso (`tiny:`, até 340px): na Preparação, os 6
   personagens ficam numa linha e as habilidades só com ícone e nome. No Android, o toque em Criar
   sala ou Entrar põe o jogo em tela cheia e trava a paisagem, como no app instalado; o iPhone não
   deixa fora do app instalado.
+- **Telas grandes (decidido em 17/11):** acima de 1600×900, tudo cresce junto com a tela, até 160%
+  em 2560×1440 (o tamanho base da página acompanha a altura e a largura). No tablet e no
+  computador, os cartões da Preparação e da Loja mostram personagens, ícones e textos maiores, e o
+  Hub e a Sala de Espera têm largura máxima. Texto de no mínimo 10px e toques de pelo menos 32px.
 - **Faixa da câmera no app instalado (17/11, FRT-02):** no Android, a lateral da câmera ficava
   branca (Samsung Internet, S23). No app instalado, o primeiro toque põe a página em tela cheia pela
   Fullscreen API, e a faixa passa a ter o fundo do jogo; os botões continuam longe da câmera
@@ -619,7 +624,7 @@ dela. Ordem e responsáveis em `docs/INITIAL_BACKLOG.md`.
 7. Habilidades: sorteio de 8s por round, deck, mira, as 10 habilidades e seus efeitos visuais
 8. Resultado, Coins e revanche (15s)
 9. Loja (personagens, habilidades, Coins simbólicos) e Perfil (estatísticas e coleção)
-10. PWA (instalável, paisagem, "Gire o celular") e polimento (personagens neon, pacote da Morte
+10. PWA (instalável, paisagem, "Gire a tela") e polimento (personagens neon, pacote da Morte
     Súbita, sons)
 11. **Personalidade (terceiro grupo, em paralelo desde 15/10):** sonoplastia, Configurações, voz
     do jogo e o Vitão com a voz do Rafik (FE-37 a FE-48)

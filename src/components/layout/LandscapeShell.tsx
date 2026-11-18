@@ -7,7 +7,7 @@ import { ServerWakeNotice } from './ServerWakeNotice'
 /**
  * Moldura de toda tela: ocupa a altura visível, respeita o notch nas laterais
  * (env(safe-area-inset-left/right)) e não deixa overflow horizontal.
- * Também monta os toasts, o aviso "Gire o celular" e o "Acordando o servidor…" (FE-51).
+ * Também monta os toasts, o aviso "Gire a tela" e o "Acordando o servidor…" (FE-51).
  */
 export function LandscapeShell({ children }: { children: ReactNode }) {
   return (

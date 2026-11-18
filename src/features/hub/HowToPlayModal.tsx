@@ -208,7 +208,7 @@ function PageContent({ page }: { page: HowToPlayPage }) {
           className={[
             'flex flex-col font-medium text-text',
             page.largeText
-              ? 'gap-2 text-base leading-snug short:gap-1.5 short:text-[15px]'
+              ? 'gap-2 text-base leading-snug short:gap-1.5 short:text-[0.9375rem]'
               : 'gap-1 text-sm leading-snug',
           ].join(' ')}
         >

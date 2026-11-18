@@ -39,7 +39,7 @@ export function PlayScreen() {
   }
 
   return (
-    <section className="flex flex-1 items-center gap-6 py-2 short:gap-4 short:py-0">
+    <section className="mx-auto flex w-full max-w-5xl flex-1 items-center gap-6 py-2 short:gap-4 short:py-0">
       <div className="flex flex-1 items-center justify-center">
         <Character
           id={favoriteCharacter}
