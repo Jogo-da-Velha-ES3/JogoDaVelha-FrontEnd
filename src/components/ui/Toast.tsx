@@ -48,7 +48,7 @@ function ToastItem({ toast }: { toast: Toast }) {
       onClick={() => dismissToast(toast.id)}
       className={[
         'pointer-events-auto max-w-md cursor-pointer rounded-xl border bg-bg-panel/95 px-4 py-2',
-        'text-sm font-medium shadow-glow backdrop-blur',
+        'text-sm font-medium shadow-glow backdrop-blur tall:max-w-lg tall:px-5 tall:py-3 tall:text-base',
         TONE_CLASSES[toast.tone],
       ].join(' ')}
     >

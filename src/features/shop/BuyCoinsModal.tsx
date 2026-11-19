@@ -27,7 +27,7 @@ export function BuyCoinsModal({ open, onClose }: BuyCoinsModalProps) {
 
 /** Mesmo molde para o pacote e para o cartão de espera, para o modal não mudar de tamanho */
 const CARD =
-  'flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl border-2 px-2 py-3 short:gap-0.5 short:py-2'
+  'flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl border-2 px-2 py-3 short:gap-0.5 short:py-2 tall:gap-2 tall:py-6'
 
 function BuyCoinsDialog({ open, onClose }: BuyCoinsModalProps) {
   /** null enquanto os pacotes não chegam */
@@ -96,7 +96,11 @@ function BuyCoinsDialog({ open, onClose }: BuyCoinsModalProps) {
       actions={
         !unavailable && (
           // Centralizado sob os pacotes, com largura própria (o mx-auto vence o justify-end do rodapé)
-          <Button className="mx-auto min-w-64" disabled={!selected || buying} onClick={handleBuy}>
+          <Button
+            className="mx-auto min-w-64 tall:min-w-80"
+            disabled={!selected || buying}
+            onClick={handleBuy}
+          >
             {buying
               ? COINS_TEXTS.buying
               : selected
@@ -106,10 +110,10 @@ function BuyCoinsDialog({ open, onClose }: BuyCoinsModalProps) {
         )
       }
     >
-      <div className="flex flex-col gap-3 short:gap-2">
+      <div className="flex flex-col gap-3 short:gap-2 tall:gap-5">
         {unavailable ? (
           <div className="flex flex-col items-center gap-2 py-2 text-center">
-            <p role="alert" className="text-sm text-danger">
+            <p role="alert" className="text-sm text-danger tall:text-base">
               {COINS_TEXTS.loadError}
             </p>
             <Button size="sm" variant="secondary" onClick={retry}>
@@ -117,7 +121,7 @@ function BuyCoinsDialog({ open, onClose }: BuyCoinsModalProps) {
             </Button>
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-2 short:gap-1.5" aria-busy={loading}>
+          <div className="grid grid-cols-3 gap-2 short:gap-1.5 tall:gap-4" aria-busy={loading}>
             {loading ? (
               <>
                 <span role="status" className="sr-only">
@@ -164,11 +168,11 @@ function BuyCoinsDialog({ open, onClose }: BuyCoinsModalProps) {
         )}
 
         {/* Aviso fixo: compra simbólica, sem pagamento nem cartão [RN-LOJ-04] */}
-        <p className="text-center text-xs text-text-muted short:text-[0.6875rem]">
+        <p className="text-center text-xs text-text-muted short:text-[0.6875rem] tall:text-sm">
           {COINS_TEXTS.notice}
         </p>
         {buyFailed && (
-          <p role="alert" className="text-center text-sm text-danger">
+          <p role="alert" className="text-center text-sm text-danger tall:text-base">
             {COINS_TEXTS.buyError}
           </p>
         )}
@@ -185,21 +189,24 @@ function PackageContent({ pkg }: { pkg: CoinPackage | null }) {
   const hidden = pkg === null ? 'invisible' : ''
   return (
     <>
-      <span aria-hidden className={`text-lg leading-none text-coin short:text-base ${hidden}`}>
+      <span
+        aria-hidden
+        className={`text-lg leading-none text-coin short:text-base tall:text-2xl ${hidden}`}
+      >
         ●
       </span>
       <span
-        className={`font-display text-2xl leading-none font-bold text-coin short:text-xl ${hidden}`}
+        className={`font-display text-2xl leading-none font-bold text-coin short:text-xl tall:text-5xl ${hidden}`}
       >
         {(pkg?.coins ?? 0).toLocaleString('pt-BR')}
       </span>
       <span
-        className={`font-display text-[0.6875rem] font-semibold tracking-wider text-text-muted uppercase ${hidden}`}
+        className={`font-display text-[0.6875rem] font-semibold tracking-wider text-text-muted uppercase tall:text-sm ${hidden}`}
       >
         {COINS_TEXTS.coins}
       </span>
       <span
-        className={`mt-1 rounded-full border border-line px-2 py-0.5 text-xs text-text-muted short:mt-0.5 ${hidden}`}
+        className={`mt-1 rounded-full border border-line px-2 py-0.5 text-xs text-text-muted short:mt-0.5 tall:mt-2 tall:px-3 tall:text-sm ${hidden}`}
       >
         {COINS_TEXTS.price(pkg?.priceInReais ?? 0)}
       </span>

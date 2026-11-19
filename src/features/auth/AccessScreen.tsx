@@ -59,11 +59,11 @@ export function AccessScreen() {
   }
 
   return (
-    <section className="mx-auto flex w-full max-w-4xl flex-1 flex-col items-stretch gap-4 py-4 sm:flex-row sm:items-center sm:gap-8 short:items-start short:gap-4 short:py-1">
+    <section className="mx-auto flex w-full max-w-4xl flex-1 flex-col items-stretch gap-4 py-4 sm:flex-row sm:items-center sm:gap-8 short:items-start short:gap-4 short:py-1 tall:max-w-5xl tall:gap-12">
       {/* Criar conta com o celular deitado: a marca sai para a linha de campos caber acima do teclado */}
       <Brand hiddenWhenShort={tab === 'register'} />
 
-      <div className="flex flex-1 flex-col gap-3 short:gap-2">
+      <div className="flex flex-1 flex-col gap-3 short:gap-2 tall:gap-5">
         <div
           role="tablist"
           aria-label="Acesso"
@@ -147,7 +147,7 @@ function TabButton({
       aria-controls={panelId}
       onClick={onClick}
       className={[
-        'min-h-10 rounded-lg font-display text-sm font-bold tracking-wide uppercase transition short:min-h-9',
+        'min-h-10 rounded-lg font-display text-sm font-bold tracking-wide uppercase transition short:min-h-9 tall:min-h-12 tall:text-lg',
         active
           ? 'bg-bg-raised text-primary shadow-glow shadow-primary/20'
           : 'text-text-muted hover:text-primary',
@@ -198,9 +198,9 @@ function LoginForm({
   }
 
   return (
-    <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-3 short:gap-2">
+    <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-3 short:gap-2 tall:gap-5">
       {created && !formError && (
-        <p role="status" className="text-center text-sm text-primary">
+        <p role="status" className="text-center text-sm text-primary tall:text-base">
           {ACCESS_TEXTS.accountCreated}
         </p>
       )}
@@ -229,7 +229,7 @@ function LoginForm({
       <button
         type="button"
         // py-2 com -my-2: área de toque de 36px sem empurrar o layout nem invadir o botão (FE-16)
-        className="-my-2 self-end py-2 text-sm text-text-muted underline-offset-4 hover:text-primary hover:underline"
+        className="-my-2 self-end py-2 text-sm text-text-muted underline-offset-4 hover:text-primary hover:underline tall:text-base"
         onClick={onForgotPassword}
       >
         Esqueci minha senha
@@ -272,9 +272,9 @@ function RegisterForm({ onAccountCreated }: { onAccountCreated: (username: strin
   }
 
   return (
-    <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-3 short:gap-2">
+    <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-3 short:gap-2 tall:gap-5">
       {/* Celular deitado: usuário, e-mail, senha e botão numa linha só, acima do teclado */}
-      <div className="grid items-start gap-3 short:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)_minmax(0,1fr)_auto] short:gap-2">
+      <div className="grid items-start gap-3 short:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)_minmax(0,1fr)_auto] short:gap-2 tall:gap-5">
         <TextField
           label="Nome de usuário"
           autoComplete="username"

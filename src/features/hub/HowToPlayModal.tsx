@@ -157,14 +157,14 @@ export function HowToPlayModal({ open, onClose, closeLabel = TEXTS.close }: HowT
             páginas. A página de habilidades encaixa os controles do carrossel no espaço à direita. */}
         <div className="grid h-11 grid-cols-[1fr_auto_1fr] items-center gap-3">
           {/* Indicador no topo da linha e 8px mais acima, perto do "COMO JOGAR" (só eixo Y) */}
-          <p className="-translate-y-2 self-start font-mono text-xs tracking-widest text-text-muted uppercase">
+          <p className="-translate-y-2 self-start font-mono text-xs tracking-widest text-text-muted uppercase tall:text-sm">
             {TEXTS.pageOf(page + 1, HOW_TO_PLAY_PAGES.length)}
           </p>
           {/* -translate-y-5.5: sobe o título até a linha do indicador, perto do "COMO JOGAR" (só eixo Y) */}
           {/* Só o título é anunciado na troca de página; o conteúdo se lê navegando */}
           <h3
             aria-live="polite"
-            className="-translate-y-5.5 text-center font-display text-3xl leading-none font-bold tracking-wide text-text uppercase short:text-2xl"
+            className="-translate-y-5.5 text-center font-display text-3xl leading-none font-bold tracking-wide text-text uppercase short:text-2xl tall:text-4xl"
           >
             {current.title}
           </h3>
@@ -181,7 +181,7 @@ export function HowToPlayModal({ open, onClose, closeLabel = TEXTS.close }: HowT
             transition={{ duration: reduceMotion ? 0 : 0.15 }}
             // -mt-6 sobe o conteúdo para o espaço livre abaixo do título (que já foi para a linha do
             // indicador). A altura mínima é igual em todas as páginas: o modal não muda de tamanho
-            className="-mt-6 flex min-h-52 items-center justify-center gap-5 short:min-h-41 short:gap-3 tiny:min-h-0"
+            className="-mt-6 flex min-h-52 items-center justify-center gap-5 short:min-h-41 short:gap-3 tiny:min-h-0 tall:min-h-72 tall:gap-8"
           >
             {current.visual === 'deck' ? (
               <HowToPlayDeck points={current.points} onLeave={leaveCarousel} />
@@ -208,8 +208,8 @@ function PageContent({ page }: { page: HowToPlayPage }) {
           className={[
             'flex flex-col font-medium text-text',
             page.largeText
-              ? 'gap-2 text-base leading-snug short:gap-1.5 short:text-[0.9375rem]'
-              : 'gap-1 text-sm leading-snug',
+              ? 'gap-2 text-base leading-snug short:gap-1.5 short:text-[0.9375rem] tall:gap-3 tall:text-xl'
+              : 'gap-1 text-sm leading-snug tall:gap-2 tall:text-lg',
           ].join(' ')}
         >
           {page.points.map((point) => (
@@ -241,21 +241,21 @@ function CoinsTable({ rows }: { rows: readonly HowToPlayCoinRow[] }) {
   // largura de uma coluna.
   const lonely = rows.length % 2 === 1 ? rows.length - 1 : -1
   return (
-    <ul className="grid grid-cols-2 gap-x-4 gap-y-2 [--u:20rem]">
+    <ul className="grid grid-cols-2 gap-x-4 gap-y-2 [--u:20rem] tall:gap-x-6 tall:gap-y-3 tall:[--u:28rem]">
       {rows.map((row, position) => (
         <li
           key={row.label}
           className={[
-            'flex items-center justify-between gap-3 rounded-lg border border-line bg-bg-panel px-3 py-1.5',
+            'flex items-center justify-between gap-3 rounded-lg border border-line bg-bg-panel px-3 py-1.5 tall:px-5 tall:py-3',
             position === lonely ? 'col-span-2 w-[calc(50%-0.5rem)] justify-self-center' : '',
           ].join(' ')}
         >
           <span
-            className={`text-lg leading-tight font-medium short:text-base ${COIN_TONE_CLASS[row.tone]}`}
+            className={`text-lg leading-tight font-medium short:text-base tall:text-2xl ${COIN_TONE_CLASS[row.tone]}`}
           >
             {row.label}
           </span>
-          <span className="w-28 shrink-0 [&>p]:justify-start">
+          <span className="w-28 shrink-0 tall:w-40 [&>p]:justify-start">
             <CoinsReward amount={row.amount} countUp={false} />
           </span>
         </li>

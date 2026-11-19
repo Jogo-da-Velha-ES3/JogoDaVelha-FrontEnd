@@ -39,7 +39,7 @@ export function VsBanner() {
         >
           {/* Painel esquerdo (você) */}
           <div
-            className="absolute inset-y-0 left-0 flex w-[55%] flex-col items-center justify-center gap-1 pb-4"
+            className="absolute inset-y-0 left-0 flex w-[55%] flex-col items-center justify-center gap-1 pb-4 tall:gap-2"
             style={
               {
                 clipPath: 'polygon(0 0, 100% 0, 82% 100%, 0 100%)',
@@ -56,22 +56,22 @@ export function VsBanner() {
                 className="h-[55%] w-auto max-w-[45%] short:h-[48%]"
               />
             ) : (
-              <span className="size-14 rounded-full border-2 border-line" />
+              <span className="size-14 rounded-full border-2 border-line tall:size-24" />
             )}
             <p
-              className="font-display text-base font-bold tracking-widest short:text-sm"
+              className="font-display text-base font-bold tracking-widest short:text-sm tall:text-3xl"
               style={{ color: myColor }}
             >
               {me?.nickname ?? 'Você'}
             </p>
-            <p className="font-mono text-[0.625rem] uppercase tracking-widest text-text-muted">
+            <p className="font-mono text-[0.625rem] uppercase tracking-widest text-text-muted tall:text-sm">
               VOCÊ
             </p>
           </div>
 
           {/* Painel direito (oponente) */}
           <div
-            className="absolute inset-y-0 right-0 flex w-[55%] flex-col items-center justify-center gap-1 pb-4"
+            className="absolute inset-y-0 right-0 flex w-[55%] flex-col items-center justify-center gap-1 pb-4 tall:gap-2"
             style={
               {
                 clipPath: 'polygon(18% 0, 100% 0, 100% 100%, 0 100%)',
@@ -88,15 +88,15 @@ export function VsBanner() {
                 className="h-[55%] w-auto max-w-[45%] short:h-[48%]"
               />
             ) : (
-              <span className="size-14 rounded-full border-2 border-line" />
+              <span className="size-14 rounded-full border-2 border-line tall:size-24" />
             )}
             <p
-              className="font-display text-base font-bold tracking-widest short:text-sm"
+              className="font-display text-base font-bold tracking-widest short:text-sm tall:text-3xl"
               style={{ color: oppColor }}
             >
               {opp?.nickname ?? 'Oponente'}
             </p>
-            <p className="font-mono text-[0.625rem] uppercase tracking-widest text-text-muted">
+            <p className="font-mono text-[0.625rem] uppercase tracking-widest text-text-muted tall:text-sm">
               OPONENTE
             </p>
           </div>
@@ -108,7 +108,7 @@ export function VsBanner() {
               initial={{ scale: 2.6, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ delay: 0.1, type: 'spring', stiffness: 380, damping: 22 }}
-              className="font-display text-6xl font-extrabold text-primary short:text-5xl"
+              className="font-display text-6xl font-extrabold text-primary short:text-5xl tall:text-9xl"
               style={{
                 textShadow: `3px 0 ${myColor}, -3px 0 ${oppColor}, 0 0 24px var(--color-primary)`,
               }}
@@ -119,7 +119,7 @@ export function VsBanner() {
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.45, duration: 0.25 }}
-              className="font-display text-sm font-bold tracking-widest whitespace-nowrap text-text uppercase [text-shadow:0_0_6px_var(--color-bg-deep),0_0_12px_var(--color-bg-deep)] short:text-xs"
+              className="font-display text-sm font-bold tracking-widest whitespace-nowrap text-text uppercase [text-shadow:0_0_6px_var(--color-bg-deep),0_0_12px_var(--color-bg-deep)] short:text-xs tall:text-xl"
             >
               {ARENA_TEXTS.versusLine}
             </motion.p>

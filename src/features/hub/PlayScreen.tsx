@@ -39,17 +39,17 @@ export function PlayScreen() {
   }
 
   return (
-    <section className="mx-auto flex w-full max-w-5xl flex-1 items-center gap-6 py-2 short:gap-4 short:py-0">
+    <section className="mx-auto flex w-full max-w-5xl flex-1 items-center gap-6 py-2 short:gap-4 short:py-0 tall:max-w-6xl tall:gap-12">
       <div className="flex flex-1 items-center justify-center">
         <Character
           id={favoriteCharacter}
           variant="full"
           animated
-          className="aspect-[160/170] h-52 sm:h-64 short:h-40"
+          className="aspect-[160/170] h-52 sm:h-64 short:h-40 tall:h-80"
         />
       </div>
 
-      <div className="flex flex-1 flex-col justify-center gap-3 short:gap-2">
+      <div className="flex flex-1 flex-col justify-center gap-3 short:gap-2 tall:gap-5">
         <Logo className="justify-center" />
 
         <Button
@@ -68,7 +68,7 @@ export function PlayScreen() {
           Entrar com código
         </Button>
         {/* Instalar app some quando já está instalado ou o navegador não instala sites (FE-16) */}
-        <div className="flex gap-2">
+        <div className="flex gap-2 tall:gap-3">
           <Button
             variant="ghost"
             size="sm"

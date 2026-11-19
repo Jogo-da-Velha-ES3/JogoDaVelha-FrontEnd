@@ -130,39 +130,44 @@ export function Preparation({
   }
 
   return (
-    <main className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-3 px-3 pb-2 short:gap-2 short:px-safe tiny:gap-1 tiny:pb-1 sm:px-6">
-      <header className="grid shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-3 rounded-2xl border border-primary/25 bg-bg-panel px-4 py-2 shadow-glow shadow-primary/10 short:py-1.5 tiny:rounded-xl tiny:py-1">
+    <main className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-3 px-3 pb-2 short:gap-2 short:px-safe tiny:gap-1 tiny:pb-1 sm:px-6 tall:gap-5">
+      <header className="grid shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-3 rounded-2xl border border-primary/25 bg-bg-panel px-4 py-2 shadow-glow shadow-primary/10 short:py-1.5 tiny:rounded-xl tiny:py-1 tall:px-6 tall:py-3">
         <div className="min-w-0">
-          <h1 className="font-display text-xs font-bold tracking-[0.2em] text-text-muted uppercase tiny:sr-only">
+          <h1 className="font-display text-xs font-bold tracking-[0.2em] text-text-muted uppercase tiny:sr-only tall:text-sm">
             Preparação
           </h1>
-          <p className="truncate font-display text-sm font-bold text-primary sm:text-base">
+          <p className="truncate font-display text-sm font-bold text-primary sm:text-base tall:text-xl">
             {opponent?.nickname ?? 'Oponente'}
           </p>
-          <p className="text-xs text-text-muted">
+          <p className="text-xs text-text-muted tall:text-sm">
             {ready[opponentSlot] ? 'Pronto' : 'Escolhendo…'}
           </p>
         </div>
-        <div className="w-32 sm:w-48">
-          <p className="mb-1 text-center font-display text-[0.625rem] font-bold tracking-widest text-text-muted uppercase tiny:sr-only">
+        <div className="w-32 sm:w-48 tall:w-64">
+          <p className="mb-1 text-center font-display text-[0.625rem] font-bold tracking-widest text-text-muted uppercase tiny:sr-only tall:text-xs">
             Tempo restante
           </p>
           <TimerBar deadline={timerDeadline} label="Tempo da Preparação" />
         </div>
         <div className="min-w-0 text-right">
-          <p className="font-display text-xs font-bold tracking-[0.2em] text-text-muted uppercase tiny:sr-only">
+          <p className="font-display text-xs font-bold tracking-[0.2em] text-text-muted uppercase tiny:sr-only tall:text-sm">
             Você
           </p>
-          <p className="truncate font-display text-sm font-bold text-primary sm:text-base">
+          <p className="truncate font-display text-sm font-bold text-primary sm:text-base tall:text-xl">
             {players.find((player) => player.slot === me)?.nickname ?? 'Jogador'}
           </p>
-          <p className={`text-xs ${isReady ? 'text-text-muted' : 'font-bold text-primary'}`}>
+          <p
+            className={`text-xs tall:text-sm ${isReady ? 'text-text-muted' : 'font-bold text-primary'}`}
+          >
             {myStatus}
           </p>
         </div>
       </header>
 
-      <nav aria-label="Etapas da preparação" className="flex shrink-0 justify-center gap-2">
+      <nav
+        aria-label="Etapas da preparação"
+        className="flex shrink-0 justify-center gap-2 tall:gap-3"
+      >
         <StepButton
           active={step === 'CHARACTER'}
           done={Boolean(myCharacter)}
@@ -183,10 +188,10 @@ export function Preparation({
 
       {step === 'CHARACTER' ? (
         <section aria-labelledby="character-title" className="flex min-h-0 flex-1 flex-col">
-          <div className="mb-2 shrink-0 text-center tiny:mb-0.5">
+          <div className="mb-2 shrink-0 text-center tiny:mb-0.5 tall:mb-4">
             <h2
               id="character-title"
-              className="font-display text-lg font-black tracking-wide text-primary uppercase tiny:sr-only sm:text-xl"
+              className="font-display text-lg font-black tracking-wide text-primary uppercase tiny:sr-only sm:text-xl tall:text-3xl"
             >
               {DRAFT_TEXTS.chooseCharacter}
             </h2>
@@ -196,7 +201,9 @@ export function Preparation({
                 missing={DRAFT_TEXTS.missingCharacterWarning}
               />
             ) : (
-              <p className="text-xs text-text-muted tiny:hidden">{DRAFT_TEXTS.characterHint}</p>
+              <p className="text-xs text-text-muted tiny:hidden tall:text-base">
+                {DRAFT_TEXTS.characterHint}
+              </p>
             )}
           </div>
           {/* Linhas fixas (metade da altura cada): o tamanho do cartão não depende do personagem.
@@ -238,7 +245,7 @@ export function Preparation({
                     </span>
                     <span className="text-center text-[0.625rem] leading-tight text-text-muted short:text-left tiny:text-center sm:text-xs tall:text-sm">
                       {(reservedByOpponent || locked) && (
-                        <LockIcon className="mr-0.5 size-3 align-[-2px]" />
+                        <LockIcon className="mr-0.5 size-3 align-[-2px] tall:size-4" />
                       )}
                       {reservedByOpponent
                         ? DRAFT_TEXTS.reservedBy(opponent?.nickname ?? 'oponente')
@@ -253,7 +260,7 @@ export function Preparation({
               )
             })}
           </div>
-          <div className="mt-2 flex shrink-0 justify-center tiny:mt-1">
+          <div className="mt-2 flex shrink-0 justify-center tiny:mt-1 tall:mt-4">
             <Button size="sm" disabled={!myCharacter} onClick={() => setStep('ABILITIES')}>
               Continuar para habilidades
             </Button>
@@ -261,10 +268,10 @@ export function Preparation({
         </section>
       ) : (
         <section aria-labelledby="abilities-title" className="flex min-h-0 flex-1 flex-col">
-          <div className="mb-2 shrink-0 text-center tiny:mb-0.5">
+          <div className="mb-2 shrink-0 text-center tiny:mb-0.5 tall:mb-4">
             <h2
               id="abilities-title"
-              className="font-display text-lg font-black tracking-wide text-primary uppercase tiny:sr-only sm:text-xl"
+              className="font-display text-lg font-black tracking-wide text-primary uppercase tiny:sr-only sm:text-xl tall:text-3xl"
             >
               Habilidades iniciais
             </h2>
@@ -274,7 +281,7 @@ export function Preparation({
                 missing={DRAFT_TEXTS.missingAbilitiesWarning(INITIAL_ABILITIES_TO_PICK)}
               />
             ) : (
-              <p className="text-xs text-text-muted tiny:hidden">
+              <p className="text-xs text-text-muted tiny:hidden tall:text-base">
                 {DRAFT_TEXTS.abilitiesHint(pickedAbilities.length, INITIAL_ABILITIES_TO_PICK)}
               </p>
             )}
@@ -312,7 +319,7 @@ export function Preparation({
                   </span>
                   {selected && (
                     <span
-                      className="absolute right-1 top-1 text-xs text-primary"
+                      className="absolute right-1 top-1 text-xs text-primary tall:right-2 tall:top-2 tall:text-base"
                       aria-hidden="true"
                     >
                       ✓
@@ -322,11 +329,11 @@ export function Preparation({
               )
             })}
           </div>
-          <div className="mt-2 flex shrink-0 flex-col items-center gap-1 tiny:mt-1">
-            <p className="text-center text-[0.625rem] text-text-muted tiny:hidden sm:text-xs">
+          <div className="mt-2 flex shrink-0 flex-col items-center gap-1 tiny:mt-1 tall:mt-4 tall:gap-2">
+            <p className="text-center text-[0.625rem] text-text-muted tiny:hidden sm:text-xs tall:text-sm">
               {DRAFT_TEXTS.shopHint}
             </p>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 tall:gap-3">
               <Button
                 variant="ghost"
                 size="sm"
@@ -364,7 +371,7 @@ export function Preparation({
 /** Reta final da Preparação: vermelho, porque é perigo de perder a escolha */
 function TimeWarning({ seconds, missing }: { seconds: number; missing: string }) {
   return (
-    <p role="alert" className="text-xs font-bold text-danger">
+    <p role="alert" className="text-xs font-bold text-danger tall:text-sm">
       {DRAFT_TEXTS.timeWarning(seconds, missing)}
     </p>
   )
@@ -388,7 +395,7 @@ function StepButton({
     <button
       type="button"
       onClick={onClick}
-      className={`min-h-8 rounded-full border px-3 py-1 font-display text-[0.625rem] font-bold uppercase transition sm:px-4 sm:text-xs ${active ? 'border-primary bg-primary/15 text-primary' : 'border-line text-text-muted hover:border-primary/50'} ${pending && !active ? 'border-primary text-primary motion-safe:animate-glow-pulse' : ''}`}
+      className={`min-h-8 rounded-full border px-3 py-1 font-display text-[0.625rem] font-bold uppercase transition sm:px-4 sm:text-xs tall:min-h-10 tall:px-5 tall:text-sm ${active ? 'border-primary bg-primary/15 text-primary' : 'border-line text-text-muted hover:border-primary/50'} ${pending && !active ? 'border-primary text-primary motion-safe:animate-glow-pulse' : ''}`}
     >
       {children}
       {done ? ' ✓' : ''}

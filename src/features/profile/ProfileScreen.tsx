@@ -106,7 +106,7 @@ export function ProfileScreen() {
   // O perfil não chegou nem uma vez (ex: back fora do ar). Se só uma recarga falhar, fica o último
   if (status === 'error' && profile === null) {
     return (
-      <section className="m-auto flex flex-col items-center gap-2 text-center text-sm">
+      <section className="m-auto flex flex-col items-center gap-2 text-center text-sm tall:gap-4 tall:text-lg">
         <h1 className="sr-only">{T.title}</h1>
         <p role="alert" className="text-danger">
           {T.loadError}
@@ -129,13 +129,13 @@ export function ProfileScreen() {
         {T.title}
       </h1>
       {/* Duas colunas também no celular deitado; se ainda assim não couber, rola por dentro */}
-      <div className="grid min-h-0 flex-1 content-start gap-2 overflow-y-auto rounded-3xl border-2 border-line bg-bg-panel/80 p-2 shadow-glow shadow-char-x/10 md:grid-cols-[minmax(240px,.7fr)_minmax(0,2fr)] md:content-center-safe md:items-center md:p-8 short:grid-cols-[minmax(150px,.55fr)_minmax(0,2fr)] short:content-center-safe short:items-center short:gap-3 short:p-2.5">
-        <section className="flex flex-col items-center justify-center gap-1 border-b border-line pb-2 text-center md:border-r md:border-b-0 md:pr-5 md:pb-0 short:border-r short:border-b-0 short:pr-3 short:pb-0">
+      <div className="grid min-h-0 flex-1 content-start gap-2 overflow-y-auto rounded-3xl border-2 border-line bg-bg-panel/80 p-2 shadow-glow shadow-char-x/10 md:grid-cols-[minmax(240px,.7fr)_minmax(0,2fr)] md:content-center-safe md:items-center md:p-8 short:grid-cols-[minmax(150px,.55fr)_minmax(0,2fr)] short:content-center-safe short:items-center short:gap-3 short:p-2.5 tall:gap-6 tall:p-6">
+        <section className="flex flex-col items-center justify-center gap-1 border-b border-line pb-2 text-center md:border-r md:border-b-0 md:pr-5 md:pb-0 short:border-r short:border-b-0 short:pr-3 short:pb-0 tall:gap-3 tall:pr-8">
           <Character
             id={favorite}
             variant="full"
             animated
-            className="size-12 md:size-36 short:size-16"
+            className="size-12 md:size-36 short:size-16 tall:size-44"
           />
           {editing ? (
             <form
@@ -157,10 +157,14 @@ export function ProfileScreen() {
                 }}
                 aria-invalid={fieldError !== null}
                 aria-describedby={fieldError ? 'profile-nickname-error' : undefined}
-                className="w-full rounded-lg border border-line bg-bg-deep px-3 py-1.5 text-center text-text outline-none focus:border-primary aria-invalid:border-danger"
+                className="w-full rounded-lg border border-line bg-bg-deep px-3 py-1.5 text-center text-text outline-none focus:border-primary aria-invalid:border-danger tall:py-2.5 tall:text-lg"
               />
               {fieldError && (
-                <p id="profile-nickname-error" role="alert" className="text-xs text-danger">
+                <p
+                  id="profile-nickname-error"
+                  role="alert"
+                  className="text-xs text-danger tall:text-sm"
+                >
                   {fieldError}
                 </p>
               )}
@@ -183,7 +187,7 @@ export function ProfileScreen() {
             </form>
           ) : (
             <div className="flex max-w-full items-center gap-1">
-              <h2 className="truncate font-display text-xl font-bold short:text-lg">
+              <h2 className="truncate font-display text-xl font-bold short:text-lg tall:text-3xl">
                 {profile?.username ?? T.loadingNickname}
               </h2>
               <button
@@ -192,18 +196,18 @@ export function ProfileScreen() {
                 disabled={!profile}
                 aria-label={T.editNickname}
                 title={T.editNickname}
-                className="grid size-8 shrink-0 place-items-center rounded-md text-primary hover:bg-bg-raised disabled:opacity-40"
+                className="grid size-8 shrink-0 place-items-center rounded-md text-primary hover:bg-bg-raised disabled:opacity-40 tall:size-11"
               >
-                <PencilIcon className="size-4" />
+                <PencilIcon className="size-4 tall:size-5" />
               </button>
             </div>
           )}
         </section>
 
-        <div className="flex min-w-0 flex-col gap-3 md:gap-6 short:gap-1.5">
+        <div className="flex min-w-0 flex-col gap-3 md:gap-6 short:gap-1.5 tall:gap-5">
           <section aria-label={T.statistics}>
             <SectionTitle title={T.statistics} />
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 short:grid-cols-4 short:gap-1.5">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 short:grid-cols-4 short:gap-1.5 tall:gap-4">
               <StatCard label={T.matches} value={statValue((s) => count(s.matchesPlayed))} />
               <StatCard label={T.wins} value={statValue((s) => count(s.wins))} />
               <StatCard
@@ -223,7 +227,7 @@ export function ProfileScreen() {
               owned={ownedCharacters.length}
               total={CHARACTERS.length}
             />
-            <ul className="flex flex-wrap gap-2 short:gap-1.5">
+            <ul className="flex flex-wrap gap-2 short:gap-1.5 tall:gap-3">
               {CHARACTERS.map((id) => {
                 const name = CHARACTER_INFO[id].name
                 const owned = ownedCharacters.includes(id)
@@ -243,7 +247,7 @@ export function ProfileScreen() {
                       aria-label={T.itemLabel(name, state)}
                       title={state}
                       className={[
-                        'relative grid size-12 place-items-center rounded-full border bg-bg-deep transition short:size-10 max-sm:short:size-9',
+                        'relative grid size-12 place-items-center rounded-full border bg-bg-deep transition short:size-10 max-sm:short:size-9 tall:size-14',
                         equipped
                           ? 'border-primary shadow-glow shadow-char-x/40'
                           : 'border-line hover:border-primary',
@@ -255,10 +259,10 @@ export function ProfileScreen() {
                         id={id}
                         variant="piece"
                         decorative
-                        className="size-8 short:size-7 max-sm:short:size-6"
+                        className="size-8 short:size-7 max-sm:short:size-6 tall:size-10"
                       />
                       {!owned && (
-                        <LockIcon className="absolute -right-1 -bottom-1 size-4 rounded-full bg-bg-panel p-0.5 text-text-muted" />
+                        <LockIcon className="absolute -right-1 -bottom-1 size-4 rounded-full bg-bg-panel p-0.5 text-text-muted tall:size-5" />
                       )}
                     </button>
                   </li>
@@ -270,13 +274,16 @@ export function ProfileScreen() {
           <section aria-label={T.skills}>
             <SectionTitle title={T.skills} owned={ownedAbilities.length} total={ABILITIES.length} />
             <ul
-              className="flex flex-wrap gap-2 short:gap-1.5"
+              className="flex flex-wrap gap-2 short:gap-1.5 tall:gap-3"
               style={{ '--skill-color': favoriteColor } as CSSProperties}
             >
               {ABILITIES.map((id) => {
                 const name = ABILITY_INFO[id].name
                 const icon = (
-                  <AbilityIcon ability={id} className="size-7 short:size-6 max-sm:short:size-5" />
+                  <AbilityIcon
+                    ability={id}
+                    className="size-7 short:size-6 max-sm:short:size-5 tall:size-9"
+                  />
                 )
                 // A habilidade que o jogador tem só aparece; a bloqueada leva à Loja
                 return (
@@ -286,7 +293,7 @@ export function ProfileScreen() {
                         role="img"
                         aria-label={name}
                         title={name}
-                        className="grid size-11 place-items-center rounded-xl border border-(color:--skill-color) bg-bg-deep text-(color:--skill-color) short:size-9 max-sm:short:size-8"
+                        className="grid size-11 place-items-center rounded-xl border border-(color:--skill-color) bg-bg-deep text-(color:--skill-color) short:size-9 max-sm:short:size-8 tall:size-14"
                       >
                         {icon}
                       </span>
@@ -296,10 +303,10 @@ export function ProfileScreen() {
                         onClick={() => navigate(shopPath('skills'))}
                         aria-label={T.itemLabel(name, T.locked)}
                         title={`${name} · ${T.locked}`}
-                        className="relative grid size-11 place-items-center rounded-xl border border-line bg-bg-deep text-(color:--skill-color) opacity-25 grayscale transition hover:opacity-50 short:size-9 max-sm:short:size-8"
+                        className="relative grid size-11 place-items-center rounded-xl border border-line bg-bg-deep text-(color:--skill-color) opacity-25 grayscale transition hover:opacity-50 short:size-9 max-sm:short:size-8 tall:size-14"
                       >
                         {icon}
-                        <LockIcon className="absolute -right-1 -bottom-1 size-4 rounded-full bg-bg-panel p-0.5 text-text-muted" />
+                        <LockIcon className="absolute -right-1 -bottom-1 size-4 rounded-full bg-bg-panel p-0.5 text-text-muted tall:size-5" />
                       </button>
                     )}
                   </li>
@@ -308,7 +315,7 @@ export function ProfileScreen() {
             </ul>
           </section>
           {/* No celular deitado estreito não cabe; ali os cadeados já dizem que é para a Loja */}
-          <p className="text-xs text-text-muted max-sm:short:hidden tiny:hidden">
+          <p className="text-xs text-text-muted max-sm:short:hidden tiny:hidden tall:text-sm">
             {T.collectionHint}
           </p>
         </div>
@@ -319,14 +326,14 @@ export function ProfileScreen() {
 
 function SectionTitle({ title, owned, total }: { title: string; owned?: number; total?: number }) {
   return (
-    <div className="mb-2 flex items-center justify-between gap-2 short:mb-1">
-      <h2 className="font-display text-sm font-bold tracking-[.16em] text-text-muted uppercase short:text-xs">
+    <div className="mb-2 flex items-center justify-between gap-2 short:mb-1 tall:mb-2">
+      <h2 className="font-display text-sm font-bold tracking-[.16em] text-text-muted uppercase short:text-xs tall:text-lg">
         {title}
       </h2>
       {owned !== undefined && total !== undefined && (
         <span
           aria-label={T.ownedCountLabel(owned, total)}
-          className="font-mono text-xs text-text-muted"
+          className="font-mono text-xs text-text-muted tall:text-base"
         >
           {T.ownedCount(owned, total)}
         </span>
@@ -337,11 +344,11 @@ function SectionTitle({ title, owned, total }: { title: string; owned?: number; 
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-line bg-bg-raised px-2 py-2 text-center short:px-1 short:py-1">
-      <p className="font-display text-xl leading-none font-extrabold text-primary short:text-lg">
+    <div className="rounded-xl border border-line bg-bg-raised px-2 py-2 text-center short:px-1 short:py-1 tall:px-3 tall:py-3">
+      <p className="font-display text-xl leading-none font-extrabold text-primary short:text-lg tall:text-3xl">
         {value}
       </p>
-      <p className="mt-1 text-[0.6875rem] leading-tight text-text-muted short:mt-0.5 short:text-[0.625rem]">
+      <p className="mt-1 text-[0.6875rem] leading-tight text-text-muted short:mt-0.5 short:text-[0.625rem] tall:mt-2 tall:text-sm">
         {label}
       </p>
     </div>

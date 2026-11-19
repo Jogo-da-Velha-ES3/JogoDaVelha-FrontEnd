@@ -418,6 +418,12 @@ Abrir o jogo → [sem sessão] Acesso → Hub (Jogar; abas Loja / Perfil)
   em 2560×1440 (o tamanho base da página acompanha a altura e a largura). No tablet e no
   computador, os cartões da Preparação e da Loja mostram personagens, ícones e textos maiores, e o
   Hub e a Sala de Espera têm largura máxima. Texto de no mínimo 10px e toques de pelo menos 32px.
+- **Tablet e notebook (decidido em 19/11):** de 600 a 900px de altura (1024×768, 1280×800,
+  1366×768) a página não cresce, então toda tela tem a variante `tall:` (600px de altura ou mais):
+  textos, ícones, cartões, botões, campos e modais um degrau acima, sem mudar nada no celular
+  deitado. As faixas dos jogadores e o deck da Arena só crescem a partir de 1280px de largura
+  (`tall:xl:`), porque de 1024 a 1279px a coluna lateral tem ~210px, como no celular. Em 1024×600 o
+  painel do Perfil rola um pouco por dentro. Conferido em 12 tamanhos, de 740×280 a 2560×1440.
 - **Faixa da câmera no app instalado (17/11, FRT-02):** no Android, a lateral da câmera ficava
   branca (Samsung Internet, S23). No app instalado, o primeiro toque põe a página em tela cheia pela
   Fullscreen API, e a faixa passa a ter o fundo do jogo; os botões continuam longe da câmera

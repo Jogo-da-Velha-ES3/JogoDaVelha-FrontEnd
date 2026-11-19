@@ -31,6 +31,8 @@ interface DeckHudProps {
  * DECK_UPDATE. Habilidade com alvo só inicia a mira (FE-27); sem alvo, pede confirmação e envia.
  * Sem descrição na partida, para caber no celular deitado: ela aparece na Preparação e no sorteio.
  * Silenciado: só a informação ("Silenciado!"); a fala do narrador é do Vitão (FE-43).
+ * Maior só em tela alta e larga (tall:xl:): de 1024 a 1279px de largura a coluna da Arena tem
+ * ~210px, como no celular, e o nome da carta cortaria.
  */
 export function DeckHud({
   deck,
@@ -97,9 +99,9 @@ export function DeckHud({
       <section
         aria-label="Seu deck"
         style={{ '--side': color ?? 'var(--color-primary)' } as CSSProperties}
-        className="mt-auto flex min-h-0 flex-col gap-1.5"
+        className="mt-auto flex min-h-0 flex-col gap-1.5 tall:xl:gap-2.5"
       >
-        <ul className="flex min-h-0 flex-col gap-1.5 overflow-y-auto">
+        <ul className="flex min-h-0 flex-col gap-1.5 overflow-y-auto tall:xl:gap-2.5">
           {deck.map((slot) => {
             const info = ABILITY_INFO[slot.ability]
             const selected = aim?.ability === slot.ability
@@ -124,7 +126,7 @@ export function DeckHud({
                   disabled={!usable(slot)}
                   onClick={() => select(slot)}
                   className={[
-                    'flex w-full flex-col gap-0.5 rounded-xl border-2 px-2.5 py-1.5 text-left transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary short:px-2 short:py-1',
+                    'flex w-full flex-col gap-0.5 rounded-xl border-2 px-2.5 py-1.5 text-left transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary short:px-2 short:py-1 tall:xl:gap-1 tall:xl:px-4 tall:xl:py-3',
                     slot.usedThisRound
                       ? 'border-line bg-bg-deep/60 opacity-40'
                       : silenced
@@ -137,23 +139,23 @@ export function DeckHud({
                   ].join(' ')}
                 >
                   <span className="flex items-center justify-between gap-2">
-                    <span className="flex min-w-0 items-center gap-2">
+                    <span className="flex min-w-0 items-center gap-2 tall:xl:gap-3">
                       <AbilityIcon
                         ability={slot.ability}
-                        className="size-5 text-(--side) short:size-4"
+                        className="size-5 text-(--side) short:size-4 tall:xl:size-8"
                       />
-                      <span className="truncate font-display text-sm leading-tight font-extrabold text-(--side) uppercase short:text-xs">
+                      <span className="truncate font-display text-sm leading-tight font-extrabold text-(--side) uppercase short:text-xs tall:xl:text-xl">
                         {info.name}
                       </span>
                     </span>
                     {slot.source === 'DRAWN' && (
-                      <span className="shrink-0 rounded-full border border-coin/60 px-1.5 py-0.5 font-display text-[0.625rem] font-bold text-coin uppercase">
+                      <span className="shrink-0 rounded-full border border-coin/60 px-1.5 py-0.5 font-display text-[0.625rem] font-bold text-coin uppercase tall:xl:px-2.5 tall:xl:text-xs">
                         Sorteada
                       </span>
                     )}
                   </span>
                   <span
-                    className={`font-display text-[0.625rem] font-semibold tracking-wide uppercase short:text-[0.625rem] ${silenced && !slot.usedThisRound ? 'text-danger' : 'text-text-muted'}`}
+                    className={`font-display text-[0.625rem] font-semibold tracking-wide uppercase short:text-[0.625rem] tall:xl:text-sm ${silenced && !slot.usedThisRound ? 'text-danger' : 'text-text-muted'}`}
                   >
                     {status}
                   </span>
@@ -167,17 +169,17 @@ export function DeckHud({
         </ul>
 
         {deck.length > 0 && !ready && (
-          <p role="status" className="text-center text-xs text-text-muted">
+          <p role="status" className="text-center text-xs text-text-muted tall:xl:text-sm">
             {ABILITY_TEXTS.deck.waitingDeck}
           </p>
         )}
         {silenced && canUse && (
-          <p role="status" className="text-center text-xs text-danger">
+          <p role="status" className="text-center text-xs text-danger tall:xl:text-sm">
             {ABILITY_TEXTS.deck.silenced}
           </p>
         )}
         {pending && (
-          <p role="status" className="text-center text-xs text-text-muted">
+          <p role="status" className="text-center text-xs text-text-muted tall:xl:text-sm">
             {ABILITY_TEXTS.deck.waitingConfirmation}
           </p>
         )}

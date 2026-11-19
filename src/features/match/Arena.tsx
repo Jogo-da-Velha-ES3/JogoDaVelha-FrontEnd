@@ -161,27 +161,27 @@ export function Arena({ onQuit }: ArenaProps) {
     <>
       {/* Na entrada da Morte Súbita a Arena inteira treme (sem tremor com "reduzir movimento") */}
       <div
-        className={`relative grid h-full min-h-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-3 short:gap-2 ${enteringSuddenDeath ? 'motion-safe:animate-sd-shake' : ''}`}
+        className={`relative grid h-full min-h-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-3 short:gap-2 tall:gap-5 ${enteringSuddenDeath ? 'motion-safe:animate-sd-shake' : ''}`}
       >
         {/* ── Coluna esquerda: pausa, rótulo do round, faixas, Vitão ── */}
         <aside
           aria-label="Jogadores"
-          className="flex min-h-0 min-w-0 flex-col gap-2 pl-3 short:pl-2"
+          className="flex min-h-0 min-w-0 flex-col gap-2 pl-3 short:pl-2 tall:gap-4 tall:pl-5"
         >
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 tall:gap-3">
             {/* Botão de pausa — só nas fases ativas (z-[5]: fica clicável por cima do sorteio) */}
             {showPauseButton && (
               <button
                 type="button"
                 aria-label="Pausa"
                 onClick={() => setPauseOpen(true)}
-                className="relative z-[5] grid size-8 shrink-0 place-items-center rounded-lg border border-line font-mono text-sm text-text-muted transition hover:border-line hover:text-primary focus-visible:outline-2 focus-visible:outline-primary"
+                className="relative z-[5] grid size-8 shrink-0 place-items-center rounded-lg border border-line font-mono text-sm text-text-muted transition hover:border-line hover:text-primary focus-visible:outline-2 focus-visible:outline-primary tall:size-11"
               >
-                <PauseIcon className="size-4" />
+                <PauseIcon className="size-4 tall:size-5" />
               </button>
             )}
             <p
-              className={`font-display text-sm font-bold tracking-wide uppercase ${suddenDeath ? 'text-danger' : 'text-text-muted'}`}
+              className={`font-display text-sm font-bold tracking-wide uppercase tall:text-lg ${suddenDeath ? 'text-danger' : 'text-text-muted'}`}
             >
               {roundLabel}
             </p>
@@ -233,14 +233,14 @@ export function Arena({ onQuit }: ArenaProps) {
         {/* ── Coluna direita: subtexto de vez + deck (o timer do turno fica na faixa) ── */}
         <aside
           aria-label="Turno e habilidades"
-          className="flex min-h-0 min-w-0 flex-col gap-2 pr-3 short:pr-2"
+          className="flex min-h-0 min-w-0 flex-col gap-2 pr-3 short:pr-2 tall:gap-4 tall:pr-5"
         >
           {/* Timer gigante da Morte Súbita — no topo da coluna, antes do indicador de vez */}
           {suddenDeath && phase === 'PLAYING' && (
             <p
               role="timer"
               aria-live="polite"
-              className="self-start font-display text-[3.875rem] leading-[0.85] font-bold text-danger tabular-nums short:text-[2.625rem]"
+              className="self-start font-display text-[3.875rem] leading-[0.85] font-bold text-danger tabular-nums short:text-[2.625rem] tall:text-[6rem]"
               style={{
                 // Brilho vermelho e as cores dos dois personagens deslocadas (efeito do esboço)
                 textShadow: `0 0 18px var(--color-danger), 3px 0 color-mix(in srgb, ${colorOf(characters[opp]) ?? 'var(--color-primary)'} 50%, transparent), -3px 0 color-mix(in srgb, ${colorOf(characters[me]) ?? 'var(--color-primary)'} 55%, transparent)`,
@@ -258,20 +258,22 @@ export function Arena({ onQuit }: ArenaProps) {
                   {/* "SUA VEZ" em display + subtítulo instrucional
                       Na Morte Súbita: só "SUA VEZ" em vermelho, sem subtítulo (menos a mira) */}
                   <p
-                    className={`font-display text-xl leading-tight font-extrabold uppercase short:text-lg ${suddenDeath ? 'text-danger' : ''}`}
+                    className={`font-display text-xl leading-tight font-extrabold uppercase short:text-lg tall:text-3xl ${suddenDeath ? 'text-danger' : ''}`}
                     style={suddenDeath ? undefined : { color: turnColor }}
                   >
                     {T.turn.yours}
                   </p>
                   {turnHint && (hint || !suddenDeath) && (
-                    <p className="mt-0.5 font-body text-xs text-text-muted">{turnHint}</p>
+                    <p className="mt-0.5 font-body text-xs text-text-muted tall:mt-1 tall:text-base">
+                      {turnHint}
+                    </p>
                   )}
                   {/* Passar a vez: depois de jogar ou usar a habilidade, sem esperar o prazo */}
                   {showEndTurn && (
                     <Button
                       size="sm"
                       variant="secondary"
-                      className="mt-1.5"
+                      className="mt-1.5 tall:mt-3"
                       disabled={sentIntent !== null}
                       onClick={() => send('END_TURN', { type: 'END_TURN', payload: {} })}
                     >
@@ -283,7 +285,7 @@ export function Arena({ onQuit }: ArenaProps) {
                 /* "Vez de [Nome]…" quando é vez do adversário
                    Na Morte Súbita: "VEZ DE [NOME]…" em vermelho */
                 <p
-                  className={`truncate font-display text-xl leading-tight font-extrabold uppercase short:text-lg ${suddenDeath ? 'text-danger' : ''}`}
+                  className={`truncate font-display text-xl leading-tight font-extrabold uppercase short:text-lg tall:text-3xl ${suddenDeath ? 'text-danger' : ''}`}
                   style={suddenDeath ? undefined : { color: turnColor }}
                   title={player(opp)?.nickname}
                 >
@@ -293,7 +295,10 @@ export function Arena({ onQuit }: ArenaProps) {
             </div>
           )}
           {phase === 'ROUND_DRAW' && (
-            <p role="status" className="font-display text-lg leading-tight font-bold uppercase">
+            <p
+              role="status"
+              className="font-display text-lg leading-tight font-bold uppercase tall:text-2xl"
+            >
               {ABILITY_TEXTS.draw.title}
             </p>
           )}

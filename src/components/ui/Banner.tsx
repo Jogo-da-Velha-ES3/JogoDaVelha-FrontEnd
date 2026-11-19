@@ -47,7 +47,7 @@ export function Banner({
           exit={{ scaleX: 0.6, opacity: 0 }}
           transition={{ duration: 0.22, ease: 'easeOut' }}
           className={[
-            'pointer-events-none border-y-2 border-(--banner-color) bg-bg-deep/85 py-2 text-center backdrop-blur-sm',
+            'pointer-events-none border-y-2 border-(--banner-color) bg-bg-deep/85 py-2 text-center backdrop-blur-sm tall:py-4',
             'shadow-glow-lg shadow-(color:--banner-color)/35',
             className,
           ].join(' ')}
@@ -57,7 +57,7 @@ export function Banner({
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.08, type: 'spring', stiffness: 520, damping: 22 }}
             className={[
-              'font-display text-5xl leading-none font-extrabold tracking-wider text-(--banner-color) uppercase short:text-4xl',
+              'font-display text-5xl leading-none font-extrabold tracking-wider text-(--banner-color) uppercase short:text-4xl tall:text-7xl',
               '[text-shadow:0_0_14px_var(--banner-color)]',
               flicker ? 'motion-safe:animate-neon-flicker' : '',
             ].join(' ')}
@@ -65,7 +65,7 @@ export function Banner({
             {title}
           </motion.p>
           {subtitle && (
-            <p className="mt-1 font-display text-lg font-semibold tracking-wide text-text uppercase short:text-base">
+            <p className="mt-1 font-display text-lg font-semibold tracking-wide text-text uppercase short:text-base tall:mt-2 tall:text-2xl">
               {subtitle}
             </p>
           )}

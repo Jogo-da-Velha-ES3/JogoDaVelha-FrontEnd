@@ -71,9 +71,9 @@ export function ShopScreen({ initialTab = 'characters' }: { initialTab?: Tab }) 
     tab !== 'cosmetics' && (tab === 'characters' ? characterItems : skillItems).length === 0
 
   return (
-    <section className="flex min-h-0 flex-1 flex-col gap-2 short:gap-1.5">
-      <div className="flex flex-wrap items-center gap-2">
-        <h1 className="font-display text-2xl font-extrabold tracking-wide text-primary uppercase short:sr-only">
+    <section className="flex min-h-0 flex-1 flex-col gap-2 short:gap-1.5 tall:gap-4">
+      <div className="flex flex-wrap items-center gap-2 tall:gap-4">
+        <h1 className="font-display text-2xl font-extrabold tracking-wide text-primary uppercase short:sr-only tall:text-4xl">
           {SHOP_TEXTS.title}
         </h1>
         <div
@@ -91,7 +91,7 @@ export function ShopScreen({ initialTab = 'characters' }: { initialTab?: Tab }) 
               aria-controls={panelId}
               onClick={() => setTab(t)}
               className={[
-                'min-h-9 rounded-lg px-3 font-display text-sm font-bold tracking-wide uppercase transition short:min-h-8 short:px-2 short:text-xs',
+                'min-h-9 rounded-lg px-3 font-display text-sm font-bold tracking-wide uppercase transition short:min-h-8 short:px-2 short:text-xs tall:min-h-11 tall:px-5 tall:text-lg',
                 tab === t
                   ? 'bg-bg-raised text-primary shadow-glow shadow-primary/20'
                   : 'text-text-muted hover:text-primary',
@@ -99,7 +99,7 @@ export function ShopScreen({ initialTab = 'characters' }: { initialTab?: Tab }) 
             >
               {SHOP_TEXTS.tabs[t]}
               {t === 'cosmetics' && (
-                <span className="ml-1 font-sans text-[0.625rem] font-normal tracking-normal normal-case">
+                <span className="ml-1 font-sans text-[0.625rem] font-normal tracking-normal normal-case tall:text-sm">
                   · {SHOP_TEXTS.soon.toLowerCase()}
                 </span>
               )}
@@ -124,14 +124,14 @@ export function ShopScreen({ initialTab = 'characters' }: { initialTab?: Tab }) 
         className="flex min-h-0 flex-1 flex-col"
       >
         {tab === 'cosmetics' ? (
-          <p className="m-auto max-w-sm text-center text-sm text-text-muted">
-            <b className="block font-display text-lg tracking-wide text-primary uppercase">
+          <p className="m-auto max-w-sm text-center text-sm text-text-muted tall:max-w-md tall:text-lg">
+            <b className="block font-display text-lg tracking-wide text-primary uppercase tall:text-3xl">
               {SHOP_TEXTS.soon}
             </b>
             {SHOP_TEXTS.cosmeticsSoon}
           </p>
         ) : empty ? (
-          <div className="m-auto flex flex-col items-center gap-2 text-center text-sm text-text-muted">
+          <div className="m-auto flex flex-col items-center gap-2 text-center text-sm text-text-muted tall:gap-4 tall:text-lg">
             {status === 'error' ? (
               <>
                 <p>{SHOP_TEXTS.loadError}</p>
@@ -267,7 +267,7 @@ function ItemCard({
           disabled={item.equipped || favorite.disabled}
           onClick={favorite.onToggle}
           className={[
-            'absolute top-1 right-1 grid size-9 place-items-center rounded-full transition',
+            'absolute top-1 right-1 grid size-9 place-items-center rounded-full transition tall:top-2 tall:right-2 tall:size-11',
             'focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-default',
             item.equipped
               ? 'text-primary drop-shadow-[0_0_6px_var(--color-primary)]'
@@ -275,13 +275,13 @@ function ItemCard({
             favorite.pending ? 'animate-pulse text-primary' : '',
           ].join(' ')}
         >
-          <HeartIcon filled={item.equipped} className="size-5" />
+          <HeartIcon filled={item.equipped} className="size-5 tall:size-7" />
         </button>
       )}
 
-      <div className="shrink-0 px-2 pb-2 short:px-1.5 short:pb-1.5">
+      <div className="shrink-0 px-2 pb-2 short:px-1.5 short:pb-1.5 tall:px-3 tall:pb-3">
         {state.kind === 'OWNED' ? (
-          <p className="flex min-h-8 items-center justify-center rounded-lg bg-bg-raised font-display text-xs font-bold tracking-wide text-text-muted uppercase">
+          <p className="flex min-h-8 items-center justify-center rounded-lg bg-bg-raised font-display text-xs font-bold tracking-wide text-text-muted uppercase tall:min-h-10 tall:text-sm">
             {SHOP_TEXTS.owned}
           </p>
         ) : (
@@ -350,15 +350,19 @@ function ItemModal({
       }
     >
       {item && (
-        <div className="flex items-center gap-4 short:gap-3">
+        <div className="flex items-center gap-4 short:gap-3 tall:gap-7">
           {isCharacter(item) ? (
-            <Character id={item.code} animated className="h-36 w-auto shrink-0 short:h-28" />
+            <Character
+              id={item.code}
+              animated
+              className="h-36 w-auto shrink-0 short:h-28 tall:h-52"
+            />
           ) : (
             <SkillDemo ability={item.code} label={SHOP_TEXTS.demoLabel(item.name)} />
           )}
-          <div className="flex min-w-0 flex-col gap-1 text-sm">
+          <div className="flex min-w-0 flex-col gap-1 text-sm tall:gap-2 tall:text-lg">
             {!isCharacter(item) && (
-              <span className="text-xs text-text-muted">
+              <span className="text-xs text-text-muted tall:text-sm">
                 {SHOP_TEXTS.kinds[ABILITY_INFO[item.code].kind]}
               </span>
             )}
@@ -425,8 +429,8 @@ function ConfirmModal({
     >
       {item && (
         <div className="flex items-center gap-3">
-          <ItemVisual item={item} className="h-14 w-auto shrink-0" />
-          <p className="text-sm">
+          <ItemVisual item={item} className="h-14 w-auto shrink-0 tall:h-20" />
+          <p className="text-sm tall:text-lg">
             {SHOP_TEXTS.confirmBody(item.priceCoins, (balance ?? 0) - item.priceCoins)}
           </p>
         </div>

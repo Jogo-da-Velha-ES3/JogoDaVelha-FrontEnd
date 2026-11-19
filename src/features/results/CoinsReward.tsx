@@ -65,13 +65,13 @@ export function CoinsReward({ amount, countUp }: CoinsRewardProps) {
   }, [running, first])
 
   if (amount === undefined) {
-    return <p className="font-mono text-coin/70">Coins já creditados</p>
+    return <p className="font-mono text-coin/70 tall:text-lg">Coins já creditados</p>
   }
 
   const zero = amount === 0
   return (
     <p
-      className={`flex flex-wrap items-baseline justify-center gap-x-2 text-[clamp(1rem,calc(var(--u)*0.05),1.75rem)] ${zero ? 'opacity-60' : ''}`}
+      className={`flex flex-wrap items-baseline justify-center gap-x-2 text-[clamp(1rem,calc(var(--u)*0.05),1.75rem)] tall:text-[clamp(1.25rem,calc(var(--u)*0.065),2.75rem)] ${zero ? 'opacity-60' : ''}`}
     >
       <span className="sr-only">{zero ? '0 Coins' : `+${amount} Coins`}</span>
       <span aria-hidden="true" className="inline-flex items-center gap-1.5 font-mono text-coin">

@@ -56,10 +56,10 @@ export function PauseOverlay({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 6 }}
             transition={{ type: 'spring', stiffness: 420, damping: 32 }}
-            className="absolute inset-x-[18%] top-1/2 z-10 -translate-y-1/2 rounded-2xl border border-line bg-bg-panel p-3 shadow-glow-lg short:inset-x-[12%] short:p-2.5"
+            className="absolute inset-x-[18%] top-1/2 z-10 -translate-y-1/2 rounded-2xl border border-line bg-bg-panel p-3 shadow-glow-lg short:inset-x-[12%] short:p-2.5 tall:mx-auto tall:max-w-2xl tall:p-6"
           >
             {/* Título */}
-            <p className="mb-2 font-display text-base font-bold tracking-widest uppercase text-text">
+            <p className="mb-2 font-display text-base font-bold tracking-widest uppercase text-text tall:mb-4 tall:text-2xl">
               Menu
             </p>
 
@@ -69,11 +69,11 @@ export function PauseOverlay({
               color={timerColor}
               warnAtSeconds={isMyTurn ? 3 : 0}
               label="Timer do turno (continua durante a pausa)"
-              className="mb-3"
+              className="mb-3 tall:mb-5"
             />
 
             {/* 4 botões em grid 2×2 */}
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2 tall:gap-3">
               <Button variant="primary" size="sm" block onClick={onClose}>
                 Voltar ao Jogo
               </Button>

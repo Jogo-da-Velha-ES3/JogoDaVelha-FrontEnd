@@ -101,15 +101,15 @@ export function RematchPanel({ onLeave, className = '' }: RematchPanelProps) {
     <div
       role="group"
       aria-label="Revanche"
-      className={`flex w-full max-w-sm flex-col items-center gap-2 ${className}`}
+      className={`flex w-full max-w-sm flex-col items-center gap-2 tall:max-w-md tall:gap-3 ${className}`}
     >
       {status && (
         <p
           role="status"
           className={
             askedByOpponent
-              ? 'font-display text-xl font-bold tracking-wide uppercase'
-              : 'text-sm text-text-muted'
+              ? 'font-display text-xl font-bold tracking-wide uppercase tall:text-3xl'
+              : 'text-sm text-text-muted tall:text-lg'
           }
         >
           {status}
@@ -118,7 +118,7 @@ export function RematchPanel({ onLeave, className = '' }: RematchPanelProps) {
 
       {pending && (
         <TimerBar
-          className="w-56"
+          className="w-56 tall:w-80"
           deadline={{
             startedAt: pending.deadline - REMATCH_WINDOW_SECONDS * 1000,
             durationSeconds: REMATCH_WINDOW_SECONDS,
@@ -127,7 +127,7 @@ export function RematchPanel({ onLeave, className = '' }: RematchPanelProps) {
         />
       )}
 
-      <div className="flex flex-wrap justify-center gap-2">
+      <div className="flex flex-wrap justify-center gap-2 tall:gap-3">
         {askedByOpponent ? (
           <>
             <Button
