@@ -13,6 +13,13 @@ const isRecord = (value: unknown): value is Payload =>
 const text = (value: unknown) => (typeof value === 'string' ? value : null)
 const cell = (value: unknown) => (typeof value === 'number' ? value : null)
 
+/** `turn.actions` do BOARD_UPDATE e do ABILITY_RESOLVED: o que o jogador da vez já fez (BE-046) */
+const turnActions = (turn: unknown) =>
+  isRecord(turn) && isRecord(turn.actions)
+    ? { abilityUsed: turn.actions.abilityUsed === true, moveUsed: turn.actions.moveUsed === true }
+    : undefined
+const version = (value: unknown) => (typeof value === 'number' ? value : undefined)
+
 /**
  * Aceita o envelope `{ type, payload, serverTime }` (ou `timestamp`, do `GameMessage` antigo) e o
  * erro da fila `/user/queue/errors`, que vem no formato do REST (`{ code, message, timestamp }`, sem
@@ -80,7 +87,22 @@ function translatePayload(type: string, payload: Payload): Payload | null {
         destinationCell: cell(payload.destinationPosition),
         absorbed: payload.absorbed === true,
         noEffect: payload.noEffect === true,
+        actions: turnActions(payload.turn),
+        stateVersion: version(payload.stateVersion),
       }
+
+    case 'BOARD_UPDATE':
+      return {
+        board: payload.board,
+        actions: turnActions(payload.turn),
+        stateVersion: version(payload.stateVersion),
+      }
+
+    case 'TURN_TIMEOUT':
+      // O prazo acabou depois de uma jogada ou habilidade: o turno termina normalmente, sem
+      // estouro, e o back manda o contador em 0 (BE-046). Não é "perdeu a vez": o TURN_START do
+      // próximo vem logo atrás
+      return payload.consecutiveTimeouts === 0 ? null : payload
 
     case 'ROUND_END':
       // Empate não traz `winningLine`

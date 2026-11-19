@@ -47,7 +47,17 @@ function setup(
   const move = (cell: number, slot: PlayerSlot = 'P1') =>
     send({ type: 'MOVE', payload: { cell } }, slot)
   const turnOf = () => last('TURN_START')?.player
-  return { server, events, all, last, phases, send, move, turnOf }
+  /**
+   * Joga e passa a vez: o turno só acaba sozinho com a jogada e a habilidade (BE-046). Jogada
+   * recusada ou que encerrou o round não tem vez para passar
+   */
+  const play = (cell: number, slot: PlayerSlot = 'P1') => {
+    const errors = all('ERROR').length
+    move(cell, slot)
+    if (all('ERROR').length > errors || phases().at(-1) !== 'PLAYING') return
+    send({ type: 'END_TURN', payload: {} }, slot)
+  }
+  return { server, events, all, last, phases, send, move, play, turnOf }
 }
 
 type Ctx = ReturnType<typeof setup>
@@ -90,8 +100,8 @@ function toSecondDraw(ctx: Ctx) {
     [1, 9],
     [2, 10],
   ]) {
-    ctx.move(mine)
-    ctx.move(bot, 'P2')
+    ctx.play(mine)
+    ctx.play(bot, 'P2')
   }
   ctx.move(3)
   expect(ctx.last('ROUND_END')?.winner).toBe('P1')
@@ -102,7 +112,7 @@ function toSecondDraw(ctx: Ctx) {
 
 /** Se a vez for do P2, ele joga numa casa inofensiva para devolver a vez ao P1 */
 function ensureMyTurn(ctx: Ctx, botCell = 15) {
-  if (ctx.turnOf() === 'P2') ctx.move(botCell, 'P2')
+  if (ctx.turnOf() === 'P2') ctx.play(botCell, 'P2')
   expect(ctx.turnOf()).toBe('P1')
 }
 
@@ -198,8 +208,17 @@ describe('round', () => {
 
     ctx.move(0)
     expect(ctx.last('BOARD_UPDATE')?.board[0].owner).toBe('P1')
-    expect(ctx.turnOf()).toBe('P2')
+    expect(ctx.last('BOARD_UPDATE')?.actions).toEqual({ moveUsed: true, abilityUsed: false })
+    // A jogada não passa a vez: ainda dá para usar a habilidade no mesmo turno (BE-046)
+    expect(ctx.turnOf()).toBe('P1')
+    ctx.move(1)
+    expect(ctx.last('ERROR')?.code).toBe('MOVE_ALREADY_USED')
 
+    ctx.send({ type: 'END_TURN', payload: {} })
+    expect(ctx.last('TURN_START')).toMatchObject({
+      player: 'P2',
+      actions: { moveUsed: false, abilityUsed: false },
+    })
     ctx.move(1)
     expect(ctx.last('ERROR')?.code).toBe('NOT_YOUR_TURN')
 
@@ -209,7 +228,7 @@ describe('round', () => {
     expect(ctx.all('BOARD_UPDATE')).toHaveLength(boards)
     expect(ctx.turnOf()).toBe('P2')
 
-    ctx.move(7, 'P2')
+    ctx.play(7, 'P2')
     ctx.move(7)
     expect(ctx.last('ERROR')?.code).toBe('CELL_TAKEN')
   })
@@ -223,9 +242,10 @@ describe('round', () => {
       [1, 13],
       [2, 14],
     ]) {
-      ctx.move(mine)
-      ctx.move(bot, 'P2')
+      ctx.play(mine)
+      ctx.play(bot, 'P2')
     }
+    // A jogada que fecha a linha encerra o round na hora, sem esperar a habilidade
     ctx.move(3)
     expect(ctx.last('ROUND_END')).toEqual({
       round: 1,
@@ -320,7 +340,7 @@ describe('estouros e W.O. [RN-ARN-01]', () => {
     for (let i = 1; i <= 3; i++) {
       vi.advanceTimersByTime(TURN_DURATION_SECONDS * 1000) // meu tempo acaba
       expect(ctx.last('TURN_TIMEOUT')).toEqual({ player: 'P1', consecutiveTimeouts: i })
-      if (i < 3) ctx.move(10 + i, 'P2')
+      if (i < 3) ctx.play(10 + i, 'P2')
     }
     expect(ctx.last('MATCH_END')).toEqual({
       outcome: { kind: 'WO', winner: 'P2' },
@@ -335,9 +355,9 @@ describe('estouros e W.O. [RN-ARN-01]', () => {
     ensureMyTurn(ctx)
     vi.advanceTimersByTime(TURN_DURATION_SECONDS * 1000)
     expect(ctx.last('TURN_START')?.consecutiveTimeouts.P1).toBe(1)
-    ctx.move(12, 'P2')
-    ctx.move(0)
-    ctx.move(13, 'P2')
+    ctx.play(12, 'P2')
+    ctx.play(0)
+    ctx.play(13, 'P2')
     expect(ctx.last('TURN_START')).toMatchObject({ player: 'P1', consecutiveTimeouts: { P1: 0 } })
   })
 
@@ -350,8 +370,8 @@ describe('estouros e W.O. [RN-ARN-01]', () => {
       [9, 1],
       [10, 2],
     ]) {
-      ctx.move(mine)
-      ctx.move(bot, 'P2')
+      ctx.play(mine)
+      ctx.play(bot, 'P2')
     }
     vi.advanceTimersByTime(TURN_DURATION_SECONDS * 1000) // P1: 1/3, sem agir depois
     ctx.move(3, 'P2') // bot completa a linha
@@ -366,7 +386,7 @@ describe('estouros e W.O. [RN-ARN-01]', () => {
     toFirstTurn(ctx)
     ensureMyTurn(ctx)
     for (const cell of [5, 6, 9]) {
-      ctx.move(cell)
+      ctx.play(cell)
       vi.advanceTimersByTime(TURN_DURATION_SECONDS * 1000) // o bot estoura
     }
     expect(ctx.last('MATCH_END')?.outcome).toEqual({ kind: 'WO', winner: 'P1' })
@@ -374,43 +394,69 @@ describe('estouros e W.O. [RN-ARN-01]', () => {
 })
 
 describe('habilidades no servidor', () => {
-  it('uma vez por round, consome o turno e atualiza o deck', () => {
+  it('uma vez por round, e a habilidade e a jogada no mesmo turno, em qualquer ordem', () => {
     const ctx = setup()
     toFirstTurn(ctx)
     ensureMyTurn(ctx, 15)
-    ctx.move(0)
-    ctx.move(5, 'P2')
+    ctx.play(0)
+    ctx.play(5, 'P2')
     ctx.send({ type: 'USE_ABILITY', payload: { ability: 'BOMBA', targetCell: 5 } })
     expect(ctx.last('ABILITY_RESOLVED')).toMatchObject({
       by: 'P1',
       ability: 'BOMBA',
       targetCell: 5,
+      actions: { abilityUsed: true, moveUsed: false },
     })
     expect(ctx.last('BOARD_UPDATE')?.board[5].owner).toBeNull()
     expect(ctx.last('DECK_UPDATE')?.deck.find((d) => d.ability === 'BOMBA')?.usedThisRound).toBe(
       true,
     )
+    // Ainda falta a jogada: o turno continua, com o mesmo prazo, e só 1 habilidade por turno
+    expect(ctx.turnOf()).toBe('P1')
+    const turns = ctx.all('TURN_START').length
+    ctx.send({ type: 'USE_ABILITY', payload: { ability: 'SILENCIO' } })
+    expect(ctx.last('ERROR')?.code).toBe('SKILL_ACTION_ALREADY_USED')
+
+    // A jogada fecha o turno: os eventos já saem com as ações zeradas, e vem o turno do outro
+    ctx.move(1)
+    expect(ctx.last('BOARD_UPDATE')?.actions).toEqual({ abilityUsed: false, moveUsed: false })
+    expect(ctx.all('TURN_START')).toHaveLength(turns + 1)
     expect(ctx.turnOf()).toBe('P2')
 
-    ctx.move(6, 'P2')
+    ctx.play(6, 'P2')
     ctx.send({ type: 'USE_ABILITY', payload: { ability: 'BOMBA', targetCell: 6 } })
     expect(ctx.last('ERROR')?.code).toBe('ABILITY_UNAVAILABLE')
+  })
+
+  it('passar a vez só depois de agir; o prazo depois de uma ação não é estouro', () => {
+    const ctx = setup()
+    toFirstTurn(ctx)
+    ensureMyTurn(ctx, 15)
+    ctx.send({ type: 'END_TURN', payload: {} })
+    expect(ctx.last('ERROR')?.code).toBe('END_TURN_WITHOUT_ACTION')
+    expect(ctx.turnOf()).toBe('P1')
+
+    ctx.move(0)
+    vi.advanceTimersByTime(TURN_DURATION_SECONDS * 1000)
+    expect(ctx.all('TURN_TIMEOUT')).toHaveLength(0)
+    expect(ctx.last('TURN_START')).toMatchObject({ player: 'P2', consecutiveTimeouts: { P1: 0 } })
   })
 
   it('Silêncio do oponente impede você de usar habilidade só no turno seguinte', () => {
     const ctx = setup()
     toFirstTurn(ctx, ['SILENCIO', 'ESCUDO'])
-    if (ctx.turnOf() === 'P1') ctx.move(0)
-    ctx.move(5, 'P2')
-    ctx.move(1)
+    if (ctx.turnOf() === 'P1') ctx.play(0)
+    ctx.play(5, 'P2')
+    ctx.play(1)
     ctx.send({ type: 'USE_ABILITY', payload: { ability: 'SILENCIO' } }, 'P2')
     expect(ctx.last('ABILITY_RESOLVED')).toMatchObject({ by: 'P2', ability: 'SILENCIO' })
+    ctx.send({ type: 'END_TURN', payload: {} }, 'P2')
 
     ctx.send({ type: 'USE_ABILITY', payload: { ability: 'BOMBA', targetCell: 5 } })
     expect(ctx.last('ERROR')?.code).toBe('SILENCED')
-    ctx.move(2) // jogar peça continua valendo
+    ctx.play(2) // jogar peça continua valendo
 
-    ctx.move(6, 'P2')
+    ctx.play(6, 'P2')
     ctx.send({ type: 'USE_ABILITY', payload: { ability: 'BOMBA', targetCell: 5 } })
     expect(ctx.last('ABILITY_RESOLVED')).toMatchObject({ by: 'P1', ability: 'BOMBA' })
   })
@@ -470,7 +516,7 @@ describe('queda e volta (FE-20)', () => {
   function playUntilMatchEnd(ctx: Ctx) {
     const mine = [0, 5, 10, 3, 6]
     for (let i = 0; i < 12 && !ctx.last('MATCH_END'); i++) {
-      if (ctx.turnOf() === 'P1') ctx.move(mine.shift()!)
+      if (ctx.turnOf() === 'P1') ctx.play(mine.shift()!)
       else vi.advanceTimersByTime(TURN_DURATION_SECONDS * 1000)
     }
   }
@@ -490,17 +536,18 @@ describe('queda e volta (FE-20)', () => {
   it('?queda=volta: perde o turno em que caiu, volta e joga de novo', () => {
     const ctx = setup(SCENARIOS.normal, 7, { botDrop: 'volta' })
     toFirstTurn(ctx)
-    if (ctx.turnOf() === 'P1') ctx.move(0) // o bot cai quando chega o primeiro turno dele
+    if (ctx.turnOf() === 'P1') ctx.play(0) // o bot cai quando chega o primeiro turno dele
     expect(ctx.last('PLAYER_DISCONNECTED')).toEqual({ slot: 'P2' })
 
     vi.advanceTimersByTime(MOCK_TIMINGS.botReconnect)
     expect(ctx.last('TURN_TIMEOUT')).toEqual({ player: 'P2', consecutiveTimeouts: 1 })
     expect(ctx.last('PLAYER_RECONNECTED')).toEqual({ slot: 'P2' })
 
-    // De volta, ele age no turno seguinte (jogada ou habilidade) e a vez volta sem estouro
-    ctx.move(5)
+    // De volta, ele age no turno seguinte (a habilidade e depois a jogada, ou só a jogada e passa
+    // a vez) e a vez volta sem estouro
+    ctx.play(5)
     expect(ctx.turnOf()).toBe('P2')
-    vi.advanceTimersByTime(MOCK_TIMINGS.botThinkMax)
+    vi.advanceTimersByTime(2 * MOCK_TIMINGS.botThinkMax)
     expect(ctx.turnOf()).toBe('P1')
     expect(ctx.all('TURN_TIMEOUT')).toHaveLength(1)
   })
@@ -509,7 +556,7 @@ describe('queda e volta (FE-20)', () => {
     const ctx = setup()
     toFirstTurn(ctx)
     ensureMyTurn(ctx)
-    ctx.move(0)
+    ctx.move(0) // joga e cai antes de usar a habilidade
     ctx.server.disconnect('P1')
     expect(ctx.last('PLAYER_DISCONNECTED')).toEqual({ slot: 'P1' })
 
@@ -520,7 +567,8 @@ describe('queda e volta (FE-20)', () => {
       phase: 'PLAYING',
       mySlot: 'P1',
       round: 1,
-      turn: { player: 'P2' },
+      // Volta no meio do turno, com a jogada feita e a habilidade ainda livre (BE-046)
+      turn: { player: 'P1', actions: { moveUsed: true, abilityUsed: false } },
       draft: null,
       drawOptions: null,
     })

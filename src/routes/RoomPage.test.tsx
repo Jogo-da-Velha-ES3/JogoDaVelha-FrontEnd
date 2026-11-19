@@ -31,6 +31,14 @@ async function toPlaying() {
   await tick(DRAW_PICK_SECONDS * 1000 + NET) // sorteio da 3ª
 }
 
+/** Joga na primeira casa livre e passa a vez, sem esperar o prazo (BE-046) */
+async function playAndPass() {
+  fireEvent.click(emptyCells()[0])
+  await tick(NET)
+  fireEvent.click(screen.getByRole('button', { name: 'Passar a vez' }))
+  await tick(NET)
+}
+
 async function waitForMyTurn() {
   for (let i = 0; i < 10 && !screen.queryByText('Sua vez'); i++) await tick(1500)
   expect(screen.getByText('Sua vez')).toBeInTheDocument()
@@ -97,9 +105,12 @@ describe('reconexão (FE-20)', () => {
 
     await tick(3000 + NET)
     expect(screen.queryByText('Reconectando…')).not.toBeInTheDocument()
-    // O snapshot remontou a partida: a sua peça continua lá e o turno do oponente segue
+    // O snapshot remontou a partida: a sua peça continua lá e o turno segue de onde parou, com a
+    // jogada feita e a habilidade ainda livre (BE-046)
     expect(empty()).toBe(15)
-    expect(screen.getByText('Vez de Oponente Simulado…')).toBeInTheDocument()
+    expect(screen.getByText('Sua vez')).toBeInTheDocument()
+    expect(emptyCells()).toHaveLength(0)
+    expect(screen.getByRole('button', { name: 'Passar a vez' })).toBeEnabled()
   })
 })
 
@@ -155,12 +166,22 @@ describe('Arena', () => {
 
     const before = emptyCells().length
     fireEvent.click(emptyCells()[0])
-    expect(emptyCells()).toHaveLength(before) // ainda sem resposta
+    // Sem resposta: o tabuleiro não muda, e nenhuma casa aceita um segundo toque até ela chegar
+    expect(within(board()).getAllByRole('img', { name: /vazia/ })).toHaveLength(before)
+    expect(emptyCells()).toHaveLength(0)
 
     await tick(NET)
-    expect(screen.getByText(/Vez de .*/)).toBeInTheDocument()
-    expect(emptyCells()).toHaveLength(0) // vez do oponente: nada clicável
+    // A jogada não passa a vez: a habilidade continua livre no mesmo turno (BE-046)
     expect(within(board()).getAllByRole('img', { name: /vazia/ })).toHaveLength(before - 1)
+    expect(emptyCells()).toHaveLength(0)
+    expect(screen.getByText('Use uma habilidade ou passe a vez')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Passar a vez' }))
+    expect(screen.getByRole('button', { name: 'Passando…' })).toBeDisabled()
+    await tick(NET)
+    expect(screen.getByText(/Vez de .*/)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Passar a vez/ })).not.toBeInTheDocument()
+    expect(emptyCells()).toHaveLength(0) // vez do oponente: nada clicável
     expect(screen.getByRole('progressbar', { name: 'Tempo do turno' })).toBeInTheDocument()
     expect(screen.queryByRole('progressbar', { name: 'Seu tempo' })).not.toBeInTheDocument()
   })
@@ -184,7 +205,7 @@ describe('Arena', () => {
     // Quem começa é sorteado: o W.O. vem depois de 2 ou 3 jogadas suas
     const woBanner = () => screen.queryByText('Vitória por W.O.', { selector: 'p' })
     for (let i = 0; i < 5 && !woBanner(); i++) {
-      if (screen.queryByText('Sua vez')) fireEvent.click(emptyCells()[0])
+      if (screen.queryByText('Sua vez')) await playAndPass()
       await tick(NET + TURN_DURATION_SECONDS * 1000) // o bot estoura
     }
 

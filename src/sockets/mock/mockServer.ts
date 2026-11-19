@@ -30,6 +30,7 @@ import {
   scoreOf,
   startingPlayer,
 } from '../../lib/match'
+import { END_TURN_WITHOUT_ACTION } from '../../lib/roomErrors'
 import { evaluateBoard } from '../../lib/winCheck'
 import type {
   AbilityId,
@@ -41,6 +42,7 @@ import type {
   PlayerState,
   RoomPhase,
   RoomSnapshot,
+  TurnActions,
   TurnState,
 } from '../../types/game'
 import type {
@@ -107,6 +109,8 @@ export interface MockServerOptions {
   random?: () => number
 }
 
+const noActions = (): TurnActions => ({ abilityUsed: false, moveUsed: false })
+
 /** Deck completo: a carta do sorteio precisa entrar no lugar de outra */
 const isDeckFull = (p: MockPlayer) => p.deck.length >= DECK_SIZE
 
@@ -139,6 +143,8 @@ export class MockGameServer {
   private cells: Cell[] = emptyCells()
   private shieldOwners: ShieldOwners = {}
   private turn: TurnState | null = null
+  /** O que o jogador da vez já fez: 1 jogada e 1 habilidade por turno, em qualquer ordem (BE-046) */
+  private turnActions: TurnActions = noActions()
   private hourglassFor: PlayerSlot | null = null
   private draftDeadline = 0
   private drawDeadline = 0
@@ -196,7 +202,7 @@ export class MockGameServer {
       round: this.round,
       suddenDeath: this.suddenDeath,
       board: this.cells,
-      turn: this.turn,
+      turn: this.turn && { ...this.turn, actions: { ...this.turnActions } },
       myDeck: this.round > 0 ? this.deckOf(slot) : [],
       outcome: this.outcome,
       serverTime: Date.now(),
@@ -348,6 +354,8 @@ export class MockGameServer {
         return this.pickDraw(slot, command.payload.ability, command.payload.abilityToRemove)
       case 'MOVE':
         return this.move(slot, command.payload.cell)
+      case 'END_TURN':
+        return this.endTurnByChoice(slot)
       case 'USE_ABILITY': {
         const { ability, targetCell, destinationCell } = command.payload
         return this.useAbility(slot, ability, targetCell, destinationCell)
@@ -601,12 +609,14 @@ export class MockGameServer {
     if (slot === 'P1' && this.scenario.youIdle) durationSeconds = MOCK_TIMINGS.youIdleTurn / 1000
 
     this.turn = { player: slot, startedAt: Date.now(), durationSeconds }
+    this.turnActions = noActions()
     this.emit('TURN_START', {
       ...this.turn,
       consecutiveTimeouts: {
         P1: this.player('P1').consecutiveTimeouts,
         P2: this.player('P2').consecutiveTimeouts,
       },
+      actions: noActions(),
     })
     this.turnTimer = this.later(durationSeconds * 1000, () => this.timeout(slot))
 
@@ -618,12 +628,18 @@ export class MockGameServer {
       if (drop === 'volta') this.later(MOCK_TIMINGS.botReconnect, () => this.reconnect('P2'))
     }
 
-    if (slot === 'P2' && !this.scenario.botIdle) {
-      const { botThinkMin: min, botThinkMax: max } = MOCK_TIMINGS
-      this.later(min + this.random() * (max - min), () => this.botAct())
-    }
+    if (slot === 'P2' && !this.scenario.botIdle) this.botThink()
   }
 
+  private botThink() {
+    const { botThinkMin: min, botThinkMax: max } = MOCK_TIMINGS
+    this.later(min + this.random() * (max - min), () => this.botAct())
+  }
+
+  /**
+   * O robô no turno dele: às vezes usa uma habilidade e depois joga. Se só jogou, passa a vez em
+   * seguida, em vez de esperar o prazo (BE-046)
+   */
   private botAct() {
     if (this.phase !== 'PLAYING' || this.turn?.player !== 'P2') return
     if (!this.player('P2').connected) return // caído: o turno estoura sozinho
@@ -632,17 +648,26 @@ export class MockGameServer {
       shieldOwners: this.shieldOwners,
       me: 'P2' as const,
       deck: this.deckOf('P2'),
-      silenced: this.player('P2').silenced,
+      // Com a habilidade do turno já usada, só falta jogar
+      silenced: this.player('P2').silenced || this.turnActions.abilityUsed,
       random: this.random,
     }
     const action = chooseBotAction(input)
     if (action?.kind === 'ABILITY') {
-      if (this.useAbility('P2', action.ability, action.targetCell)) return
+      // Aceita: a jogada vem depois, no mesmo turno
+      if (this.useAbility('P2', action.ability, action.targetCell)) return this.botThink()
       const fallback = chooseBotAction({ ...input, abilityChance: 0 })
-      if (fallback?.kind === 'MOVE') this.move('P2', fallback.cell)
+      if (fallback?.kind === 'MOVE') this.botMove(fallback.cell)
       return
     }
-    if (action) this.move('P2', action.cell)
+    if (action) this.botMove(action.cell)
+  }
+
+  private botMove(cell: number) {
+    this.move('P2', cell)
+    if (this.phase === 'PLAYING' && this.turn?.player === 'P2' && this.turnActions.moveUsed) {
+      this.endTurnByChoice('P2')
+    }
   }
 
   private isTurnOf(slot: PlayerSlot): boolean {
@@ -651,8 +676,16 @@ export class MockGameServer {
     return false
   }
 
+  /** Já jogou ou usou a habilidade neste turno */
+  private acted(): boolean {
+    return this.turnActions.moveUsed || this.turnActions.abilityUsed
+  }
+
   private move(slot: PlayerSlot, cell: number) {
     if (!this.isTurnOf(slot)) return
+    if (this.turnActions.moveUsed) {
+      return this.error(slot, 'MOVE_ALREADY_USED', 'A jogada deste turno já foi utilizada.')
+    }
     if (!Number.isInteger(cell) || cell < 0 || cell >= this.cells.length) {
       return this.error(slot, 'INVALID_CELL', 'Casa inválida.')
     }
@@ -663,9 +696,9 @@ export class MockGameServer {
       return this.error(slot, 'CELL_SHIELDED', 'Essa casa está protegida por um Escudo.')
     }
     this.cells = this.cells.map((c) => (c.index === cell ? { ...c, owner: slot } : c))
+    this.turnActions.moveUsed = true
     this.player(slot).consecutiveTimeouts = 0
-    this.emit('BOARD_UPDATE', { board: this.cells })
-    this.endTurn(slot)
+    this.afterAction(slot)
   }
 
   /** true se a habilidade foi aceita (mesmo anulada ou sem efeito) */
@@ -678,6 +711,14 @@ export class MockGameServer {
     if (!this.isTurnOf(slot)) return false
     const p = this.player(slot)
     const opponent = this.player(otherSlot(slot))
+    if (this.turnActions.abilityUsed) {
+      this.error(
+        slot,
+        'SKILL_ACTION_ALREADY_USED',
+        'A ação de habilidade deste turno já foi utilizada.',
+      )
+      return false
+    }
     if (p.silenced) {
       this.error(slot, 'SILENCED', 'Você está silenciado: não pode usar habilidades neste turno.')
       return false
@@ -702,7 +743,8 @@ export class MockGameServer {
       return false
     }
 
-    p.used.add(ability) // uma vez por round e consome o turno [RN-ARN-02]
+    p.used.add(ability) // uma vez por round [RN-ARN-02]
+    this.turnActions.abilityUsed = true
     p.consecutiveTimeouts = 0
     this.cells = result.cells
     this.shieldOwners = result.shieldOwners
@@ -711,47 +753,80 @@ export class MockGameServer {
     if (result.silence) opponent.silenced = true
     if (result.forceFieldFor) p.forceFieldTurnsLeft = EFFECT_DURATION_TURNS
 
-    this.emit('ABILITY_RESOLVED', {
-      by: slot,
-      ability,
-      targetCell: result.targetCell,
-      destinationCell: result.destinationCell,
-      absorbed: result.absorbed,
-      noEffect: result.noEffect,
+    this.afterAction(slot, () => {
+      this.emit('ABILITY_RESOLVED', {
+        by: slot,
+        ability,
+        targetCell: result.targetCell,
+        destinationCell: result.destinationCell,
+        absorbed: result.absorbed,
+        noEffect: result.noEffect,
+        actions: { ...this.turnActions },
+      })
+      this.emit('DECK_UPDATE', { deck: this.deckOf(slot) }, slot)
     })
-    this.emit('BOARD_UPDATE', { board: this.cells })
-    this.emit('DECK_UPDATE', { deck: this.deckOf(slot) }, slot)
-    this.endTurn(slot)
     return true
+  }
+
+  /**
+   * Depois de cada jogada ou habilidade: verifica quem agiu e depois o oponente [RN-ARN-08], e a
+   * vitória ou o tabuleiro cheio encerram o round na hora. Com a jogada e a habilidade feitas, o
+   * turno fecha; senão, continua o mesmo, com o mesmo prazo (BE-046). Como o back, os eventos saem
+   * com o estado depois disso (as ações zeradas, se o turno fechou)
+   */
+  private afterAction(actor: PlayerSlot, announce?: () => void) {
+    const result = evaluateBoard(this.cells, actor)
+    const turnOver = !result && this.turnActions.moveUsed && this.turnActions.abilityUsed
+    if (turnOver) this.closeTurn(actor)
+    announce?.()
+    this.emit('BOARD_UPDATE', { board: this.cells, actions: { ...this.turnActions } })
+    if (result) return this.endRoundWith(result)
+    if (turnOver) this.startTurn(otherSlot(actor))
+  }
+
+  /** "Passar a vez": só depois de jogar ou usar a habilidade (regra proposta ao back, BE-046) */
+  private endTurnByChoice(slot: PlayerSlot) {
+    if (!this.isTurnOf(slot)) return
+    if (!this.acted()) {
+      return this.error(
+        slot,
+        END_TURN_WITHOUT_ACTION,
+        'Jogue ou use uma habilidade antes de passar a vez.',
+      )
+    }
+    this.closeTurn(slot)
+    this.emit('BOARD_UPDATE', { board: this.cells, actions: { ...this.turnActions } })
+    this.startTurn(otherSlot(slot))
   }
 
   private timeout(slot: PlayerSlot) {
     if (this.phase !== 'PLAYING' || this.turn?.player !== slot) return
     this.turnTimer = null
     const p = this.player(slot)
-    p.consecutiveTimeouts += 1
-    this.emit('TURN_TIMEOUT', { player: slot, consecutiveTimeouts: p.consecutiveTimeouts })
-    if (p.consecutiveTimeouts >= MAX_CONSECUTIVE_TIMEOUTS) {
-      return this.endMatch({ kind: 'WO', winner: otherSlot(slot) }) // [RN-ARN-01]
+    // Depois de uma jogada ou habilidade, o fim do prazo só fecha o turno: não é estouro (BE-046).
+    // O back ainda manda um TURN_TIMEOUT com o contador em 0, que a tradução descarta
+    if (!this.acted()) {
+      p.consecutiveTimeouts += 1
+      this.emit('TURN_TIMEOUT', { player: slot, consecutiveTimeouts: p.consecutiveTimeouts })
+      if (p.consecutiveTimeouts >= MAX_CONSECUTIVE_TIMEOUTS) {
+        return this.endMatch({ kind: 'WO', winner: otherSlot(slot) }) // [RN-ARN-01]
+      }
     }
-    this.endTurn(slot) // turno perdido também conta como turno [RN-ARN-07]
+    // Turno perdido também conta como turno [RN-ARN-07]
+    const result = evaluateBoard(this.cells, slot)
+    if (result) return this.endRoundWith(result)
+    this.closeTurn(slot)
+    this.emit('BOARD_UPDATE', { board: this.cells, actions: { ...this.turnActions } })
+    this.startTurn(otherSlot(slot))
   }
 
   /**
-   * Fim de cada ação: verifica quem agiu e depois o oponente, e só então os contadores dos
-   * efeitos caem [RN-ARN-08] [RN-ARN-07]
+   * Fecha o turno de quem estava na vez: os contadores dos efeitos caem 1, uma vez por turno, e as
+   * ações zeram [RN-ARN-07]
    */
-  private endTurn(actor: PlayerSlot) {
+  private closeTurn(actor: PlayerSlot) {
     this.cancel(this.turnTimer)
     this.turnTimer = null
-
-    const result = evaluateBoard(this.cells, actor)
-    if (result)
-      return this.endRound(
-        result.kind === 'WIN' ? result.winner : null,
-        result.kind === 'WIN' ? result.line : null,
-      )
-
     const ticked = tickEffects(this.cells, this.shieldOwners)
     this.cells = ticked.cells
     this.shieldOwners = ticked.shieldOwners
@@ -760,8 +835,14 @@ export class MockGameServer {
       p.forceFieldTurnsLeft = Math.max(0, p.forceFieldTurnsLeft - 1)
     }
     this.player(actor).silenced = false // o Silêncio vale só para o próximo turno dele
-    this.emit('BOARD_UPDATE', { board: this.cells })
-    this.startTurn(otherSlot(actor))
+    this.turnActions = noActions()
+  }
+
+  private endRoundWith(result: NonNullable<ReturnType<typeof evaluateBoard>>) {
+    this.endRound(
+      result.kind === 'WIN' ? result.winner : null,
+      result.kind === 'WIN' ? result.line : null,
+    )
   }
 
   private endRound(winner: RoundResult, winningLine: number[] | null) {

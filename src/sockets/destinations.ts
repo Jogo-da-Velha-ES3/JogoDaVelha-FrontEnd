@@ -26,6 +26,7 @@ const BACK_ACTIONS: Record<string, ClientCommand['type']> = {
   'draw/pick': 'DRAW_PICK',
   move: 'MOVE',
   ability: 'USE_ABILITY',
+  'end-turn': 'END_TURN',
   'rematch/request': 'REMATCH_REQUEST',
   'rematch/accept': 'REMATCH_RESPOND',
   'rematch/decline': 'REMATCH_RESPOND',
@@ -77,6 +78,9 @@ export function toBackCommand(roomCode: string, command: ClientCommand): BackCom
         destinationPosition: destinationCell,
       })
     }
+    case 'END_TURN':
+      // Proposto ao back em 19/11 (PR #139, BE-046): ainda não existe lá
+      return to('/end-turn')
     case 'REMATCH_REQUEST':
       return to('/rematch/request')
     case 'REMATCH_RESPOND':

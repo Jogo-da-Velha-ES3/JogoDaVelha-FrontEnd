@@ -161,8 +161,15 @@ estratégico e competitivo, **sem pay-to-win**.
 ### Regras de uso
 
 - Cada habilidade do deck pode ser usada **no máximo 1 vez por rodada** `[RN-ARN-02]`.
-- Usar uma habilidade **consome a ação do turno**: não dá para marcar peça e usar habilidade no
-  mesmo turno, nem usar 2 habilidades `[RN-ARN-02]`.
+- **Jogada e habilidade no mesmo turno (BE-046, 19/11):** cada turno tem **1 jogada e 1
+  habilidade**, em qualquer ordem e no mesmo prazo; 2 jogadas ou 2 habilidades no mesmo turno,
+  não. A primeira ação não troca o turno nem reinicia o timer. O turno acaba com as duas, com o
+  botão **"Passar a vez"** (que aparece depois da primeira ação) ou no fim do prazo. A ERS dizia
+  que usar uma habilidade consumia o turno `[RN-ARN-02]`; o back mudou no PR #139.
+  - A jogada que fecha a linha (ou enche o tabuleiro) encerra o round na hora, sem esperar a
+    habilidade.
+  - **[A VALIDAR COM O BACK]** O "Passar a vez" ainda não existe no back: o front manda
+    `/end-turn`, proposto ao Victor em 19/11.
 - **O deck do oponente é oculto:** você só descobre uma habilidade dele quando ela é usada
   (decisão de interface).
 - **Mira só com alvo que tem efeito (decidido em 29/10, FE-27):** a peça com Reforço não é alvo de
@@ -172,7 +179,8 @@ estratégico e competitivo, **sem pay-to-win**.
 
 ### Duração dos efeitos `[RN-ARN-07]`
 
-- Cada ação conta como 1 turno: jogada de peça, uso de habilidade ou turno perdido por tempo.
+- Cada turno conta uma vez, com uma ação, com as duas ou perdido por tempo: os contadores caem
+  quando o turno fecha, não a cada ação (BE-046).
 - Efeitos de 2 turnos (Escudo, Congelar, Campo de Força, Reforço) começam com contador 2 e perdem
   1 **ao final de cada turno de qualquer jogador**, depois da verificação de vitória. Na prática,
   o efeito dura até o fim do próximo turno do oponente.
@@ -222,9 +230,11 @@ estratégico e competitivo, **sem pay-to-win**.
 ### Turnos, timer e W.O.
 
 - **10 segundos por turno** (5s na Morte Súbita e sob efeito de Ampulheta) `[RF-ARN-02]`.
-- O tempo corre do início do turno até a jogada ou o uso de habilidade, **sem pausas**
-  `[RN-ARN-03]`. O menu de pausa é só um overlay: o timer continua.
-- Tempo estourado → a vez passa para o oponente.
+- O tempo corre do início do turno até o turno fechar (jogada e habilidade feitas, "Passar a vez"
+  ou fim do prazo), **sem pausas** `[RN-ARN-03]`. O menu de pausa é só um overlay: o timer
+  continua.
+- Tempo estourado → a vez passa para o oponente. Se o jogador já tinha jogado ou usado a
+  habilidade, o fim do prazo só fecha o turno: **não conta estouro** e não aparece aviso (BE-046).
 - **3 estouros consecutivos → derrota da partida por W.O.** `[RN-ARN-01]`. O contador **não zera
   na troca de round**; só zera quando o jogador faz uma jogada ou usa uma habilidade. A interface
   avisa a cada estouro quantos faltam ("1/3", "2/3").

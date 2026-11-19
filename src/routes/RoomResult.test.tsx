@@ -57,12 +57,16 @@ describe('Resultado na sala real (FE-15)', () => {
     async (scenario, heading, coins) => {
       renderRoom(scenario)
       await toRounds()
-      // No "wo" o robô não joga: eu preciso jogar nos meus turnos para não perder por tempo
+      // No "wo" o robô não joga: eu preciso jogar nos meus turnos para não perder por tempo, e
+      // passo a vez em seguida (BE-046)
       for (let i = 0; i < 160 && !title(heading); i++) {
         if (scenario === 'wo' && screen.queryByText('Sua vez')) {
-          fireEvent.click(
-            within(screen.getByRole('group', { name: 'Tabuleiro' })).getAllByRole('button')[0],
+          const [cell] = within(screen.getByRole('group', { name: 'Tabuleiro' })).queryAllByRole(
+            'button',
           )
+          const pass = screen.queryByRole('button', { name: 'Passar a vez' })
+          if (cell) fireEvent.click(cell)
+          else if (pass) fireEvent.click(pass)
         }
         await tick(scenario === 'wo' ? 500 : 1000)
       }

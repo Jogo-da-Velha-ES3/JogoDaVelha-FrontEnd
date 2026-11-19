@@ -187,7 +187,7 @@ balão caber no espaço sem cobrir as faixas. O `VitaoSlot` liga o motor ao `Vit
 | `matchStore`      | round, placar MD3, Morte Súbita, quem começa, estouros (0–3), fim do round, resultado, Coins, revanche |
 | `boardStore`      | as 16 casas com efeitos e contadores, linha vencedora, última habilidade resolvida                     |
 | `powersStore`     | opções do sorteio, meu deck da rodada, mira em andamento                                               |
-| `timerStore`      | de quem é o turno, prazo do turno (timestamp do servidor), duração (10s/5s)                            |
+| `timerStore`      | de quem é o turno, prazo (timestamp do servidor), duração (10s/5s), o que já foi feito, versão         |
 | `clockStore`      | diferença entre o relógio do servidor e o do aparelho (`syncWithServer` a cada msg)                    |
 | `toastStore`      | fila de toasts na tela (só interface, não reflete o servidor)                                          |
 | `serverWakeStore` | chamadas ao servidor lentas, para o aviso "Acordando o servidor…" (só interface, FE-51)                |
@@ -311,6 +311,7 @@ a tradução em `src/api/shop.ts` muda:
   | `DRAW_PICK`                          | `/draw/pick` `{ ability, abilityToRemove? }` (abaixo)             |
   | `MOVE` `{ cell }`                    | `/move` `{ position }`                                            |
   | `USE_ABILITY`                        | `/ability` `{ skillCode, targetPosition?, destinationPosition? }` |
+  | `END_TURN` (proposto, abaixo)        | `/end-turn`, sem corpo                                            |
   | `REMATCH_REQUEST`                    | `/rematch/request`                                                |
   | `REMATCH_RESPOND` `{ accept }`       | `/rematch/accept` ou `/rematch/decline`                           |
   | `LEAVE`                              | `/leave`, em qualquer fase (abaixo)                               |
@@ -334,12 +335,27 @@ a tradução em `src/api/shop.ts` muda:
   - `DRAFT_UPDATE` traz `version`: um aviso mais antigo que o último aplicado é descartado (com os
     dois escolhendo juntos, eles chegam fora de ordem). Cada Preparação começa em 0.
   - `TURN_START` traz os estouros e o `silenced` oficiais de cada lado.
+  - **Jogada e habilidade no mesmo turno (BE-046, PR #139 do back):** `TURN_START`, o snapshot
+    (`turn.actions`), o `BOARD_UPDATE` e o `ABILITY_RESOLVED` (`turn.actions`, que a tradução sobe
+    para `actions`) dizem o que o jogador da vez já fez (`abilityUsed`, `moveUsed`); vão para o
+    `timerStore`. Quando a segunda ação fecha o turno, esses eventos já chegam com as ações do
+    turno seguinte (zeradas): o `serverEvents` marca o turno como fechado até o `TURN_START`.
+  - Os mesmos eventos, o `TURN_TIMEOUT` e o snapshot trazem `stateVersion`, que cresce a cada
+    mudança da partida: o evento (ou o snapshot da mesma partida) mais antigo que o último aplicado
+    é descartado. Os eventos de uma mudança só têm o mesmo número.
+  - `TURN_TIMEOUT` com `consecutiveTimeouts: 0` é o prazo que acabou depois de uma ação: não é
+    estouro, e a tradução descarta (sem aviso, som nem Vitão).
   - `ROOM_CLOSED` traz o motivo como código: `PLAYER_LEFT`, `RETURN_TO_LOBBY`, `REMATCH_DECLINED`,
     `REMATCH_EXPIRED`, `REMATCH_DISCONNECTED`, `HOST_LEFT` ou `EXPIRED`. O back não tem evento de
     revanche cancelada: a sala encerrada com um pedido em aberto cancela o pedido
     (`serverEvents`), e o aviso vem de `roomClosedMessage` (`features/results`).
-  - Os demais (`PHASE_CHANGE`, `DRAW_OPTIONS`, `DECK_UPDATE`, `BOARD_UPDATE`, `TURN_TIMEOUT`,
-    `MATCH_END`, `PLAYER_DISCONNECTED`, `PLAYER_RECONNECTED`) já vêm no formato do front.
+  - Os demais (`PHASE_CHANGE`, `DRAW_OPTIONS`, `DECK_UPDATE`, `MATCH_END`,
+    `PLAYER_DISCONNECTED`, `PLAYER_RECONNECTED`) já vêm no formato do front.
+- **Passar a vez (`/end-turn`, proposto ao back em 19/11):** sem corpo, só na própria vez e depois
+  de jogar ou usar a habilidade; fecha o turno como se as duas ações tivessem sido feitas (os
+  efeitos caem, `BOARD_UPDATE` e `TURN_START` do outro). Sem ação no turno, o front espera o erro
+  `END_TURN_WITHOUT_ACTION`. Ainda não existe no back: até ele entrar, o botão não faz nada contra
+  o back real.
 - **Saída (`/leave`):** na Sala de Espera, o host encerra a sala; no MATCH FEITO e na Preparação,
   a sala é encerrada sem partida (`PLAYER_LEFT`); na partida, é desistência e o outro vence por
   W.O.; no Resultado, é voltar ao lobby. O `leaveRoom()` do `gameClient` manda sempre o mesmo.
@@ -379,6 +395,9 @@ FE-50 (08/11) ele fica **desligado por padrão**: sem variável, o front usa o b
 - As telas usam só `src/sockets/gameClient.ts` (`joinRoom`, `sendCommand`, `leaveRoom`) e as
   stores. Nunca sabem se estão falando com o simulado ou com o real.
 - "Casa adjacente" (Tornado, Troca Rápida) inclui as diagonais, como no back.
+- Jogada e habilidade no mesmo turno (BE-046): o simulado manda as ações do turno, aceita o
+  `END_TURN` proposto e não conta estouro quando o prazo acaba depois de uma ação. O robô às vezes
+  usa a habilidade e depois joga; se só jogou, passa a vez em seguida.
 - O sorteio segue a regra do back (FE-50): o deck continua de um round para o outro, as opções
   excluem o deck, as iniciais e as cartas já escolhidas, e o robô tira uma carta qualquer do deck
   do round 2 em diante. Nos cenários com rounds automáticos (que pulam o sorteio), o deck chega

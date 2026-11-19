@@ -1,15 +1,16 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, useReducedMotion } from 'framer-motion'
-import { Banner, PauseIcon } from '../../components/ui'
+import { Banner, Button, PauseIcon } from '../../components/ui'
 import { CHARACTER_INFO } from '../../constants/characters'
 import { ABILITY_IMPACT_SECONDS } from '../../constants/game'
 import { ABILITY_TEXTS, ARENA_TEXTS as T, RESULT_TEXTS } from '../../constants/texts'
 import { useIsBefore } from '../../hooks/useIsBefore'
+import { usePendingIntent } from '../../hooks/usePendingIntent'
 import { useServerTimer } from '../../hooks/useServerTimer'
 import { otherSlot } from '../../lib/match'
+import { canEndTurn, type TurnStep, turnStep } from '../../lib/turnActions'
 import { PATHS } from '../../routes/paths'
-import { sendCommand } from '../../sockets/gameClient'
 import { useBoardStore } from '../../stores/boardStore'
 import { useMatchStore } from '../../stores/matchStore'
 import { usePowersStore } from '../../stores/powersStore'
@@ -35,6 +36,15 @@ import { TurnTimeoutToast } from './TurnTimeoutToast'
 import { VsBanner } from './VsBanner'
 
 type ModalKind = 'howToPlay' | 'settings' | 'quit' | null
+
+/** O que falta no turno, embaixo do "Sua vez" (BE-046). Turno fechado: nada */
+const STEP_HINT: Record<TurnStep, string | null> = {
+  BOTH: T.turn.hint,
+  MOVE_LEFT: T.turn.moveLeft,
+  ABILITY_LEFT: T.turn.abilityLeft,
+  NOTHING_LEFT: T.turn.nothingLeft,
+  CLOSED: null,
+}
 
 const colorOf = (character: CharacterId | null | undefined) =>
   character ? CHARACTER_INFO[character].color : undefined
@@ -78,6 +88,7 @@ export function Arena({ onQuit }: ArenaProps) {
   const deck = usePowersStore((s) => s.deck)
   const drawOptions = usePowersStore((s) => s.drawOptions)
   const turn = useTimerStore((s) => s.turn)
+  const actions = useTimerStore((s) => s.actions)
   const turnKey = turn?.startedAt ?? null
 
   const player = (slot: PlayerSlot) => players.find((p) => p.slot === slot)
@@ -90,6 +101,22 @@ export function Arena({ onQuit }: ArenaProps) {
     canAct: myTurn && !reconnecting,
     turnKey,
   })
+  // Jogada ou "Passar a vez" mandados e sem resposta: nada mais até o servidor responder. A
+  // resposta é o turno ou as ações dele mudarem (ou um erro novo)
+  const { pending: sentIntent, send } = usePendingIntent<'MOVE' | 'END_TURN'>(
+    `${turnKey}:${actions.moveUsed}:${actions.abilityUsed}`,
+  )
+  // 1 jogada e 1 habilidade por turno, em qualquer ordem (BE-046)
+  const canAct = myTurn && !reconnecting && sentIntent === null
+  const canMove = canAct && !actions.moveUsed
+  const silenced = player(me)?.silenced ?? false
+  const step = turnStep({
+    actions,
+    silenced,
+    abilityLeft: deck.some((slot) => !slot.usedThisRound && !withoutTarget.includes(slot.ability)),
+  })
+  const turnHint = hint ?? STEP_HINT[step]
+  const showEndTurn = myTurn && !reconnecting && canEndTurn(actions)
   // O efeito na casa dura ABILITY_IMPACT_SECONDS a partir da chegada do ABILITY_RESOLVED
   const impactVisible = useIsBefore(
     lastAbility ? lastAbility.receivedAt + ABILITY_IMPACT_SECONDS * 1000 : null,
@@ -194,11 +221,12 @@ export function Arena({ onQuit }: ArenaProps) {
             aim={aim ? { targets, selected } : null}
             impact={impactVisible ? lastAbility : null}
             // Com a mira aberta, só os alvos da etapa atual (nenhum enquanto espera o servidor)
-            selectable={!myTurn ? [] : aim ? targets : empty}
+            selectable={!myTurn ? [] : aim ? targets : canMove ? empty : []}
             disabled={reconnecting}
-            onCellSelect={(cell) =>
-              aim ? selectTarget(cell) : sendCommand({ type: 'MOVE', payload: { cell } })
-            }
+            onCellSelect={(cell) => {
+              if (aim) selectTarget(cell)
+              else if (canMove) send('MOVE', { type: 'MOVE', payload: { cell } })
+            }}
           />
         </div>
 
@@ -235,10 +263,20 @@ export function Arena({ onQuit }: ArenaProps) {
                   >
                     {T.turn.yours}
                   </p>
-                  {(hint || !suddenDeath) && (
-                    <p className="mt-0.5 font-body text-xs text-text-muted">
-                      {hint ?? T.turn.hint}
-                    </p>
+                  {turnHint && (hint || !suddenDeath) && (
+                    <p className="mt-0.5 font-body text-xs text-text-muted">{turnHint}</p>
+                  )}
+                  {/* Passar a vez: depois de jogar ou usar a habilidade, sem esperar o prazo */}
+                  {showEndTurn && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="mt-1.5"
+                      disabled={sentIntent !== null}
+                      onClick={() => send('END_TURN', { type: 'END_TURN', payload: {} })}
+                    >
+                      {sentIntent === 'END_TURN' ? T.turn.endingTurn : T.turn.endTurn}
+                    </Button>
                   )}
                 </>
               ) : (
@@ -272,8 +310,8 @@ export function Arena({ onQuit }: ArenaProps) {
 
           <DeckHud
             deck={deck}
-            canUse={myTurn && !reconnecting}
-            silenced={player(me)?.silenced ?? false}
+            canUse={canAct && !actions.abilityUsed}
+            silenced={silenced}
             aim={aim}
             aimPending={pending}
             withoutTarget={withoutTarget}
