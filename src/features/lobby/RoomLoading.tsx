@@ -14,12 +14,12 @@ interface RoomLoadingProps {
 
 export function RoomLoading({ code, failed, onRetry, onBack }: RoomLoadingProps) {
   return (
-    <section className="flex flex-1 flex-col items-center justify-center gap-4 px-4 text-center short:gap-3">
-      <h1 className="font-display text-4xl font-extrabold tracking-wide text-primary uppercase short:text-3xl">
+    <section className="flex flex-1 flex-col items-center justify-center gap-4 px-4 text-center short:gap-3 tall:gap-6">
+      <h1 className="font-display text-4xl font-extrabold tracking-wide text-primary uppercase short:text-3xl tall:text-6xl">
         {ROOM_TEXTS.title(code)}
       </h1>
       {failed ? (
-        <p role="alert" className="text-sm text-danger">
+        <p role="alert" className="text-sm text-danger tall:text-lg">
           {ROOM_TEXTS.errors.joinFailed}
         </p>
       ) : (

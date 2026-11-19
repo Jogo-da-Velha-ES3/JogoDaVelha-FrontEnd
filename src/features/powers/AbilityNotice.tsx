@@ -38,22 +38,25 @@ export function AbilityNotice() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -6 }}
           transition={{ duration: 0.18, ease: 'easeOut' }}
-          className="pointer-events-none flex items-center gap-2 rounded-xl border bg-bg-panel px-2.5 py-1.5 shadow-glow short:py-1"
+          className="pointer-events-none flex items-center gap-2 rounded-xl border bg-bg-panel px-2.5 py-1.5 shadow-glow short:py-1 tall:gap-3 tall:px-4 tall:py-2.5"
           style={{ borderColor: color, color }}
         >
-          <AbilityIcon ability={result.ability} className="size-6 shrink-0 short:size-5" />
+          <AbilityIcon
+            ability={result.ability}
+            className="size-6 shrink-0 short:size-5 tall:size-9"
+          />
           <div className="min-w-0">
             {result.absorbed || result.noEffect ? (
               <>
-                <p className="font-display text-sm leading-tight font-bold uppercase short:text-xs">
+                <p className="font-display text-sm leading-tight font-bold uppercase short:text-xs tall:text-lg">
                   {result.absorbed ? T.absorbed : T.noEffect}
                 </p>
-                <p className="font-body text-xs text-text-muted short:text-[0.6875rem] short:leading-tight">
+                <p className="font-body text-xs text-text-muted short:text-[0.6875rem] short:leading-tight tall:text-sm">
                   {used}
                 </p>
               </>
             ) : (
-              <p className="font-display text-sm leading-tight font-bold uppercase short:text-xs">
+              <p className="font-display text-sm leading-tight font-bold uppercase short:text-xs tall:text-lg">
                 {used}
               </p>
             )}

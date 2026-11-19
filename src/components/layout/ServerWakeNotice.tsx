@@ -54,17 +54,17 @@ export function ServerWakeNotice() {
         initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2, ease: 'easeOut' }}
-        className="flex max-w-md items-center gap-3 rounded-xl border border-primary/40 bg-bg-panel/95 px-4 py-2 shadow-glow shadow-primary/20 backdrop-blur short:py-1.5"
+        className="flex max-w-md items-center gap-3 rounded-xl border border-primary/40 bg-bg-panel/95 px-4 py-2 shadow-glow shadow-primary/20 backdrop-blur short:py-1.5 tall:max-w-lg tall:px-5 tall:py-3"
       >
         <span
           aria-hidden
           className="size-2.5 shrink-0 rounded-full bg-primary motion-safe:animate-pulse"
         />
         <span className="min-w-0 text-left">
-          <span className="block font-display text-sm font-bold tracking-wide text-primary uppercase">
+          <span className="block font-display text-sm font-bold tracking-wide text-primary uppercase tall:text-base">
             {T.title}
           </span>
-          <span className="block text-xs text-text-muted">{T.detail}</span>
+          <span className="block text-xs text-text-muted tall:text-sm">{T.detail}</span>
         </span>
       </motion.div>
     </div>

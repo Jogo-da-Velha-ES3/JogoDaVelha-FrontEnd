@@ -32,9 +32,9 @@ export function HubLayout() {
   }, [])
 
   return (
-    <div className="flex max-h-dvh min-h-0 flex-1 gap-4 py-3 short:gap-3 short:py-2">
+    <div className="flex max-h-dvh min-h-0 flex-1 gap-4 py-3 short:gap-3 short:py-2 tall:gap-6 tall:py-5">
       <HubNav />
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 tall:gap-4">
         <HubTopBar />
         <main className="flex min-h-0 min-w-0 flex-1 flex-col">
           <Outlet />
@@ -50,7 +50,10 @@ function HubNav() {
   const [settingsOpen, setSettingsOpen] = useState(false)
 
   return (
-    <nav aria-label="Hub" className="flex w-24 shrink-0 flex-col gap-2 short:w-20 short:gap-1.5">
+    <nav
+      aria-label="Hub"
+      className="flex w-24 shrink-0 flex-col gap-2 short:w-20 short:gap-1.5 tall:w-32 tall:gap-3"
+    >
       {TABS.map((tab) => (
         <NavLink
           key={tab.to}
@@ -58,7 +61,7 @@ function HubNav() {
           end
           className={({ isActive }) =>
             [
-              'rounded-xl px-3 py-2 text-center font-display font-bold tracking-wide uppercase short:py-1.5',
+              'rounded-xl px-3 py-2 text-center font-display font-bold tracking-wide uppercase short:py-1.5 tall:py-3 tall:text-xl',
               isActive
                 ? 'bg-primary text-on-primary shadow-glow shadow-primary/30'
                 : 'text-text-muted hover:bg-bg-raised hover:text-primary',
@@ -77,7 +80,7 @@ function HubNav() {
         title={SETTINGS_TEXTS.title}
         onClick={() => setSettingsOpen(true)}
       >
-        <GearIcon className="size-5" />
+        <GearIcon className="size-5 tall:size-7" />
       </Button>
       <Button variant="ghost" size="sm" onClick={() => setConfirmOpen(true)}>
         Sair
@@ -119,16 +122,16 @@ function HubTopBar() {
   const [buyCoinsOpen, setBuyCoinsOpen] = useState(false)
   const balance = coins === null ? '…' : coins.toLocaleString('pt-BR')
   return (
-    <header className="flex items-center gap-3">
+    <header className="flex items-center gap-3 tall:gap-4">
       <Character
         id={favoriteCharacter}
         variant="avatar"
         decorative
-        className="size-10 short:size-9"
+        className="size-10 short:size-9 tall:size-14"
       />
       {neverLoaded ? (
         <>
-          <span role="alert" className="min-w-0 truncate text-sm text-danger">
+          <span role="alert" className="min-w-0 truncate text-sm text-danger tall:text-base">
             {PROFILE_TEXTS.loadError}
           </span>
           <Button
@@ -142,7 +145,7 @@ function HubTopBar() {
         </>
       ) : (
         <>
-          <span className="truncate font-display text-lg font-bold tracking-wide short:text-base">
+          <span className="truncate font-display text-lg font-bold tracking-wide short:text-base tall:text-2xl">
             {nickname ?? PROFILE_TEXTS.loadingNickname}
           </span>
           {/* O saldo também abre o Comprar Coins (FE-32); só depois de o saldo chegar */}
@@ -151,7 +154,7 @@ function HubTopBar() {
             onClick={() => setBuyCoinsOpen(true)}
             disabled={coins === null}
             aria-label={COINS_TEXTS.balanceLabel(balance)}
-            className="ml-auto min-h-8 rounded-lg px-1 font-display text-lg font-bold text-coin transition hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coin short:text-base"
+            className="ml-auto min-h-8 rounded-lg px-1 font-display text-lg font-bold text-coin transition hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coin short:text-base tall:text-2xl"
           >
             <span aria-hidden>
               {balance} {COINS_TEXTS.coins}

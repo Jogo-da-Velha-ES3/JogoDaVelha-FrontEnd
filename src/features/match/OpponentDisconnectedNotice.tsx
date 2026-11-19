@@ -30,13 +30,13 @@ export function OpponentDisconnectedNotice() {
     <div
       role="status"
       aria-live="polite"
-      className="flex items-baseline justify-between gap-2 rounded-xl border-2 border-dashed bg-bg-raised px-2 py-1"
+      className="flex items-baseline justify-between gap-2 rounded-xl border-2 border-dashed bg-bg-raised px-2 py-1 tall:px-3 tall:py-2"
       style={{ borderColor: oppColor, color: oppColor }}
     >
-      <p className="min-w-0 font-display text-xs leading-tight font-bold tracking-wide uppercase">
+      <p className="min-w-0 font-display text-xs leading-tight font-bold tracking-wide uppercase tall:text-base">
         {ARENA_TEXTS.opponentDisconnected.title}
       </p>
-      <p className="shrink-0 font-mono text-[0.625rem]">
+      <p className="shrink-0 font-mono text-[0.625rem] tall:text-sm">
         {consecutiveTimeouts}/{MAX_CONSECUTIVE_TIMEOUTS}
       </p>
     </div>

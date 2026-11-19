@@ -101,10 +101,10 @@ function JoinRoomForm({ pending, setPending }: JoinRoomFormProps) {
         if (complete && !pending) enterGameFullscreen()
         void handleSubmit()
       }}
-      className="flex flex-col items-center gap-2 pb-1"
+      className="flex flex-col items-center gap-2 pb-1 tall:gap-3"
     >
-      <div className="flex items-center gap-3">
-        <div role="group" aria-label="Código de 4 dígitos" className="flex gap-2">
+      <div className="flex items-center gap-3 tall:gap-4">
+        <div role="group" aria-label="Código de 4 dígitos" className="flex gap-2 tall:gap-3">
           {digits.map((digit, index) => (
             <input
               key={index}
@@ -125,7 +125,7 @@ function JoinRoomForm({ pending, setPending }: JoinRoomFormProps) {
               onPaste={(e) => handlePaste(index, e)}
               onFocus={(e) => e.target.select()}
               className={[
-                'size-12 rounded-xl border-2 bg-bg-base text-center font-display text-2xl font-bold text-text outline-none short:size-11',
+                'size-12 rounded-xl border-2 bg-bg-base text-center font-display text-2xl font-bold text-text outline-none short:size-11 tall:size-16 tall:text-4xl',
                 'transition focus:border-primary focus:shadow-glow focus:shadow-primary/20',
                 error ? 'border-danger text-danger' : 'border-line',
               ].join(' ')}
@@ -137,7 +137,7 @@ function JoinRoomForm({ pending, setPending }: JoinRoomFormProps) {
         </Button>
       </div>
       {error && (
-        <p id="codigo-sala-erro" role="alert" className="text-sm text-danger">
+        <p id="codigo-sala-erro" role="alert" className="text-sm text-danger tall:text-base">
           {error}
         </p>
       )}

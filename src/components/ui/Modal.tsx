@@ -18,10 +18,11 @@ export interface ModalProps {
   placement?: 'center' | 'top'
 }
 
+// Tablet e computador (tall:): um degrau mais largo, acompanhando o conteúdo maior
 const SIZE_CLASSES = {
-  sm: 'max-w-sm',
-  md: 'max-w-lg',
-  lg: 'max-w-2xl',
+  sm: 'max-w-sm tall:max-w-md',
+  md: 'max-w-lg tall:max-w-xl',
+  lg: 'max-w-2xl tall:max-w-3xl',
 }
 
 /**
@@ -129,10 +130,10 @@ function ModalDialog({
           SIZE_CLASSES[size],
         ].join(' ')}
       >
-        <header className="relative z-10 flex items-center justify-between gap-4 px-5 pt-4 short:px-4 short:pt-3">
+        <header className="relative z-10 flex items-center justify-between gap-4 px-5 pt-4 short:px-4 short:pt-3 tall:px-7 tall:pt-6">
           <h2
             id={titleId}
-            className="font-display text-2xl leading-tight font-bold tracking-wide uppercase short:text-xl"
+            className="font-display text-2xl leading-tight font-bold tracking-wide uppercase short:text-xl tall:text-3xl"
           >
             {title}
           </h2>
@@ -141,10 +142,10 @@ function ModalDialog({
               type="button"
               onClick={onClose}
               aria-label="Fechar"
-              className="-mr-2 grid size-9 shrink-0 place-items-center rounded-lg text-text-muted hover:bg-bg-raised hover:text-primary focus-visible:outline-2 focus-visible:outline-primary"
+              className="-mr-2 grid size-9 shrink-0 place-items-center rounded-lg text-text-muted hover:bg-bg-raised hover:text-primary focus-visible:outline-2 focus-visible:outline-primary tall:size-11"
             >
               {/* SVG em vez do caractere "×": o glifo fica fora do centro, varia por fonte */}
-              <svg viewBox="0 0 16 16" className="size-4" aria-hidden="true">
+              <svg viewBox="0 0 16 16" className="size-4 tall:size-5" aria-hidden="true">
                 <path
                   d="M3 3l10 10M13 3L3 13"
                   stroke="currentColor"
@@ -157,13 +158,13 @@ function ModalDialog({
         </header>
         {children && (
           <div
-            className={`min-h-0 overflow-y-auto px-5 py-3 text-text-muted short:px-4 short:py-2 tiny:pb-0.5 ${bodyClassName}`}
+            className={`min-h-0 overflow-y-auto px-5 py-3 text-text-muted short:px-4 short:py-2 tiny:pb-0.5 tall:px-7 tall:py-4 tall:text-lg ${bodyClassName}`}
           >
             {children}
           </div>
         )}
         {actions && (
-          <footer className="flex flex-wrap justify-end gap-3 px-5 pt-1 pb-4 short:px-4 short:pb-3 tiny:pb-2">
+          <footer className="flex flex-wrap justify-end gap-3 px-5 pt-1 pb-4 short:px-4 short:pb-3 tiny:pb-2 tall:gap-4 tall:px-7 tall:pb-6">
             {actions}
           </footer>
         )}

@@ -33,7 +33,7 @@ const DEMO_TIMER_SECONDS = TURN_DURATION_SECONDS / 2
 export function SideVisual({ kind }: { kind: Exclude<HowToPlayVisual, 'coins' | 'deck'> }) {
   if (kind === 'board') {
     return (
-      <div aria-hidden="true" className="size-50 shrink-0 short:size-40 tiny:size-32">
+      <div aria-hidden="true" className="size-50 shrink-0 short:size-40 tiny:size-32 tall:size-72">
         <Board cells={DEMO_CELLS} characters={{ P1: 'X', P2: 'O' }} winningLine={DEMO_LINE} />
       </div>
     )
@@ -41,7 +41,10 @@ export function SideVisual({ kind }: { kind: Exclude<HowToPlayVisual, 'coins' | 
 
   if (kind === 'turn') {
     return (
-      <div aria-hidden="true" className="flex w-56 shrink-0 flex-col gap-2 short:w-48">
+      <div
+        aria-hidden="true"
+        className="flex w-56 shrink-0 flex-col gap-2 short:w-48 tall:w-80 tall:gap-3"
+      >
         <StaticStrip character="O" name={TEXTS.demoOpponent} />
         <StaticStrip
           character="X"
@@ -78,20 +81,27 @@ function StaticStrip({
     <section
       style={{ '--side': color } as CSSProperties}
       className={[
-        'flex flex-col rounded-xl border-2 p-2 short:p-1.5',
+        'flex flex-col rounded-xl border-2 p-2 short:p-1.5 tall:p-3',
         active ? 'gap-1.5 border-(--side) bg-(--side)/10' : 'gap-0 border-line',
       ].join(' ')}
     >
-      <div className="flex items-center gap-2">
-        <Character id={character} variant="avatar" decorative className="size-9 short:size-8" />
+      <div className="flex items-center gap-2 tall:gap-3">
+        <Character
+          id={character}
+          variant="avatar"
+          decorative
+          className="size-9 short:size-8 tall:size-14"
+        />
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <p className="truncate font-display text-sm leading-tight font-bold">{name}</p>
+          <p className="truncate font-display text-sm leading-tight font-bold tall:text-xl">
+            {name}
+          </p>
           <div className="flex items-center gap-1.5">
             {Array.from({ length: ROUNDS_TO_WIN_MATCH }, (_, i) => (
-              <span key={i} className="size-2 rounded-full border border-(--side)" />
+              <span key={i} className="size-2 rounded-full border border-(--side) tall:size-3" />
             ))}
             <span
-              className={`ml-1 font-mono text-[0.625rem] ${timeouts > 0 ? 'text-danger' : 'text-text-muted'}`}
+              className={`ml-1 font-mono text-[0.625rem] tall:text-sm ${timeouts > 0 ? 'text-danger' : 'text-text-muted'}`}
             >
               {timeouts}/{MAX_CONSECUTIVE_TIMEOUTS}
             </span>
@@ -107,7 +117,7 @@ function StaticStrip({
 function StaticTimerBar({ seconds, color }: { seconds: number; color: string }) {
   return (
     <div className="flex w-full items-center gap-2">
-      <div className="h-2 flex-1 overflow-hidden rounded-full bg-bg-raised">
+      <div className="h-2 flex-1 overflow-hidden rounded-full bg-bg-raised tall:h-3">
         <div
           className="size-full origin-left rounded-full"
           style={{
@@ -118,7 +128,7 @@ function StaticTimerBar({ seconds, color }: { seconds: number; color: string }) 
         />
       </div>
       <span
-        className="w-[2ch] text-right font-mono text-sm font-medium tabular-nums"
+        className="w-[2ch] text-right font-mono text-sm font-medium tabular-nums tall:text-lg"
         style={{ color }}
       >
         {seconds}
@@ -135,13 +145,13 @@ function SuddenDeathVisual() {
   return (
     <div
       aria-hidden="true"
-      className="flex w-56 shrink-0 flex-col items-center gap-2 text-center short:w-48"
+      className="flex w-56 shrink-0 flex-col items-center gap-2 text-center short:w-48 tall:w-80 tall:gap-3"
     >
-      <p className="font-display text-sm font-bold tracking-wide text-danger uppercase">
+      <p className="font-display text-sm font-bold tracking-wide text-danger uppercase tall:text-xl">
         {TEXTS.suddenDeathRound}
       </p>
       <p
-        className="font-display text-[3.875rem] leading-[0.85] font-bold text-danger tabular-nums short:text-[2.625rem]"
+        className="font-display text-[3.875rem] leading-[0.85] font-bold text-danger tabular-nums short:text-[2.625rem] tall:text-[6rem]"
         style={{
           // Brilho vermelho e as cores dos dois personagens deslocadas, igual à Arena
           textShadow: `0 0 18px var(--color-danger), 3px 0 color-mix(in srgb, ${CHARACTER_INFO.O.color} 50%, transparent), -3px 0 color-mix(in srgb, ${CHARACTER_INFO.X.color} 55%, transparent)`,

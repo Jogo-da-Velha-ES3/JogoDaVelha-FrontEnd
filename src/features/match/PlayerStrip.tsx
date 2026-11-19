@@ -21,6 +21,8 @@ interface PlayerStripProps {
  * - Avatar, apelido, pips de rounds e estouros x/3.
  * - Badges de Campo de Força e Silêncio (os ícones das habilidades) na cor do personagem.
  * - Timer do turno abaixo, só na vez deste jogador — a faixa encolhe sem espaço vazio.
+ * - Maior só em tela alta e larga (tall:xl:): de 1024 a 1279px de largura a coluna da Arena tem
+ *   ~210px, como no celular, e o apelido cortaria.
  */
 export function PlayerStrip({ player, isMe, active, roundsWon, timeouts }: PlayerStripProps) {
   const character = player?.character ?? null
@@ -40,26 +42,34 @@ export function PlayerStrip({ player, isMe, active, roundsWon, timeouts }: Playe
       data-active={active || undefined}
       style={{ '--side': color } as CSSProperties}
       className={[
-        'flex flex-col rounded-xl border-2 p-2 transition-[border-color,background-color] short:p-1.5',
-        showTimer ? 'gap-1.5' : 'gap-0',
+        'flex flex-col rounded-xl border-2 p-2 transition-[border-color,background-color] short:p-1.5 tall:xl:p-3',
+        showTimer ? 'gap-1.5 tall:xl:gap-2.5' : 'gap-0',
         active ? 'border-(--side) bg-(--side)/10' : 'border-line',
       ].join(' ')}
     >
       {/* ── Linha principal: avatar + info + badges ── */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 tall:xl:gap-3">
         {character ? (
-          <Character id={character} variant="avatar" decorative className="size-9 short:size-8" />
+          <Character
+            id={character}
+            variant="avatar"
+            decorative
+            className="size-9 short:size-8 tall:xl:size-14"
+          />
         ) : (
-          <span className="size-9 shrink-0 rounded-full border-2 border-line short:size-8" />
+          <span className="size-9 shrink-0 rounded-full border-2 border-line short:size-8 tall:xl:size-14" />
         )}
 
-        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5 tall:xl:gap-1.5">
           {/* Apelido + badges CF / Silêncio */}
           <div className="flex min-w-0 items-center gap-1.5">
-            <p className="truncate font-display text-sm font-bold leading-tight">
+            <p className="truncate font-display text-sm font-bold leading-tight tall:xl:text-xl">
               {nickname}
               {isMe && (
-                <span className="font-body text-xs font-normal text-text-muted"> (você)</span>
+                <span className="font-body text-xs font-normal text-text-muted tall:xl:text-base">
+                  {' '}
+                  (você)
+                </span>
               )}
             </p>
 
@@ -68,10 +78,10 @@ export function PlayerStrip({ player, isMe, active, roundsWon, timeouts }: Playe
               <span
                 aria-hidden="true"
                 title={`Campo de Força ativo (${forceFieldTurns} turno${forceFieldTurns > 1 ? 's' : ''})`}
-                className="flex shrink-0 items-center gap-0.5 font-mono text-[0.625rem] font-semibold leading-none"
+                className="flex shrink-0 items-center gap-0.5 font-mono text-[0.625rem] font-semibold leading-none tall:xl:text-sm"
                 style={{ color }}
               >
-                <AbilityIcon ability="CAMPO_DE_FORCA" className="size-3.5" />
+                <AbilityIcon ability="CAMPO_DE_FORCA" className="size-3.5 tall:xl:size-5" />
                 {forceFieldTurns}
               </span>
             )}
@@ -84,21 +94,21 @@ export function PlayerStrip({ player, isMe, active, roundsWon, timeouts }: Playe
                 className="shrink-0"
                 style={{ color }}
               >
-                <AbilityIcon ability="SILENCIO" className="size-3.5" />
+                <AbilityIcon ability="SILENCIO" className="size-3.5 tall:xl:size-5" />
               </span>
             )}
           </div>
 
           {/* Pips de rounds + estouros x/3 */}
-          <div aria-hidden="true" className="flex items-center gap-1.5">
+          <div aria-hidden="true" className="flex items-center gap-1.5 tall:xl:gap-2">
             {Array.from({ length: ROUNDS_TO_WIN_MATCH }, (_, i) => (
               <span
                 key={i}
-                className={`size-2 rounded-full border border-(--side) ${i < roundsWon ? 'bg-(--side)' : ''}`}
+                className={`size-2 rounded-full border border-(--side) tall:xl:size-3 ${i < roundsWon ? 'bg-(--side)' : ''}`}
               />
             ))}
             <span
-              className={`ml-1 font-mono text-[0.625rem] ${timeouts > 0 ? 'text-danger' : 'text-text-muted'}`}
+              className={`ml-1 font-mono text-[0.625rem] tall:xl:text-sm ${timeouts > 0 ? 'text-danger' : 'text-text-muted'}`}
             >
               {timeouts}/{MAX_CONSECUTIVE_TIMEOUTS}
             </span>

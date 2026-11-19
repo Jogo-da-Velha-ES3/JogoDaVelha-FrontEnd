@@ -48,7 +48,7 @@ export function TimerBar({
         aria-valuenow={seconds}
         aria-valuetext={seconds === 1 ? '1 segundo' : `${seconds} segundos`}
         data-warning={warning || undefined}
-        className={`overflow-hidden rounded-full bg-bg-raised ${vertical ? 'w-2 flex-1' : 'h-2 flex-1'}`}
+        className={`overflow-hidden rounded-full bg-bg-raised ${vertical ? 'w-2 flex-1 tall:w-3' : 'h-2 flex-1 tall:h-3'}`}
       >
         <div
           data-fill
@@ -66,7 +66,7 @@ export function TimerBar({
         // Largura fixa e números tabulares: a contagem não empurra o layout
         <span
           aria-hidden="true"
-          className="w-[2ch] text-right font-mono text-sm font-medium tabular-nums"
+          className="w-[2ch] text-right font-mono text-sm font-medium tabular-nums tall:text-lg"
           style={{ color: fill }}
         >
           {seconds}

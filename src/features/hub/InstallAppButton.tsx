@@ -43,18 +43,18 @@ function IosInstallModal({ open, onClose }: { open: boolean; onClose: () => void
       size="sm"
       actions={<Button onClick={onClose}>Entendi</Button>}
     >
-      <ol className="flex flex-col gap-2 short:gap-1.5">
+      <ol className="flex flex-col gap-2 short:gap-1.5 tall:gap-4">
         {HUB_TEXTS.iosInstallSteps.map((step, i) => (
           <li key={step.title} className="flex gap-3">
             <span
               aria-hidden
-              className="grid size-7 shrink-0 place-items-center rounded-full border-2 border-primary/60 font-display font-bold text-primary"
+              className="grid size-7 shrink-0 place-items-center rounded-full border-2 border-primary/60 font-display font-bold text-primary tall:size-9"
             >
               {i + 1}
             </span>
             <div className="flex flex-col">
               <b className="text-text">{step.title}</b>
-              <span className="text-sm">{step.detail}</span>
+              <span className="text-sm tall:text-base">{step.detail}</span>
             </div>
           </li>
         ))}

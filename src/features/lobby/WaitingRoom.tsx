@@ -26,7 +26,7 @@ export function WaitingRoom({ code }: { code: string }) {
   const opponent = players.find((p) => p.slot === otherSlot(mySlot))
 
   return (
-    <section className="mx-auto flex w-full max-w-5xl flex-1 items-stretch gap-6 px-2 py-2 short:gap-4 short:py-0">
+    <section className="mx-auto flex w-full max-w-5xl flex-1 items-stretch gap-6 px-2 py-2 short:gap-4 short:py-0 tall:max-w-6xl tall:gap-10">
       <div className="flex flex-1 flex-col gap-3 short:gap-2">
         {/* A sala chama o leaveRoom sozinha ao sair da página */}
         <Button
@@ -39,12 +39,12 @@ export function WaitingRoom({ code }: { code: string }) {
         </Button>
 
         {/* Depois do match o código não serve mais: o "Match feito" ocupa a coluna toda */}
-        <div className="flex flex-1 flex-col items-center justify-center gap-3 short:gap-2">
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 short:gap-2 tall:gap-5">
           {matched ? (
             <MatchFound opponentName={opponent?.nickname ?? 'Oponente'} />
           ) : (
             <>
-              <h1 className="font-display text-lg font-bold tracking-wide text-text-muted uppercase">
+              <h1 className="font-display text-lg font-bold tracking-wide text-text-muted uppercase tall:text-2xl">
                 {ROOM_TEXTS.roomOf(host?.nickname ?? 'Jogador')}
               </h1>
               <RoomCode code={code} />
@@ -54,11 +54,11 @@ export function WaitingRoom({ code }: { code: string }) {
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col justify-center gap-2">
+      <div className="flex flex-1 flex-col justify-center gap-2 tall:gap-4">
         <PlayerSlotCard player={me} label={mySlot === 'P1' ? 'você · host' : 'você'} />
         <p
           aria-hidden
-          className="text-center font-display text-xl font-extrabold text-text-muted short:text-lg"
+          className="text-center font-display text-xl font-extrabold text-text-muted short:text-lg tall:text-3xl"
         >
           VS
         </p>
@@ -82,12 +82,12 @@ function RoomCode({ code }: { code: string }) {
     <div
       role="img"
       aria-label={`Código da sala: ${code.split('').join(' ')}`}
-      className="flex gap-2"
+      className="flex gap-2 tall:gap-3"
     >
       {code.split('').map((digit, i) => (
         <span
           key={i}
-          className="grid size-14 place-items-center rounded-xl border-2 border-primary/70 bg-bg-panel font-display text-4xl font-extrabold text-primary shadow-glow shadow-primary/20 short:size-12 short:text-3xl"
+          className="grid size-14 place-items-center rounded-xl border-2 border-primary/70 bg-bg-panel font-display text-4xl font-extrabold text-primary shadow-glow shadow-primary/20 short:size-12 short:text-3xl tall:size-20 tall:text-6xl"
         >
           {digit}
         </span>
@@ -117,7 +117,7 @@ function ShareButtons({ code }: { code: string }) {
   }
 
   return (
-    <div className="grid w-full max-w-sm grid-cols-2 gap-2">
+    <div className="grid w-full max-w-sm grid-cols-2 gap-2 tall:max-w-md tall:gap-3">
       <Button variant="secondary" size="sm" onClick={() => void handleCopyCode()}>
         Copiar código
       </Button>
@@ -132,7 +132,7 @@ function ShareButtons({ code }: { code: string }) {
 function MatchFound({ opponentName }: { opponentName: string }) {
   const seconds = useCountdown(MATCH_FOUND_COUNTDOWN_SECONDS)
   return (
-    <div className="flex flex-col items-center gap-3 text-center short:gap-2">
+    <div className="flex flex-col items-center gap-3 text-center short:gap-2 tall:gap-5">
       {/* Só o aviso é lido pelo leitor de tela; a contagem muda a cada segundo e não é anunciada */}
       <div role="status" className="flex flex-col items-center gap-1">
         {/* Anúncio gritado: bate na tela como o título do Banner (sem animação em "reduzir movimento") */}
@@ -140,7 +140,7 @@ function MatchFound({ opponentName }: { opponentName: string }) {
           initial={{ scale: 1.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ type: 'spring', stiffness: 520, damping: 22 }}
-          className="font-display text-6xl leading-none font-extrabold tracking-wider text-primary uppercase [text-shadow:0_0_18px_var(--color-primary)] short:text-5xl"
+          className="font-display text-6xl leading-none font-extrabold tracking-wider text-primary uppercase [text-shadow:0_0_18px_var(--color-primary)] short:text-5xl tall:text-8xl"
         >
           {ROOM_TEXTS.matchFound}
         </motion.h1>
@@ -148,26 +148,26 @@ function MatchFound({ opponentName }: { opponentName: string }) {
           initial={{ y: 8, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.25, duration: 0.25 }}
-          className="font-display text-2xl font-bold short:text-xl"
+          className="font-display text-2xl font-bold short:text-xl tall:text-4xl"
         >
           {ROOM_TEXTS.opponentJoined(opponentName)}
         </motion.p>
       </div>
       {seconds > 0 ? (
-        <p className="flex flex-col items-center font-display text-sm tracking-wide text-text-muted uppercase">
+        <p className="flex flex-col items-center font-display text-sm tracking-wide text-text-muted uppercase tall:text-lg">
           {ROOM_TEXTS.preparationIn}
           <motion.b
             key={seconds}
             initial={{ scale: 1.5, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.25, ease: 'easeOut' }}
-            className="text-5xl leading-none font-extrabold text-primary short:text-4xl"
+            className="text-5xl leading-none font-extrabold text-primary short:text-4xl tall:text-7xl"
           >
             {seconds}
           </motion.b>
         </p>
       ) : (
-        <p className="font-display text-sm tracking-wide text-text-muted uppercase">
+        <p className="font-display text-sm tracking-wide text-text-muted uppercase tall:text-lg">
           {ROOM_TEXTS.preparing}
         </p>
       )}
@@ -203,17 +203,17 @@ function PlayerSlotCard({
       initial={highlight ? { x: 40, opacity: 0 } : false}
       animate={{ x: 0, opacity: 1 }}
       transition={{ type: 'spring', stiffness: 380, damping: 26 }}
-      className={`flex items-center gap-3 rounded-xl border bg-bg-panel px-3 py-2 short:py-1.5 ${highlight ? 'border-primary/70 shadow-glow shadow-primary/25' : 'border-line'}`}
+      className={`flex items-center gap-3 rounded-xl border bg-bg-panel px-3 py-2 short:py-1.5 tall:gap-4 tall:px-5 tall:py-4 ${highlight ? 'border-primary/70 shadow-glow shadow-primary/25' : 'border-line'}`}
     >
       <span
         aria-hidden
-        className="grid size-10 shrink-0 place-items-center rounded-full border-2 border-line bg-bg-base font-display text-lg font-bold uppercase short:size-9"
+        className="grid size-10 shrink-0 place-items-center rounded-full border-2 border-line bg-bg-base font-display text-lg font-bold uppercase short:size-9 tall:size-14 tall:text-2xl"
       >
         {name.charAt(0)}
       </span>
       <div className="flex min-w-0 flex-col">
-        <b className="truncate font-display text-lg leading-tight">{name}</b>
-        <span className="text-xs text-text-muted">{label}</span>
+        <b className="truncate font-display text-lg leading-tight tall:text-2xl">{name}</b>
+        <span className="text-xs text-text-muted tall:text-base">{label}</span>
       </div>
     </motion.div>
   )
@@ -221,14 +221,17 @@ function PlayerSlotCard({
 
 function EmptySlot() {
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-dashed border-line px-3 py-2 short:py-1.5">
+    <div className="flex items-center gap-3 rounded-xl border border-dashed border-line px-3 py-2 short:py-1.5 tall:gap-4 tall:px-5 tall:py-4">
       <span
         aria-hidden
-        className="grid size-10 shrink-0 place-items-center rounded-full border-2 border-dashed border-line font-display text-lg text-text-muted short:size-9"
+        className="grid size-10 shrink-0 place-items-center rounded-full border-2 border-dashed border-line font-display text-lg text-text-muted short:size-9 tall:size-14 tall:text-2xl"
       >
         ?
       </span>
-      <p role="status" className="animate-pulse text-text-muted motion-reduce:animate-none">
+      <p
+        role="status"
+        className="animate-pulse text-text-muted motion-reduce:animate-none tall:text-xl"
+      >
         {ROOM_TEXTS.waitingOpponent}
       </p>
     </div>

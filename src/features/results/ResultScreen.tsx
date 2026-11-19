@@ -59,16 +59,16 @@ function Side({ side, character, rounds, dimmed }: SideProps) {
           id={character}
           variant="avatar"
           decorative
-          className="size-[clamp(2.25rem,calc(var(--u)*0.07),4rem)]"
+          className="size-[clamp(2.25rem,calc(var(--u)*0.07),4rem)] tall:size-[clamp(3rem,calc(var(--u)*0.1),6rem)]"
         />
       ) : (
-        <span className="size-[clamp(2.25rem,calc(var(--u)*0.07),4rem)] shrink-0 rounded-full border-2 border-line" />
+        <span className="size-[clamp(2.25rem,calc(var(--u)*0.07),4rem)] shrink-0 rounded-full border-2 border-line tall:size-[clamp(3rem,calc(var(--u)*0.1),6rem)]" />
       )}
-      <div data-rounds-won={rounds} className="flex gap-1">
+      <div data-rounds-won={rounds} className="flex gap-1 tall:gap-1.5">
         {Array.from({ length: ROUNDS_TO_WIN_MATCH }, (_, i) => (
           <span
             key={i}
-            className={`size-2 rounded-full border border-(--side) ${i < rounds ? 'bg-(--side)' : ''}`}
+            className={`size-2 rounded-full border border-(--side) tall:size-3 ${i < rounds ? 'bg-(--side)' : ''}`}
           />
         ))}
       </div>
@@ -113,7 +113,7 @@ export function ResultScreen({ onLeave }: ResultScreenProps) {
         <div className="flex min-w-0 flex-1 flex-col items-center justify-center rounded-xl border-[1.5px] border-line p-1.5 text-center">
           <p
             role="status"
-            className="font-display text-2xl font-bold tracking-wide text-text-muted uppercase short:text-xl"
+            className="font-display text-2xl font-bold tracking-wide text-text-muted uppercase short:text-xl tall:text-4xl"
           >
             {RESULT_TEXTS.pending}
           </p>
@@ -182,7 +182,7 @@ export function ResultScreen({ onLeave }: ResultScreenProps) {
           animate={{ scale: 1, opacity: 1 }}
           transition={{ type: 'spring', stiffness: 520, damping: 22, delay: 0.08 }}
           style={titleStyle}
-          className={`max-w-full font-display text-[clamp(1.875rem,calc(var(--u)*0.07),4rem)] leading-none font-extrabold tracking-wide text-balance uppercase ${titleClass}`}
+          className={`max-w-full font-display text-[clamp(1.875rem,calc(var(--u)*0.07),4rem)] tall:text-[clamp(2.5rem,calc(var(--u)*0.09),6rem)] leading-none font-extrabold tracking-wide text-balance uppercase ${titleClass}`}
         >
           {kind === 'WIN_FLAWLESS' && celebrate ? (
             // Cintilação neon da vitória impecável: 2 ciclos depois do impacto e fica aceso
@@ -197,7 +197,7 @@ export function ResultScreen({ onLeave }: ResultScreenProps) {
           )}
         </motion.h1>
         {subtitle && (
-          <p className="font-mono text-[clamp(0.625rem,calc(var(--u)*0.02),1rem)] tracking-wide text-text-muted">
+          <p className="font-mono text-[clamp(0.625rem,calc(var(--u)*0.02),1rem)] tracking-wide text-text-muted tall:text-[clamp(0.875rem,calc(var(--u)*0.026),1.5rem)]">
             {subtitle}
           </p>
         )}
@@ -228,16 +228,16 @@ export function ResultScreen({ onLeave }: ResultScreenProps) {
         {celebrate && flavor && <CelebrationBurst flavor={flavor} color={winnerColor} />}{' '}
       </div>
 
-      <div className="flex min-w-0 flex-1 flex-col items-center justify-center gap-2 short:gap-1.5">
+      <div className="flex min-w-0 flex-1 flex-col items-center justify-center gap-2 short:gap-1.5 tall:gap-5">
         <div
           role="img"
           aria-label={`Placar final: ${mine} × ${theirs}`}
-          className="flex items-center gap-3 short:gap-2"
+          className="flex items-center gap-3 short:gap-2 tall:gap-5"
         >
           <Side side="me" character={myCharacter} rounds={mine} dimmed={loser === 'me'} />
           <p
             aria-hidden="true"
-            className="font-display text-[clamp(1.875rem,calc(var(--u)*0.07),4rem)] leading-none font-bold tabular-nums"
+            className="font-display text-[clamp(1.875rem,calc(var(--u)*0.07),4rem)] leading-none font-bold tabular-nums tall:text-[clamp(2.5rem,calc(var(--u)*0.11),6.5rem)]"
           >
             <span className={loser === 'me' ? 'opacity-60' : ''}>{mine}</span>
             <span className="mx-1.5 text-text-muted">×</span>
@@ -253,7 +253,7 @@ export function ResultScreen({ onLeave }: ResultScreenProps) {
         {isWo && (
           <span
             style={{ color: accent ?? undefined, borderColor: accent ?? undefined }}
-            className="rounded-full border px-2 py-0.5 font-mono text-xs tracking-widest short:text-[0.625rem]"
+            className="rounded-full border px-2 py-0.5 font-mono text-xs tracking-widest short:text-[0.625rem] tall:px-3 tall:text-base"
           >
             W.O.
           </span>
