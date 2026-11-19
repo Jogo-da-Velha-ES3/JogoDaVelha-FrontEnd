@@ -10,7 +10,7 @@ export type RoomPhase =
   | 'MATCHED' // "MATCH FEITO!" + contagem de 3s
   | 'DRAFT' // Preparação (personagem + 2 habilidades iniciais)
   | 'VERSUS' // tela de Confronto
-  | 'ROUND_DRAW' // sorteio da 3ª habilidade (8s)
+  | 'ROUND_DRAW' // sorteio da 3ª habilidade (12s)
   | 'PLAYING'
   | 'ROUND_END'
   | 'RESULT'
@@ -89,7 +89,7 @@ export interface RoomSnapshot {
   // simulado nem sempre os manda.
   /** Na Preparação: prazo dos 20s e quem já está pronto */
   draft?: { deadline: number; ready: Record<PlayerSlot, boolean> } | null
-  /** No sorteio: as minhas 3 cartas e o prazo dos 8s (privado) */
+  /** No sorteio: as minhas 3 cartas e o prazo dos 12s (privado) */
   drawOptions?: { options: AbilityId[]; deadline: number } | null
   /** No Resultado: Coins creditados a cada lado */
   coins?: Record<PlayerSlot, number> | null

@@ -146,8 +146,8 @@ estratégico e competitivo, **sem pay-to-win**.
 1. **Iniciais (fixas):** na Preparação, o jogador escolhe 2 habilidades entre as que já
    desbloqueou.
 2. **Sorteio:** **no início de cada round**, o servidor mostra 3 cartas visíveis
-   `[RN-DRAFT-03]` e o jogador escolhe 1 em **8 segundos**. Esse tempo não faz parte dos 20s da
-   Preparação.
+   `[RN-DRAFT-03]` e o jogador escolhe 1 em **12 segundos** (a ERS dizia 8; o back mudou na BE-048,
+   em 18/11). Esse tempo não faz parte dos 20s da Preparação.
    - **Round 1:** a carta escolhida completa o deck (2 iniciais + 1 sorteada). Sem escolha, uma
      carta é escolhida automaticamente `[RN-DRAFT-05]`, e um aviso diz qual entrou ("O tempo
      acabou: o jogo escolheu Silêncio para você.", SUG-01). O mesmo vale para a Preparação ("O
@@ -380,7 +380,7 @@ Abrir o jogo → [sem sessão] Acesso → Hub (Jogar; abas Loja / Perfil)
   → Criar Sala ou Entrar (código digitado / link) → Sala de Espera
   → MATCH FEITO (3s) → Preparação (personagem → 2 iniciais, 20s)
   → Arena: Confronto (VS)
-     → para cada round: sorteio da 3ª habilidade (8s) → jogo
+     → para cada round: sorteio da 3ª habilidade (12s) → jogo
      → fim do round → próximo round, se a partida não acabou
        (round 3 = Morte Súbita, 5s por turno)
   → Resultado (vitória, derrota, empate absoluto ou W.O.)
@@ -434,7 +434,7 @@ minutinhos". O aviso some quando o servidor responde. Nenhuma chamada é cortada
 
 - Coluna esquerda: pausa, placar do round, faixa do oponente, espaço reservado do Vitão, faixa do
   jogador. Centro: tabuleiro 4×4. Coluna direita (polegar direito): aviso do turno, timer e deck.
-- Estados: Confronto (VS), sorteio da 3ª habilidade (8s), início do round (quem começa;
+- Estados: Confronto (VS), sorteio da 3ª habilidade (12s), início do round (quem começa;
   "MATCH POINT" quando alguém já tem 1 vitória), sua vez, vez do oponente, turno perdido (aviso
   "1/3", "2/3"), mirando habilidade, habilidade do oponente (animação + aviso, inclusive "anulada
   pelo Campo de Força" e "sem efeito"), sob Ampulheta, silenciado, fim do round, entrada da Morte
@@ -621,7 +621,7 @@ dela. Ordem e responsáveis em `docs/INITIAL_BACKLOG.md`.
 5. Preparação (personagem com bloqueio em tempo real + 2 iniciais, 20s)
 6. Arena: turnos, timer do servidor, W.O. 3/3, MD3 com regra de empate, Morte Súbita, empate
    absoluto
-7. Habilidades: sorteio de 8s por round, deck, mira, as 10 habilidades e seus efeitos visuais
+7. Habilidades: sorteio de 12s por round, deck, mira, as 10 habilidades e seus efeitos visuais
 8. Resultado, Coins e revanche (15s)
 9. Loja (personagens, habilidades, Coins simbólicos) e Perfil (estatísticas e coleção)
 10. PWA (instalável, paisagem, "Gire a tela") e polimento (personagens neon, pacote da Morte

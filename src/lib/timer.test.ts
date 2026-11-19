@@ -54,7 +54,7 @@ describe('remainingMs', () => {
     ['Morte Súbita', SUDDEN_DEATH_TURN_DURATION_SECONDS, 5],
     ['Ampulheta', HOURGLASS_TURN_DURATION_SECONDS, 5],
     ['Preparação', PREPARATION_SECONDS, 20],
-    ['sorteio', DRAW_PICK_SECONDS, 8],
+    ['sorteio', DRAW_PICK_SECONDS, 12],
     ['revanche', REMATCH_WINDOW_SECONDS, 15],
   ])('suporta a duração de %s (%is)', (_, seconds, expected) => {
     expect(seconds).toBe(expected)

@@ -564,7 +564,7 @@ export class MockGameServer {
   }
 
   /**
-   * Fim dos 8s ou os dois escolheram. Para quem não escolheu: com o deck incompleto (round 1), uma
+   * Fim dos 12s ou os dois escolheram. Para quem não escolheu: com o deck incompleto (round 1), uma
    * carta automática [RN-DRAFT-05]; com o deck completo, o sorteio é pulado e o deck fica como está,
    * sem DECK_UPDATE (como o back)
    */
