@@ -1,15 +1,16 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, useReducedMotion } from 'framer-motion'
-import { Banner, PauseIcon } from '../../components/ui'
+import { Banner, Button, PauseIcon } from '../../components/ui'
 import { CHARACTER_INFO } from '../../constants/characters'
 import { ABILITY_IMPACT_SECONDS } from '../../constants/game'
 import { ABILITY_TEXTS, ARENA_TEXTS as T, RESULT_TEXTS } from '../../constants/texts'
 import { useIsBefore } from '../../hooks/useIsBefore'
+import { usePendingIntent } from '../../hooks/usePendingIntent'
 import { useServerTimer } from '../../hooks/useServerTimer'
 import { otherSlot } from '../../lib/match'
+import { canEndTurn, type TurnStep, turnStep } from '../../lib/turnActions'
 import { PATHS } from '../../routes/paths'
-import { sendCommand } from '../../sockets/gameClient'
 import { useBoardStore } from '../../stores/boardStore'
 import { useMatchStore } from '../../stores/matchStore'
 import { usePowersStore } from '../../stores/powersStore'
@@ -35,6 +36,15 @@ import { TurnTimeoutToast } from './TurnTimeoutToast'
 import { VsBanner } from './VsBanner'
 
 type ModalKind = 'howToPlay' | 'settings' | 'quit' | null
+
+/** O que falta no turno, embaixo do "Sua vez" (BE-046). Turno fechado: nada */
+const STEP_HINT: Record<TurnStep, string | null> = {
+  BOTH: T.turn.hint,
+  MOVE_LEFT: T.turn.moveLeft,
+  ABILITY_LEFT: T.turn.abilityLeft,
+  NOTHING_LEFT: T.turn.nothingLeft,
+  CLOSED: null,
+}
 
 const colorOf = (character: CharacterId | null | undefined) =>
   character ? CHARACTER_INFO[character].color : undefined
@@ -78,6 +88,7 @@ export function Arena({ onQuit }: ArenaProps) {
   const deck = usePowersStore((s) => s.deck)
   const drawOptions = usePowersStore((s) => s.drawOptions)
   const turn = useTimerStore((s) => s.turn)
+  const actions = useTimerStore((s) => s.actions)
   const turnKey = turn?.startedAt ?? null
 
   const player = (slot: PlayerSlot) => players.find((p) => p.slot === slot)
@@ -90,6 +101,22 @@ export function Arena({ onQuit }: ArenaProps) {
     canAct: myTurn && !reconnecting,
     turnKey,
   })
+  // Jogada ou "Passar a vez" mandados e sem resposta: nada mais até o servidor responder. A
+  // resposta é o turno ou as ações dele mudarem (ou um erro novo)
+  const { pending: sentIntent, send } = usePendingIntent<'MOVE' | 'END_TURN'>(
+    `${turnKey}:${actions.moveUsed}:${actions.abilityUsed}`,
+  )
+  // 1 jogada e 1 habilidade por turno, em qualquer ordem (BE-046)
+  const canAct = myTurn && !reconnecting && sentIntent === null
+  const canMove = canAct && !actions.moveUsed
+  const silenced = player(me)?.silenced ?? false
+  const step = turnStep({
+    actions,
+    silenced,
+    abilityLeft: deck.some((slot) => !slot.usedThisRound && !withoutTarget.includes(slot.ability)),
+  })
+  const turnHint = hint ?? STEP_HINT[step]
+  const showEndTurn = myTurn && !reconnecting && canEndTurn(actions)
   // O efeito na casa dura ABILITY_IMPACT_SECONDS a partir da chegada do ABILITY_RESOLVED
   const impactVisible = useIsBefore(
     lastAbility ? lastAbility.receivedAt + ABILITY_IMPACT_SECONDS * 1000 : null,
@@ -134,27 +161,27 @@ export function Arena({ onQuit }: ArenaProps) {
     <>
       {/* Na entrada da Morte Súbita a Arena inteira treme (sem tremor com "reduzir movimento") */}
       <div
-        className={`relative grid h-full min-h-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-3 short:gap-2 ${enteringSuddenDeath ? 'motion-safe:animate-sd-shake' : ''}`}
+        className={`relative grid h-full min-h-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-3 short:gap-2 tall:gap-5 ${enteringSuddenDeath ? 'motion-safe:animate-sd-shake' : ''}`}
       >
         {/* ── Coluna esquerda: pausa, rótulo do round, faixas, Vitão ── */}
         <aside
           aria-label="Jogadores"
-          className="flex min-h-0 min-w-0 flex-col gap-2 pl-3 short:pl-2"
+          className="flex min-h-0 min-w-0 flex-col gap-2 pl-3 short:pl-2 tall:gap-4 tall:pl-5"
         >
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 tall:gap-3">
             {/* Botão de pausa — só nas fases ativas (z-[5]: fica clicável por cima do sorteio) */}
             {showPauseButton && (
               <button
                 type="button"
                 aria-label="Pausa"
                 onClick={() => setPauseOpen(true)}
-                className="relative z-[5] grid size-8 shrink-0 place-items-center rounded-lg border border-line font-mono text-sm text-text-muted transition hover:border-line hover:text-primary focus-visible:outline-2 focus-visible:outline-primary"
+                className="relative z-[5] grid size-8 shrink-0 place-items-center rounded-lg border border-line font-mono text-sm text-text-muted transition hover:border-line hover:text-primary focus-visible:outline-2 focus-visible:outline-primary tall:size-11"
               >
-                <PauseIcon className="size-4" />
+                <PauseIcon className="size-4 tall:size-5" />
               </button>
             )}
             <p
-              className={`font-display text-sm font-bold tracking-wide uppercase ${suddenDeath ? 'text-danger' : 'text-text-muted'}`}
+              className={`font-display text-sm font-bold tracking-wide uppercase tall:text-lg ${suddenDeath ? 'text-danger' : 'text-text-muted'}`}
             >
               {roundLabel}
             </p>
@@ -194,25 +221,26 @@ export function Arena({ onQuit }: ArenaProps) {
             aim={aim ? { targets, selected } : null}
             impact={impactVisible ? lastAbility : null}
             // Com a mira aberta, só os alvos da etapa atual (nenhum enquanto espera o servidor)
-            selectable={!myTurn ? [] : aim ? targets : empty}
+            selectable={!myTurn ? [] : aim ? targets : canMove ? empty : []}
             disabled={reconnecting}
-            onCellSelect={(cell) =>
-              aim ? selectTarget(cell) : sendCommand({ type: 'MOVE', payload: { cell } })
-            }
+            onCellSelect={(cell) => {
+              if (aim) selectTarget(cell)
+              else if (canMove) send('MOVE', { type: 'MOVE', payload: { cell } })
+            }}
           />
         </div>
 
         {/* ── Coluna direita: subtexto de vez + deck (o timer do turno fica na faixa) ── */}
         <aside
           aria-label="Turno e habilidades"
-          className="flex min-h-0 min-w-0 flex-col gap-2 pr-3 short:pr-2"
+          className="flex min-h-0 min-w-0 flex-col gap-2 pr-3 short:pr-2 tall:gap-4 tall:pr-5"
         >
           {/* Timer gigante da Morte Súbita — no topo da coluna, antes do indicador de vez */}
           {suddenDeath && phase === 'PLAYING' && (
             <p
               role="timer"
               aria-live="polite"
-              className="self-start font-display text-[3.875rem] leading-[0.85] font-bold text-danger tabular-nums short:text-[2.625rem]"
+              className="self-start font-display text-[3.875rem] leading-[0.85] font-bold text-danger tabular-nums short:text-[2.625rem] tall:text-[6rem]"
               style={{
                 // Brilho vermelho e as cores dos dois personagens deslocadas (efeito do esboço)
                 textShadow: `0 0 18px var(--color-danger), 3px 0 color-mix(in srgb, ${colorOf(characters[opp]) ?? 'var(--color-primary)'} 50%, transparent), -3px 0 color-mix(in srgb, ${colorOf(characters[me]) ?? 'var(--color-primary)'} 55%, transparent)`,
@@ -230,22 +258,34 @@ export function Arena({ onQuit }: ArenaProps) {
                   {/* "SUA VEZ" em display + subtítulo instrucional
                       Na Morte Súbita: só "SUA VEZ" em vermelho, sem subtítulo (menos a mira) */}
                   <p
-                    className={`font-display text-xl leading-tight font-extrabold uppercase short:text-lg ${suddenDeath ? 'text-danger' : ''}`}
+                    className={`font-display text-xl leading-tight font-extrabold uppercase short:text-lg tall:text-3xl ${suddenDeath ? 'text-danger' : ''}`}
                     style={suddenDeath ? undefined : { color: turnColor }}
                   >
                     {T.turn.yours}
                   </p>
-                  {(hint || !suddenDeath) && (
-                    <p className="mt-0.5 font-body text-xs text-text-muted">
-                      {hint ?? T.turn.hint}
+                  {turnHint && (hint || !suddenDeath) && (
+                    <p className="mt-0.5 font-body text-xs text-text-muted tall:mt-1 tall:text-base">
+                      {turnHint}
                     </p>
+                  )}
+                  {/* Passar a vez: depois de jogar ou usar a habilidade, sem esperar o prazo */}
+                  {showEndTurn && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="mt-1.5 tall:mt-3"
+                      disabled={sentIntent !== null}
+                      onClick={() => send('END_TURN', { type: 'END_TURN', payload: {} })}
+                    >
+                      {sentIntent === 'END_TURN' ? T.turn.endingTurn : T.turn.endTurn}
+                    </Button>
                   )}
                 </>
               ) : (
                 /* "Vez de [Nome]…" quando é vez do adversário
                    Na Morte Súbita: "VEZ DE [NOME]…" em vermelho */
                 <p
-                  className={`truncate font-display text-xl leading-tight font-extrabold uppercase short:text-lg ${suddenDeath ? 'text-danger' : ''}`}
+                  className={`truncate font-display text-xl leading-tight font-extrabold uppercase short:text-lg tall:text-3xl ${suddenDeath ? 'text-danger' : ''}`}
                   style={suddenDeath ? undefined : { color: turnColor }}
                   title={player(opp)?.nickname}
                 >
@@ -255,7 +295,10 @@ export function Arena({ onQuit }: ArenaProps) {
             </div>
           )}
           {phase === 'ROUND_DRAW' && (
-            <p role="status" className="font-display text-lg leading-tight font-bold uppercase">
+            <p
+              role="status"
+              className="font-display text-lg leading-tight font-bold uppercase tall:text-2xl"
+            >
               {ABILITY_TEXTS.draw.title}
             </p>
           )}
@@ -272,8 +315,8 @@ export function Arena({ onQuit }: ArenaProps) {
 
           <DeckHud
             deck={deck}
-            canUse={myTurn && !reconnecting}
-            silenced={player(me)?.silenced ?? false}
+            canUse={canAct && !actions.abilityUsed}
+            silenced={silenced}
             aim={aim}
             aimPending={pending}
             withoutTarget={withoutTarget}

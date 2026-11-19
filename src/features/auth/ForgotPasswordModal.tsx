@@ -59,8 +59,8 @@ function ForgotPasswordForm({ onClose }: { onClose: () => void }) {
 
   if (sent) {
     return (
-      <div ref={sentRef} className="flex flex-col gap-3 pb-1 short:gap-2">
-        <p role="status" className="text-base text-text">
+      <div ref={sentRef} className="flex flex-col gap-3 pb-1 short:gap-2 tall:gap-5">
+        <p role="status" className="text-base text-text tall:text-lg">
           {ACCESS_TEXTS.forgotPasswordSent}
         </p>
         <Button block onClick={onClose} className="short:w-auto short:self-end">
@@ -75,11 +75,11 @@ function ForgotPasswordForm({ onClose }: { onClose: () => void }) {
       ref={formRef}
       noValidate
       onSubmit={(event) => void handleSubmit(event)}
-      className="flex flex-col gap-2 pb-1"
+      className="flex flex-col gap-2 pb-1 tall:gap-4"
     >
-      <p className="text-sm">Informe o e-mail da sua conta para receber o link.</p>
+      <p className="text-sm tall:text-base">Informe o e-mail da sua conta para receber o link.</p>
       {/* Celular deitado: campo e botão na mesma linha, acima do teclado */}
-      <div className="flex flex-col gap-3 short:flex-row short:items-start short:gap-2">
+      <div className="flex flex-col gap-3 short:flex-row short:items-start short:gap-2 tall:gap-4">
         <div className="short:flex-1">
           <TextField
             label="E-mail"

@@ -19,11 +19,12 @@ const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   ghost: 'text-text-muted hover:text-primary hover:bg-bg-raised',
 }
 
-// Altura mínima de 44px no md/lg para o toque no celular deitado
+// Altura mínima de 44px no md/lg para o toque no celular deitado. Tablet e computador (tall:, a
+// partir de 600px de altura) um degrau acima
 const SIZE_CLASSES: Record<ButtonSize, string> = {
-  sm: 'min-h-9 px-3 text-sm',
-  md: 'min-h-11 px-5 text-base',
-  lg: 'min-h-13 px-7 text-xl short:min-h-11 short:text-lg',
+  sm: 'min-h-9 px-3 text-sm tall:min-h-10 tall:px-4 tall:text-base',
+  md: 'min-h-11 px-5 text-base tall:min-h-12 tall:px-6 tall:text-lg',
+  lg: 'min-h-13 px-7 text-xl short:min-h-11 short:text-lg tall:min-h-15 tall:text-2xl',
 }
 
 export function Button({

@@ -22,7 +22,7 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
 
   return (
     <Modal open={open} onClose={onClose} title={T.title} size="lg">
-      <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+      <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2 tall:gap-x-10 tall:gap-y-5">
         <SettingsGroup title="Som">
           <SwitchRow
             label="Música"
@@ -60,7 +60,7 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
               onCommit={() => playVoice('vitao-round-1')}
             />
           </Row>
-          <p className="mt-auto text-xs">{T.savedHint}</p>
+          <p className="mt-auto text-xs tall:text-sm">{T.savedHint}</p>
         </SettingsGroup>
 
         <SettingsGroup title="Jogo">
@@ -90,8 +90,8 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
 
 function SettingsGroup({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section aria-label={title} className="flex flex-col gap-2.5 short:gap-2">
-      <h3 className="font-display text-sm font-bold tracking-wide text-primary uppercase">
+    <section aria-label={title} className="flex flex-col gap-2.5 short:gap-2 tall:gap-4">
+      <h3 className="font-display text-sm font-bold tracking-wide text-primary uppercase tall:text-lg">
         {title}
       </h3>
       {children}
@@ -114,11 +114,11 @@ function Row({
   return (
     <div className="flex flex-col gap-1">
       <div className="flex items-center gap-3">
-        <span className="min-w-0 flex-1 font-body text-sm text-text">{label}</span>
+        <span className="min-w-0 flex-1 font-body text-sm text-text tall:text-lg">{label}</span>
         {children}
         {control}
       </div>
-      {hint && <p className="text-[0.6875rem] leading-tight">{hint}</p>}
+      {hint && <p className="text-[0.6875rem] leading-tight tall:text-sm">{hint}</p>}
     </div>
   )
 }
@@ -149,11 +149,11 @@ function SwitchRow({
           aria-checked={checked}
           aria-labelledby={labelId}
           onClick={() => onChange(!checked)}
-          className={`relative h-6 w-11 shrink-0 rounded-full border-2 transition-colors after:absolute after:-inset-1 after:content-[''] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${checked ? 'border-primary bg-primary/25' : 'border-line bg-bg-deep'}`}
+          className={`relative h-6 w-11 shrink-0 rounded-full border-2 transition-colors after:absolute after:-inset-1 after:content-[''] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary tall:h-8 tall:w-14 ${checked ? 'border-primary bg-primary/25' : 'border-line bg-bg-deep'}`}
         >
           <span
             aria-hidden
-            className={`absolute top-0.5 size-4 rounded-full transition-[left,background-color] ${checked ? 'left-5.5 bg-primary shadow-glow shadow-primary/50' : 'left-0.5 bg-text-muted'}`}
+            className={`absolute top-0.5 size-4 rounded-full transition-[left,background-color] tall:size-6 ${checked ? 'left-5.5 bg-primary tall:left-6.5 shadow-glow shadow-primary/50' : 'left-0.5 bg-text-muted'}`}
           />
         </button>
       }
@@ -190,7 +190,7 @@ function VolumeSlider({
       onChange={(event) => onChange(Number(event.target.value) / 100)}
       onPointerUp={onCommit}
       onKeyUp={onCommit}
-      className="h-8 w-24 accent-(--color-primary) disabled:opacity-40 short:w-20"
+      className="h-8 w-24 accent-(--color-primary) disabled:opacity-40 short:w-20 tall:w-36"
     />
   )
 }

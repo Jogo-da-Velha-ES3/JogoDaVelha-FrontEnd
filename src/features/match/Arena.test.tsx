@@ -566,7 +566,7 @@ describe('mira e efeitos das habilidades (FE-27)', () => {
     fireEvent.click(screen.getByRole('button', { name: /^Bomba,/ }))
     fireEvent.keyDown(window, { key: 'Escape' })
     expect(usePowersStore.getState().aim).toBeNull()
-    expect(screen.getByText('Toque numa casa ou use uma habilidade')).toBeInTheDocument()
+    expect(screen.getByText('Jogada e habilidade, na ordem que quiser')).toBeInTheDocument()
   })
 
   it('carta sem nenhum alvo fica desabilitada, com "Sem alvo"', () => {
@@ -769,6 +769,87 @@ describe('deck na Arena (FE-11)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Cancelar mira' }))
     fireEvent.click(screen.getAllByRole('button', { name: /vazia/ })[0])
     expect(sendCommand).toHaveBeenCalledWith({ type: 'MOVE', payload: { cell: 0 } })
+  })
+})
+
+describe('jogada e habilidade no mesmo turno (BE-046)', () => {
+  const deckOf = (...used: boolean[]) =>
+    send('DECK_UPDATE', {
+      deck: [
+        { ability: 'AMPULHETA', source: 'INITIAL', usedThisRound: used[0] ?? false },
+        { ability: 'ESCUDO', source: 'INITIAL', usedThisRound: used[1] ?? false },
+        { ability: 'SILENCIO', source: 'DRAWN', usedThisRound: used[2] ?? false },
+      ],
+    })
+  /** Tabuleiro com a minha peça na casa 0 e o que eu já fiz no turno */
+  const boardAfter = (
+    actions: { moveUsed: boolean; abilityUsed: boolean },
+    turnPlayer: PlayerSlot = 'P1',
+  ) =>
+    send('BOARD_UPDATE', {
+      board: Array.from({ length: 16 }, (_, index) => ({
+        index,
+        owner: index === 0 ? ('P1' as const) : null,
+        effects: [],
+      })),
+      actions,
+      turnPlayer,
+    })
+  const emptyCells = () => screen.queryAllByRole('button', { name: /vazia/ })
+  const endTurn = () => screen.queryByRole('button', { name: 'Passar a vez' })
+
+  it('depois da jogada: tabuleiro travado, deck livre e "Passar a vez"', () => {
+    renderArena()
+    deckOf()
+    expect(screen.getByText('Jogada e habilidade, na ordem que quiser')).toBeInTheDocument()
+    expect(endTurn()).not.toBeInTheDocument()
+
+    fireEvent.click(emptyCells()[0])
+    expect(sendCommand).toHaveBeenCalledWith({ type: 'MOVE', payload: { cell: 0 } })
+    // Até a resposta, nem outra casa nem uma carta
+    expect(emptyCells()).toHaveLength(0)
+    expect(screen.getByRole('button', { name: /^Ampulheta/ })).toBeDisabled()
+
+    boardAfter({ moveUsed: true, abilityUsed: false })
+    expect(emptyCells()).toHaveLength(0)
+    expect(screen.getByRole('button', { name: /^Ampulheta/ })).toBeEnabled()
+    expect(screen.getByText('Use uma habilidade ou passe a vez')).toBeInTheDocument()
+
+    fireEvent.click(endTurn()!)
+    expect(sendCommand).toHaveBeenLastCalledWith({ type: 'END_TURN', payload: {} })
+    expect(screen.getByRole('button', { name: 'Passando…' })).toBeDisabled()
+  })
+
+  it('depois da habilidade: o deck trava e a jogada continua livre', () => {
+    renderArena()
+    deckOf()
+    send('ABILITY_RESOLVED', {
+      by: 'P1',
+      ability: 'AMPULHETA',
+      targetCell: null,
+      destinationCell: null,
+      absorbed: false,
+      noEffect: false,
+      actions: { moveUsed: false, abilityUsed: true },
+    })
+    deckOf(true)
+    expect(screen.getByRole('button', { name: /^Escudo/ })).toBeDisabled()
+    expect(emptyCells()).toHaveLength(16)
+    expect(screen.getByText('Toque numa casa')).toBeInTheDocument()
+    expect(endTurn()).toBeEnabled()
+  })
+
+  it('sem habilidade para usar, a jogada pede só para passar; com as duas feitas, nada mais', () => {
+    renderArena()
+    deckOf(true, true, true)
+    boardAfter({ moveUsed: true, abilityUsed: false })
+    expect(screen.getByText('Pronto! Passe a vez')).toBeInTheDocument()
+
+    // O servidor fechou o turno (a vez já é do outro): nada fica liberado até o próximo TURN_START
+    boardAfter({ moveUsed: false, abilityUsed: false }, 'P2')
+    expect(screen.getByText('Sua vez')).toBeInTheDocument()
+    expect(endTurn()).not.toBeInTheDocument()
+    expect(emptyCells()).toHaveLength(0)
   })
 })
 

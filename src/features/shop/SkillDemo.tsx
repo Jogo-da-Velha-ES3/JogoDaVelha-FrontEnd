@@ -25,7 +25,7 @@ export function SkillDemo({ ability, label }: { ability: AbilityId; label: strin
   }, [ability])
 
   return (
-    <figure aria-label={label} className="size-40 shrink-0 short:size-32">
+    <figure aria-label={label} className="size-40 shrink-0 short:size-32 tall:size-56">
       <Board
         cells={demo.cells}
         characters={{ P1: 'X', P2: 'O' }}

@@ -23,8 +23,8 @@ export function ResetPasswordScreen({ token }: { token: string }) {
   const [invalidLink, setInvalidLink] = useState(() => !token.trim())
 
   return (
-    <section className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center gap-3 py-4 short:max-w-3xl short:justify-start short:gap-2 short:py-1">
-      <h1 className="font-display text-3xl leading-none font-extrabold tracking-wide text-primary uppercase short:text-2xl">
+    <section className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center gap-3 py-4 short:max-w-3xl short:justify-start short:gap-2 short:py-1 tall:max-w-xl tall:gap-5">
+      <h1 className="font-display text-3xl leading-none font-extrabold tracking-wide text-primary uppercase short:text-2xl tall:text-5xl">
         Nova senha
       </h1>
       {invalidLink ? (
@@ -42,7 +42,7 @@ function InvalidLink() {
   return (
     <div className="flex flex-col gap-3 short:flex-row short:items-center short:gap-4">
       {/* Alinhada com o título, e não centralizada como o FormError, para não ficar solta no meio */}
-      <p role="alert" className="flex-1 text-sm text-danger">
+      <p role="alert" className="flex-1 text-sm text-danger tall:text-base">
         {ACCESS_TEXTS.invalidResetLink}
       </p>
       <Button block className="short:w-auto" onClick={() => navigate(PATHS.access)}>
@@ -92,9 +92,13 @@ function ResetPasswordForm({ token, onInvalidLink }: { token: string; onInvalidL
   }
 
   return (
-    <form noValidate onSubmit={(event) => void handleSubmit(event)} className="flex flex-col gap-2">
+    <form
+      noValidate
+      onSubmit={(event) => void handleSubmit(event)}
+      className="flex flex-col gap-2 tall:gap-4"
+    >
       {/* Celular deitado: as duas senhas e o botão numa linha só, acima do teclado */}
-      <div className="grid items-start gap-3 short:grid-cols-[1fr_1fr_auto] short:gap-2">
+      <div className="grid items-start gap-3 short:grid-cols-[1fr_1fr_auto] short:gap-2 tall:gap-5">
         <TextField
           label="Nova senha"
           type="password"

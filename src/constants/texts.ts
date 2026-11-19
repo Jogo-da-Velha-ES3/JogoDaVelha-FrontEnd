@@ -286,6 +286,9 @@ export const ROOM_TEXTS = {
     drawOver: 'O tempo do sorteio acabou.',
     draftOver: 'O tempo da Preparação acabou.',
     notNow: 'Essa ação não vale agora.',
+    moveAlreadyUsed: 'Você já jogou neste turno.',
+    abilityAlreadyUsed: 'Você já usou uma habilidade neste turno.',
+    endTurnWithoutAction: 'Jogue ou use uma habilidade antes de passar a vez.',
   },
 } as const
 
@@ -341,7 +344,13 @@ export const ARENA_TEXTS = {
   },
   turn: {
     yours: 'Sua vez',
-    hint: 'Toque numa casa ou use uma habilidade',
+    /** O que falta no turno: 1 jogada e 1 habilidade, em qualquer ordem (BE-046) */
+    hint: 'Jogada e habilidade, na ordem que quiser',
+    moveLeft: 'Toque numa casa',
+    abilityLeft: 'Use uma habilidade ou passe a vez',
+    nothingLeft: 'Pronto! Passe a vez',
+    endTurn: 'Passar a vez',
+    endingTurn: 'Passando…',
     opponents: (name: string) => `Vez de ${name}…`,
   },
   roundEnd: {

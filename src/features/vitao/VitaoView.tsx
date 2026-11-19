@@ -77,14 +77,14 @@ export function VitaoView({ expression, text, devil = false, reactionId }: Vitao
           >
             <p
               role="status"
-              className={`line-clamp-3 rounded-xl short:line-clamp-2 border bg-bg-raised px-2 py-1 font-body text-xs leading-snug ${devil ? 'border-danger text-danger' : 'border-line'}`}
+              className={`line-clamp-3 rounded-xl short:line-clamp-2 border bg-bg-raised px-2 py-1 font-body text-xs leading-snug tall:px-3 tall:py-2 tall:text-base ${devil ? 'border-danger text-danger' : 'border-line'}`}
             >
               {text}
             </p>
             {/* Rabinho do balão, no meio da cabeça */}
             <span
               aria-hidden
-              className={`absolute -bottom-1 left-[calc(var(--vitao-head)/2)] size-2 -translate-x-1/2 rotate-45 border-r border-b bg-bg-raised ${devil ? 'border-danger' : 'border-line'}`}
+              className={`absolute -bottom-1 left-[calc(var(--vitao-head)/2)] size-2 -translate-x-1/2 rotate-45 border-r border-b bg-bg-raised tall:-bottom-1.5 tall:size-3 ${devil ? 'border-danger' : 'border-line'}`}
             />
           </motion.div>
         )}

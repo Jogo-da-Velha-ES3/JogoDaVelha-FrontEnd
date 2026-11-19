@@ -9,14 +9,14 @@ export interface SpinnerProps {
 
 const RING: Record<SpinnerSize, string> = {
   sm: 'size-4 border-2',
-  md: 'size-6 border-[3px]',
-  lg: 'size-10 border-4 short:size-8 short:border-[3px]',
+  md: 'size-6 border-[3px] tall:size-8',
+  lg: 'size-10 border-4 short:size-8 short:border-[3px] tall:size-14',
 }
 
 const TEXT: Record<SpinnerSize, string> = {
   sm: 'text-xs',
-  md: 'text-sm',
-  lg: 'text-base short:text-sm',
+  md: 'text-sm tall:text-base',
+  lg: 'text-base short:text-sm tall:text-xl',
 }
 
 /**

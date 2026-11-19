@@ -39,7 +39,7 @@ export function QuitModal({ open, onContinue, onQuit, variant = 'forfeit' }: Qui
         </div>
       }
     >
-      <p className="py-2 text-sm text-text-muted">{texts.body}</p>
+      <p className="py-2 text-sm text-text-muted tall:text-lg">{texts.body}</p>
     </Modal>
   )
 }

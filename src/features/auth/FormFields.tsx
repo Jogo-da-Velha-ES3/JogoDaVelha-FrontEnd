@@ -12,7 +12,10 @@ export function TextField({ label, error, ...props }: TextFieldProps) {
   const errorId = `${id}-erro`
   return (
     <div className="flex min-w-0 flex-col gap-1">
-      <label htmlFor={id} className="text-xs font-bold tracking-wide text-text-muted uppercase">
+      <label
+        htmlFor={id}
+        className="text-xs font-bold tracking-wide text-text-muted uppercase tall:text-sm"
+      >
         {label}
       </label>
       <input
@@ -20,14 +23,14 @@ export function TextField({ label, error, ...props }: TextFieldProps) {
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? errorId : undefined}
         className={[
-          'min-h-11 w-full min-w-0 rounded-xl border-2 bg-bg-panel px-3 text-base text-text outline-none short:min-h-10',
+          'min-h-11 w-full min-w-0 rounded-xl border-2 bg-bg-panel px-3 text-base text-text outline-none short:min-h-10 tall:min-h-13 tall:px-4 tall:text-lg',
           'transition focus:border-primary focus:shadow-glow focus:shadow-primary/20',
           error ? 'border-danger' : 'border-line',
         ].join(' ')}
         {...props}
       />
       {error && (
-        <p id={errorId} className="text-sm text-danger">
+        <p id={errorId} className="text-sm text-danger tall:text-base">
           {error}
         </p>
       )}
@@ -38,7 +41,7 @@ export function TextField({ label, error, ...props }: TextFieldProps) {
 export function FormError({ message }: { message: string | null }) {
   if (!message) return null
   return (
-    <p role="alert" className="text-center text-sm text-danger">
+    <p role="alert" className="text-center text-sm text-danger tall:text-base">
       {message}
     </p>
   )

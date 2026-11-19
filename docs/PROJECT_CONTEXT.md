@@ -146,8 +146,8 @@ estratégico e competitivo, **sem pay-to-win**.
 1. **Iniciais (fixas):** na Preparação, o jogador escolhe 2 habilidades entre as que já
    desbloqueou.
 2. **Sorteio:** **no início de cada round**, o servidor mostra 3 cartas visíveis
-   `[RN-DRAFT-03]` e o jogador escolhe 1 em **8 segundos**. Esse tempo não faz parte dos 20s da
-   Preparação.
+   `[RN-DRAFT-03]` e o jogador escolhe 1 em **12 segundos** (a ERS dizia 8; o back mudou na BE-048,
+   em 18/11). Esse tempo não faz parte dos 20s da Preparação.
    - **Round 1:** a carta escolhida completa o deck (2 iniciais + 1 sorteada). Sem escolha, uma
      carta é escolhida automaticamente `[RN-DRAFT-05]`, e um aviso diz qual entrou ("O tempo
      acabou: o jogo escolheu Silêncio para você.", SUG-01). O mesmo vale para a Preparação ("O
@@ -161,8 +161,15 @@ estratégico e competitivo, **sem pay-to-win**.
 ### Regras de uso
 
 - Cada habilidade do deck pode ser usada **no máximo 1 vez por rodada** `[RN-ARN-02]`.
-- Usar uma habilidade **consome a ação do turno**: não dá para marcar peça e usar habilidade no
-  mesmo turno, nem usar 2 habilidades `[RN-ARN-02]`.
+- **Jogada e habilidade no mesmo turno (BE-046, 19/11):** cada turno tem **1 jogada e 1
+  habilidade**, em qualquer ordem e no mesmo prazo; 2 jogadas ou 2 habilidades no mesmo turno,
+  não. A primeira ação não troca o turno nem reinicia o timer. O turno acaba com as duas, com o
+  botão **"Passar a vez"** (que aparece depois da primeira ação) ou no fim do prazo. A ERS dizia
+  que usar uma habilidade consumia o turno `[RN-ARN-02]`; o back mudou no PR #139.
+  - A jogada que fecha a linha (ou enche o tabuleiro) encerra o round na hora, sem esperar a
+    habilidade.
+  - O "Passar a vez" é o `/end-turn` do back (PR #139, 19/11): só depois de jogar ou usar a
+    habilidade, e fecha o turno sem contar estouro.
 - **O deck do oponente é oculto:** você só descobre uma habilidade dele quando ela é usada
   (decisão de interface).
 - **Mira só com alvo que tem efeito (decidido em 29/10, FE-27):** a peça com Reforço não é alvo de
@@ -172,7 +179,8 @@ estratégico e competitivo, **sem pay-to-win**.
 
 ### Duração dos efeitos `[RN-ARN-07]`
 
-- Cada ação conta como 1 turno: jogada de peça, uso de habilidade ou turno perdido por tempo.
+- Cada turno conta uma vez, com uma ação, com as duas ou perdido por tempo: os contadores caem
+  quando o turno fecha, não a cada ação (BE-046).
 - Efeitos de 2 turnos (Escudo, Congelar, Campo de Força, Reforço) começam com contador 2 e perdem
   1 **ao final de cada turno de qualquer jogador**, depois da verificação de vitória. Na prática,
   o efeito dura até o fim do próximo turno do oponente.
@@ -222,9 +230,11 @@ estratégico e competitivo, **sem pay-to-win**.
 ### Turnos, timer e W.O.
 
 - **10 segundos por turno** (5s na Morte Súbita e sob efeito de Ampulheta) `[RF-ARN-02]`.
-- O tempo corre do início do turno até a jogada ou o uso de habilidade, **sem pausas**
-  `[RN-ARN-03]`. O menu de pausa é só um overlay: o timer continua.
-- Tempo estourado → a vez passa para o oponente.
+- O tempo corre do início do turno até o turno fechar (jogada e habilidade feitas, "Passar a vez"
+  ou fim do prazo), **sem pausas** `[RN-ARN-03]`. O menu de pausa é só um overlay: o timer
+  continua.
+- Tempo estourado → a vez passa para o oponente. Se o jogador já tinha jogado ou usado a
+  habilidade, o fim do prazo só fecha o turno: **não conta estouro** e não aparece aviso (BE-046).
 - **3 estouros consecutivos → derrota da partida por W.O.** `[RN-ARN-01]`. O contador **não zera
   na troca de round**; só zera quando o jogador faz uma jogada ou usa uma habilidade. A interface
   avisa a cada estouro quantos faltam ("1/3", "2/3").
@@ -329,6 +339,10 @@ A ERS não define a regra; o back decidiu usar a mesma do W.O. por tempo `[RN-AR
 - Botões principais: **Criar Sala** (destaque) e **Entrar com Código**.
 - Botões secundários: **Como Jogar** (modal navegável de regras) e **Instalar App** (gatilho de
   instalação do PWA).
+- **Logo (decidido em 19/11):** a cabeça do Vitão (expressão debochada) sobre um anel neon que
+  cintila de leve, ao lado de "JOGO DO" pequeno e "VELHO" grande, em letreiro com brilho. Aparece
+  no Hub (aba Jogar) e na tela de Acesso (componente `Logo`). O ícone do app instalado e o favicon
+  continuam com o X e o O.
 
 ### Loja `[RF-LOJ-01]` `[RF-LOJ-02]` `[RN-LOJ-03]` `[RN-LOJ-04]`
 
@@ -380,7 +394,7 @@ Abrir o jogo → [sem sessão] Acesso → Hub (Jogar; abas Loja / Perfil)
   → Criar Sala ou Entrar (código digitado / link) → Sala de Espera
   → MATCH FEITO (3s) → Preparação (personagem → 2 iniciais, 20s)
   → Arena: Confronto (VS)
-     → para cada round: sorteio da 3ª habilidade (8s) → jogo
+     → para cada round: sorteio da 3ª habilidade (12s) → jogo
      → fim do round → próximo round, se a partida não acabou
        (round 3 = Morte Súbita, 5s por turno)
   → Resultado (vitória, derrota, empate absoluto ou W.O.)
@@ -404,6 +418,12 @@ Abrir o jogo → [sem sessão] Acesso → Hub (Jogar; abas Loja / Perfil)
   em 2560×1440 (o tamanho base da página acompanha a altura e a largura). No tablet e no
   computador, os cartões da Preparação e da Loja mostram personagens, ícones e textos maiores, e o
   Hub e a Sala de Espera têm largura máxima. Texto de no mínimo 10px e toques de pelo menos 32px.
+- **Tablet e notebook (decidido em 19/11):** de 600 a 900px de altura (1024×768, 1280×800,
+  1366×768) a página não cresce, então toda tela tem a variante `tall:` (600px de altura ou mais):
+  textos, ícones, cartões, botões, campos e modais um degrau acima, sem mudar nada no celular
+  deitado. As faixas dos jogadores e o deck da Arena só crescem a partir de 1280px de largura
+  (`tall:xl:`), porque de 1024 a 1279px a coluna lateral tem ~210px, como no celular. Em 1024×600 o
+  painel do Perfil rola um pouco por dentro. Conferido em 12 tamanhos, de 740×280 a 2560×1440.
 - **Faixa da câmera no app instalado (17/11, FRT-02):** no Android, a lateral da câmera ficava
   branca (Samsung Internet, S23). No app instalado, o primeiro toque põe a página em tela cheia pela
   Fullscreen API, e a faixa passa a ter o fundo do jogo; os botões continuam longe da câmera
@@ -434,7 +454,7 @@ minutinhos". O aviso some quando o servidor responde. Nenhuma chamada é cortada
 
 - Coluna esquerda: pausa, placar do round, faixa do oponente, espaço reservado do Vitão, faixa do
   jogador. Centro: tabuleiro 4×4. Coluna direita (polegar direito): aviso do turno, timer e deck.
-- Estados: Confronto (VS), sorteio da 3ª habilidade (8s), início do round (quem começa;
+- Estados: Confronto (VS), sorteio da 3ª habilidade (12s), início do round (quem começa;
   "MATCH POINT" quando alguém já tem 1 vitória), sua vez, vez do oponente, turno perdido (aviso
   "1/3", "2/3"), mirando habilidade, habilidade do oponente (animação + aviso, inclusive "anulada
   pelo Campo de Força" e "sem efeito"), sob Ampulheta, silenciado, fim do round, entrada da Morte
@@ -621,7 +641,7 @@ dela. Ordem e responsáveis em `docs/INITIAL_BACKLOG.md`.
 5. Preparação (personagem com bloqueio em tempo real + 2 iniciais, 20s)
 6. Arena: turnos, timer do servidor, W.O. 3/3, MD3 com regra de empate, Morte Súbita, empate
    absoluto
-7. Habilidades: sorteio de 8s por round, deck, mira, as 10 habilidades e seus efeitos visuais
+7. Habilidades: sorteio de 12s por round, deck, mira, as 10 habilidades e seus efeitos visuais
 8. Resultado, Coins e revanche (15s)
 9. Loja (personagens, habilidades, Coins simbólicos) e Perfil (estatísticas e coleção)
 10. PWA (instalável, paisagem, "Gire a tela") e polimento (personagens neon, pacote da Morte

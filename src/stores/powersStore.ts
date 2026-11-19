@@ -8,7 +8,7 @@ export interface Aim {
 }
 
 export interface PowersData {
-  /** As 3 cartas do sorteio da 3ª habilidade e o prazo de 8s [RN-DRAFT-03] [RN-DRAFT-05] */
+  /** As 3 cartas do sorteio da 3ª habilidade e o prazo de 12s [RN-DRAFT-03] [RN-DRAFT-05] */
   drawOptions: { options: AbilityId[]; deadline: number } | null
   /** Meu deck da rodada (2 iniciais + 1 sorteada), como o servidor mandou */
   deck: DeckSlot[]

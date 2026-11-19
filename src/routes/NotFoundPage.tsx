@@ -8,11 +8,11 @@ export function NotFoundPage() {
   const navigate = useNavigate()
 
   return (
-    <section className="flex flex-1 flex-col items-center justify-center gap-4 py-6 text-center short:gap-3 short:py-3">
-      <h1 className="font-display text-4xl font-extrabold tracking-wide text-primary uppercase short:text-3xl">
+    <section className="flex flex-1 flex-col items-center justify-center gap-4 py-6 text-center short:gap-3 short:py-3 tall:gap-6">
+      <h1 className="font-display text-4xl font-extrabold tracking-wide text-primary uppercase short:text-3xl tall:text-6xl">
         {APP_TEXTS.notFoundTitle}
       </h1>
-      <p className="text-text-muted">{APP_TEXTS.notFoundBody}</p>
+      <p className="text-text-muted tall:text-xl">{APP_TEXTS.notFoundBody}</p>
       <Button onClick={() => navigate(PATHS.play, { replace: true })}>Voltar ao Hub</Button>
     </section>
   )

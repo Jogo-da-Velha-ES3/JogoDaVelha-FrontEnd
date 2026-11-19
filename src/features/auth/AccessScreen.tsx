@@ -9,7 +9,7 @@ import {
   registerErrorFor,
   type AuthSession,
 } from '../../api/auth'
-import { Button } from '../../components/ui'
+import { Button, Logo } from '../../components/ui'
 import {
   EMAIL_MAX,
   hasErrors,
@@ -59,11 +59,11 @@ export function AccessScreen() {
   }
 
   return (
-    <section className="mx-auto flex w-full max-w-4xl flex-1 flex-col items-stretch gap-4 py-4 sm:flex-row sm:items-center sm:gap-8 short:items-start short:gap-4 short:py-1">
+    <section className="mx-auto flex w-full max-w-4xl flex-1 flex-col items-stretch gap-4 py-4 sm:flex-row sm:items-center sm:gap-8 short:items-start short:gap-4 short:py-1 tall:max-w-5xl tall:gap-12">
       {/* Criar conta com o celular deitado: a marca sai para a linha de campos caber acima do teclado */}
       <Brand hiddenWhenShort={tab === 'register'} />
 
-      <div className="flex flex-1 flex-col gap-3 short:gap-2">
+      <div className="flex flex-1 flex-col gap-3 short:gap-2 tall:gap-5">
         <div
           role="tablist"
           aria-label="Acesso"
@@ -106,27 +106,19 @@ function Brand({ hiddenWhenShort }: { hiddenWhenShort: boolean }) {
   return (
     <div
       className={[
-        'flex flex-1 flex-col items-center gap-2 short:gap-1',
+        'flex flex-1 flex-col items-center gap-2 short:gap-1 tall:gap-5',
         hiddenWhenShort ? 'short:hidden' : '',
       ].join(' ')}
     >
-      <div className="flex items-center gap-3">
-        {/* Espaço do logo com a carinha do Vitão: a arte vem com a FE-41 (flag desligada) */}
-        <div
-          aria-hidden
-          className="grid size-14 place-items-center rounded-full border-2 border-dashed border-line font-mono text-[0.625rem] text-text-muted short:size-11"
-        >
-          logo
-        </div>
-        <h1 className="font-display text-3xl leading-none font-extrabold tracking-wide text-primary uppercase short:text-2xl">
-          Jogo do
-          <br />
-          Velho
-        </h1>
-      </div>
-      <div className="flex justify-center gap-1" aria-hidden>
+      <Logo size="lg" />
+      <div className="flex justify-center gap-1 tall:gap-3" aria-hidden>
         {CHARACTER_IDS.map((id) => (
-          <Character key={id} id={id} decorative className="h-10 w-9 short:h-8 short:w-7" />
+          <Character
+            key={id}
+            id={id}
+            decorative
+            className="h-10 w-9 short:h-8 short:w-7 tall:h-16 tall:w-14"
+          />
         ))}
       </div>
     </div>
@@ -155,7 +147,7 @@ function TabButton({
       aria-controls={panelId}
       onClick={onClick}
       className={[
-        'min-h-10 rounded-lg font-display text-sm font-bold tracking-wide uppercase transition short:min-h-9',
+        'min-h-10 rounded-lg font-display text-sm font-bold tracking-wide uppercase transition short:min-h-9 tall:min-h-12 tall:text-lg',
         active
           ? 'bg-bg-raised text-primary shadow-glow shadow-primary/20'
           : 'text-text-muted hover:text-primary',
@@ -206,9 +198,9 @@ function LoginForm({
   }
 
   return (
-    <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-3 short:gap-2">
+    <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-3 short:gap-2 tall:gap-5">
       {created && !formError && (
-        <p role="status" className="text-center text-sm text-primary">
+        <p role="status" className="text-center text-sm text-primary tall:text-base">
           {ACCESS_TEXTS.accountCreated}
         </p>
       )}
@@ -237,7 +229,7 @@ function LoginForm({
       <button
         type="button"
         // py-2 com -my-2: área de toque de 36px sem empurrar o layout nem invadir o botão (FE-16)
-        className="-my-2 self-end py-2 text-sm text-text-muted underline-offset-4 hover:text-primary hover:underline"
+        className="-my-2 self-end py-2 text-sm text-text-muted underline-offset-4 hover:text-primary hover:underline tall:text-base"
         onClick={onForgotPassword}
       >
         Esqueci minha senha
@@ -280,9 +272,9 @@ function RegisterForm({ onAccountCreated }: { onAccountCreated: (username: strin
   }
 
   return (
-    <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-3 short:gap-2">
+    <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-3 short:gap-2 tall:gap-5">
       {/* Celular deitado: usuário, e-mail, senha e botão numa linha só, acima do teclado */}
-      <div className="grid items-start gap-3 short:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)_minmax(0,1fr)_auto] short:gap-2">
+      <div className="grid items-start gap-3 short:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)_minmax(0,1fr)_auto] short:gap-2 tall:gap-5">
         <TextField
           label="Nome de usuário"
           autoComplete="username"

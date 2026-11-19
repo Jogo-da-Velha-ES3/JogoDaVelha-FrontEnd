@@ -10,7 +10,7 @@ export type RoomPhase =
   | 'MATCHED' // "MATCH FEITO!" + contagem de 3s
   | 'DRAFT' // Preparação (personagem + 2 habilidades iniciais)
   | 'VERSUS' // tela de Confronto
-  | 'ROUND_DRAW' // sorteio da 3ª habilidade (8s)
+  | 'ROUND_DRAW' // sorteio da 3ª habilidade (12s)
   | 'PLAYING'
   | 'ROUND_END'
   | 'RESULT'
@@ -60,6 +60,21 @@ export interface TurnState {
   durationSeconds: number
 }
 
+/**
+ * O que o jogador da vez já fez no turno. Cada turno tem 1 jogada e 1 habilidade, em qualquer
+ * ordem e no mesmo prazo; o turno acaba com as duas, ao passar a vez ou no fim do prazo (BE-046)
+ */
+export interface TurnActions {
+  abilityUsed: boolean
+  moveUsed: boolean
+}
+
+/** O turno no snapshot: também diz o que já foi feito nele e a versão do estado (BE-046) */
+export interface SnapshotTurn extends TurnState {
+  actions?: TurnActions
+  stateVersion?: number
+}
+
 export type MatchOutcome =
   | { kind: 'WIN'; winner: PlayerSlot; score: [number, number] }
   | { kind: 'ABSOLUTE_DRAW' }
@@ -79,7 +94,7 @@ export interface RoomSnapshot {
   round: number
   suddenDeath: boolean
   board: Cell[]
-  turn: TurnState | null
+  turn: SnapshotTurn | null
   /** Só o meu deck: o do oponente nunca é enviado */
   myDeck: DeckSlot[]
   outcome: MatchOutcome | null
@@ -89,7 +104,7 @@ export interface RoomSnapshot {
   // simulado nem sempre os manda.
   /** Na Preparação: prazo dos 20s e quem já está pronto */
   draft?: { deadline: number; ready: Record<PlayerSlot, boolean> } | null
-  /** No sorteio: as minhas 3 cartas e o prazo dos 8s (privado) */
+  /** No sorteio: as minhas 3 cartas e o prazo dos 12s (privado) */
   drawOptions?: { options: AbilityId[]; deadline: number } | null
   /** No Resultado: Coins creditados a cada lado */
   coins?: Record<PlayerSlot, number> | null

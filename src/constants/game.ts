@@ -15,7 +15,8 @@ export const PREPARATION_SECONDS = 20 // [RF-DRAFT-01]
 export const PREPARATION_WARN_SECONDS = 8
 /** Preparação: espera depois de o servidor confirmar o personagem antes de ir às habilidades */
 export const PREPARATION_AUTO_ADVANCE_MS = 500
-export const DRAW_PICK_SECONDS = 8 // [RN-DRAFT-05]
+/** Sorteio da 3ª habilidade: 12s desde a BE-048 do back (18/11); a ERS dizia 8s [RN-DRAFT-05] */
+export const DRAW_PICK_SECONDS = 12
 export const MATCH_FOUND_COUNTDOWN_SECONDS = 3 // [RF-SAL-03]
 export const REMATCH_WINDOW_SECONDS = 15 // [RN-POS-01]
 export const EFFECT_DURATION_TURNS = 2 // Escudo, Congelar, Campo de Força, Reforço [RN-ARN-07]

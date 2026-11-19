@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { createRoom } from '../../api/rooms'
 import { ApiError } from '../../api/client'
-import { Button } from '../../components/ui'
+import { Button, Logo } from '../../components/ui'
 import { ROOM_TEXTS } from '../../constants/texts'
 import { enterGameFullscreen } from '../../pwa/gameFullscreen'
 import { JOINED_ROOM_STATE, roomPath } from '../../routes/paths'
@@ -39,29 +39,18 @@ export function PlayScreen() {
   }
 
   return (
-    <section className="mx-auto flex w-full max-w-5xl flex-1 items-center gap-6 py-2 short:gap-4 short:py-0">
+    <section className="mx-auto flex w-full max-w-5xl flex-1 items-center gap-6 py-2 short:gap-4 short:py-0 tall:max-w-6xl tall:gap-12">
       <div className="flex flex-1 items-center justify-center">
         <Character
           id={favoriteCharacter}
           variant="full"
           animated
-          className="aspect-[160/170] h-52 sm:h-64 short:h-40"
+          className="aspect-[160/170] h-52 sm:h-64 short:h-40 tall:h-80"
         />
       </div>
 
-      <div className="flex flex-1 flex-col justify-center gap-3 short:gap-2">
-        <div className="flex items-center justify-center gap-2">
-          {/* Espaço do logo com a carinha do Vitão: a arte vem com a FE-41 (flag desligada) */}
-          <div
-            aria-hidden
-            className="grid size-9 place-items-center rounded-full border-2 border-dashed border-line font-mono text-[8px] text-text-muted"
-          >
-            logo
-          </div>
-          <h1 className="font-display text-2xl font-extrabold tracking-wide text-primary uppercase short:text-xl">
-            Jogo do Velho
-          </h1>
-        </div>
+      <div className="flex flex-1 flex-col justify-center gap-3 short:gap-2 tall:gap-5">
+        <Logo className="justify-center" />
 
         <Button
           size="lg"
@@ -79,7 +68,7 @@ export function PlayScreen() {
           Entrar com código
         </Button>
         {/* Instalar app some quando já está instalado ou o navegador não instala sites (FE-16) */}
-        <div className="flex gap-2">
+        <div className="flex gap-2 tall:gap-3">
           <Button
             variant="ghost"
             size="sm"

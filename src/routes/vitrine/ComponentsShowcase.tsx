@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Banner, Button, Modal } from '../../components/ui'
+import { Banner, Button, Logo, Modal } from '../../components/ui'
 import { CHARACTER_INFO } from '../../constants/characters'
 import { CHARACTERS } from '../../constants/game'
 import { HowToPlayModal } from '../../features/hub/HowToPlayModal'
@@ -55,6 +55,16 @@ export function ComponentsShowcase() {
               </li>
             ))}
           </ul>
+        </div>
+      </ShowcaseBlock>
+
+      <ShowcaseBlock
+        title="Logo"
+        hint="A cabeça do Vitão sobre o anel neon e o nome em letreiro. md no Hub, lg no Acesso."
+      >
+        <div className="flex flex-wrap items-center gap-8">
+          <Logo as="p" />
+          <Logo as="p" size="lg" />
         </div>
       </ShowcaseBlock>
 

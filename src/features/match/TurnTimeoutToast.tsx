@@ -63,13 +63,13 @@ export function TurnTimeoutToast() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -6 }}
           transition={{ duration: 0.18, ease: 'easeOut' }}
-          className="pointer-events-none flex items-center gap-2 rounded-xl border bg-bg-panel px-2.5 py-1.5 shadow-glow short:py-1"
+          className="pointer-events-none flex items-center gap-2 rounded-xl border bg-bg-panel px-2.5 py-1.5 shadow-glow short:py-1 tall:gap-3 tall:px-4 tall:py-2.5"
           style={{ borderColor }}
         >
           {/* Ícone de aviso */}
           <span
             aria-hidden="true"
-            className="shrink-0 font-display text-lg font-bold leading-none"
+            className="shrink-0 font-display text-lg font-bold leading-none tall:text-3xl"
             style={{ color: borderColor }}
           >
             !
@@ -77,12 +77,12 @@ export function TurnTimeoutToast() {
 
           <div className="min-w-0 flex-1">
             <p
-              className="font-display text-sm font-bold uppercase leading-tight tracking-wide short:text-xs"
+              className="font-display text-sm font-bold uppercase leading-tight tracking-wide short:text-xs tall:text-lg"
               style={{ color: borderColor }}
             >
               {title}
             </p>
-            <p className="font-body text-xs text-text-muted short:text-[0.6875rem] short:leading-tight">
+            <p className="font-body text-xs text-text-muted short:text-[0.6875rem] short:leading-tight tall:text-sm">
               {subtitle}
             </p>
           </div>

@@ -24,7 +24,7 @@ function Avatar({
 }) {
   return (
     <span
-      className="relative size-14 shrink-0 overflow-hidden rounded-full border-[3px] bg-bg-raised short:size-7 short:border-2"
+      className="relative size-14 shrink-0 overflow-hidden rounded-full border-[3px] bg-bg-raised short:size-7 short:border-2 tall:size-20"
       style={{ borderColor: color, boxShadow: `0 0 8px ${color}` }}
     >
       {character ? (
@@ -99,34 +99,34 @@ export function RoundStartBanner() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className="pointer-events-none absolute inset-0 z-[5] flex flex-col items-center justify-center gap-3 bg-bg-deep/75 px-3.5 py-3.5 text-center short:gap-[7px]"
+          className="pointer-events-none absolute inset-0 z-[5] flex flex-col items-center justify-center gap-3 bg-bg-deep/75 px-3.5 py-3.5 text-center short:gap-[7px] tall:gap-5"
         >
-          <p className="font-mono text-sm tracking-[0.06em] text-text-muted uppercase short:text-[0.625rem]">
+          <p className="font-mono text-sm tracking-[0.06em] text-text-muted uppercase short:text-[0.625rem] tall:text-lg">
             {T.bestOf}
           </p>
 
           {matchPoint ? (
             <p
-              className="font-display text-6xl leading-none font-bold tracking-[0.08em] uppercase short:text-[1.875rem]"
+              className="font-display text-6xl leading-none font-bold tracking-[0.08em] uppercase short:text-[1.875rem] tall:text-8xl"
               style={{ color: leadColor, textShadow: `0 0 18px ${leadColor}` }}
             >
               {T.matchPoint(leadName)}
             </p>
           ) : (
-            <p className="font-display text-6xl leading-none font-bold tracking-[0.08em] text-text uppercase short:text-[1.875rem]">
+            <p className="font-display text-6xl leading-none font-bold tracking-[0.08em] text-text uppercase short:text-[1.875rem] tall:text-8xl">
               {T.title(round)}
             </p>
           )}
 
           <div
-            className="mt-3 flex items-center gap-5 short:mt-1.5 short:gap-2.5"
+            className="mt-3 flex items-center gap-5 short:mt-1.5 short:gap-2.5 tall:mt-5 tall:gap-8"
             style={{ perspective: 480 }}
           >
             <Avatar character={me?.character} color={myColor} />
             {round === 1 ? (
               <motion.span
                 aria-hidden="true"
-                className="grid size-18 place-items-center rounded-full border-[3px] border-coin font-display text-3xl font-bold text-coin short:size-10 short:border-2 short:text-[1.0625rem]"
+                className="grid size-18 place-items-center rounded-full border-[3px] border-coin font-display text-3xl font-bold text-coin short:size-10 short:border-2 short:text-[1.0625rem] tall:size-24 tall:text-4xl"
                 style={{ boxShadow: '0 0 16px var(--color-coin)' }}
                 animate={reduceMotion || !flipping ? { rotateY: 0 } : { rotateY: 360 }}
                 transition={
@@ -138,7 +138,7 @@ export function RoundStartBanner() {
                 ?
               </motion.span>
             ) : (
-              <span className="font-mono text-[0.625rem] tracking-widest text-text-muted uppercase">
+              <span className="font-mono text-[0.625rem] tracking-widest text-text-muted uppercase tall:text-sm">
                 ⇄
               </span>
             )}
@@ -147,19 +147,19 @@ export function RoundStartBanner() {
 
           {/* Round 1: primeiro a moeda gira, depois revela quem começa */}
           {round === 1 && flipping ? (
-            <p className="font-mono text-sm tracking-[0.06em] text-text-muted short:text-[0.625rem]">
+            <p className="font-mono text-sm tracking-[0.06em] text-text-muted short:text-[0.625rem] tall:text-lg">
               {T.flipping}
             </p>
           ) : (
             <>
               {round > 1 && (
-                <p className="font-mono text-sm tracking-[0.06em] text-text-muted short:text-[0.625rem]">
+                <p className="font-mono text-sm tracking-[0.06em] text-text-muted short:text-[0.625rem] tall:text-lg">
                   {T.alternates}
                 </p>
               )}
               {starter && (
                 <p
-                  className="font-display text-2xl font-bold tracking-[0.06em] uppercase short:text-sm"
+                  className="font-display text-2xl font-bold tracking-[0.06em] uppercase short:text-sm tall:text-4xl"
                   style={{ color: starterColor }}
                 >
                   {starterIsMe ? T.youStart : T.starts(starterName)}

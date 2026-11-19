@@ -605,3 +605,112 @@ describe('infraestrutura', () => {
     expect(useRoomStore.getState().pendingRoomCode).toBe('4821')
   })
 })
+
+describe('jogada e habilidade no mesmo turno (BE-046)', () => {
+  const timer = () => useTimerStore.getState()
+  const done = (moveUsed: boolean, abilityUsed: boolean) => ({ moveUsed, abilityUsed })
+  const board = (actions: { moveUsed: boolean; abilityUsed: boolean }, stateVersion?: number) =>
+    send('BOARD_UPDATE', { board: cells('X...............'), actions, stateVersion })
+
+  it('o turno começa sem nada feito e cada ação chega com o que já foi feito', () => {
+    send('TURN_START', { ...turn('P1'), actions: done(false, false), stateVersion: 10 })
+    expect(timer().actions).toEqual(done(false, false))
+
+    board(done(true, false), 11)
+    expect(timer().actions).toEqual(done(true, false))
+    expect(timer().turn?.player).toBe('P1') // a jogada não troca o turno
+
+    send('ABILITY_RESOLVED', {
+      by: 'P1',
+      ability: 'AMPULHETA',
+      targetCell: null,
+      destinationCell: null,
+      absorbed: false,
+      noEffect: false,
+      actions: done(true, true),
+      stateVersion: 12,
+    })
+    expect(timer().actions).toEqual(done(true, true))
+    // A última habilidade guarda só o que é dela
+    expect(useBoardStore.getState().lastAbility).not.toHaveProperty('actions')
+  })
+
+  it('a vez já é do outro: o servidor fechou o turno, que fica travado até o próximo', () => {
+    const boardOf = (actions: ReturnType<typeof done>, turnPlayer: PlayerSlot) =>
+      send('BOARD_UPDATE', { board: cells('X...............'), actions, turnPlayer })
+    send('TURN_START', { ...turn('P1'), actions: done(false, false) })
+    boardOf(done(false, true), 'P1')
+    expect(timer().actions).toEqual(done(false, true))
+    // A jogada fechou o turno: o back já manda as ações e a vez do próximo
+    boardOf(done(false, false), 'P2')
+    expect(timer().actions).toEqual(done(true, true))
+
+    send('TURN_START', { ...turn('P2'), actions: done(false, false) })
+    expect(timer().actions).toEqual(done(false, false))
+    // O BOARD_UPDATE da mesma mudança chegando depois do TURN_START não trava o turno novo
+    boardOf(done(false, false), 'P2')
+    expect(timer().actions).toEqual(done(false, false))
+  })
+
+  it('evento de um estado mais antigo que o último aplicado é descartado', () => {
+    send('TURN_START', { ...turn('P1'), actions: done(false, false), stateVersion: 20 })
+    board(done(true, false), 22)
+    send('BOARD_UPDATE', {
+      board: cells('................'),
+      actions: done(false, false),
+      stateVersion: 21,
+    })
+    expect(useBoardStore.getState().cells[0].owner).toBe('P1')
+    expect(timer()).toMatchObject({ actions: done(true, false), stateVersion: 22 })
+
+    // A mesma versão vale: os eventos de uma mudança só têm o mesmo número
+    send('TURN_START', { ...turn('P2'), actions: done(false, false), stateVersion: 22 })
+    expect(timer().turn?.player).toBe('P2')
+  })
+
+  it('snapshot: quem volta continua de onde parou; o snapshot antigo da mesma partida é descartado', () => {
+    const snapshot = (stateVersion: number, actions = done(true, false)): RoomSnapshot => ({
+      gameId: 'game-1',
+      code: '4821',
+      phase: 'PLAYING',
+      players: [player('P1'), player('P2')],
+      mySlot: 'P1',
+      round: 1,
+      suddenDeath: false,
+      board: cells('X...............'),
+      turn: { player: 'P1', startedAt: clock, durationSeconds: 10, actions, stateVersion },
+      myDeck: [],
+      outcome: null,
+      serverTime: clock + 1000,
+    })
+    send('ROOM_SNAPSHOT', snapshot(30))
+    expect(timer()).toMatchObject({ actions: done(true, false), stateVersion: 30 })
+    expect(timer().turn).toEqual({
+      player: 'P1',
+      startedAt: expect.any(Number),
+      durationSeconds: 10,
+    })
+
+    board(done(true, true), 32)
+    send('ROOM_SNAPSHOT', snapshot(31, done(false, false)))
+    expect(timer()).toMatchObject({ actions: done(true, true), stateVersion: 32 })
+  })
+
+  it('fim do round e revanche zeram as ações e a versão', () => {
+    send('TURN_START', { ...turn('P1'), actions: done(false, false), stateVersion: 40 })
+    board(done(true, false), 41)
+    send('ROUND_END', {
+      round: 1,
+      winner: 'P1',
+      winningLine: [0, 1, 2, 3],
+      score: { P1: 1, P2: 0 },
+    })
+    expect(timer().actions).toEqual(done(false, false))
+
+    send('PHASE_CHANGE', { phase: 'DRAFT' })
+    expect(timer().stateVersion).toBeNull()
+    // A partida nova recomeça a contagem
+    board(done(true, false), 1)
+    expect(useBoardStore.getState().cells[0].owner).toBe('P1')
+  })
+})
