@@ -1,7 +1,7 @@
 // Ponto único de entrada dos eventos do servidor (ARCHITECTURE §3). O cliente STOMP (FE-18) e o
 // servidor simulado (FE-35) chamam applyServerEvent; nenhum componente assina eventos direto.
 // Cada store reflete o que o servidor confirmou: nada aqui calcula placar, vencedor ou timeout.
-import type { CharacterId, PlayerSlot, PlayerState, RoomPhase } from '../types/game'
+import type { CharacterId, PlayerSlot, PlayerState, RoomPhase, TurnActions } from '../types/game'
 import { otherSlot } from '../lib/match'
 import type { RoomClosedReason, ServerEnvelope, ServerEvent } from '../types/events'
 import { initialBoardState, useBoardStore } from './boardStore'
@@ -10,7 +10,7 @@ import { INITIAL_DRAFT_STATE, useDraftStore } from './draftStore'
 import { INITIAL_MATCH_STATE, type RematchCancelReason, useMatchStore } from './matchStore'
 import { INITIAL_POWERS_DATA, usePowersStore } from './powersStore'
 import { INITIAL_ROOM_STATE, type RoomGameState, useRoomStore } from './roomStore'
-import { INITIAL_TIMER_STATE, useTimerStore } from './timerStore'
+import { INITIAL_TIMER_STATE, NO_TURN_ACTIONS, useTimerStore } from './timerStore'
 import { playSoundForServerEvent } from '../features/sound'
 import { playAnnouncementForServerEvent } from '../features/vitao/vitaoVoices'
 
@@ -37,6 +37,35 @@ function leftGameAfter(room: RoomGameState, next: RoomPhase): string | null {
   return room.phase === 'RESULT' && next === 'DRAFT' ? room.gameId : room.leftGameId
 }
 
+/** Versão do estado da partida que o evento traz (só os eventos de jogo têm), BE-046 */
+function stateVersionOf(event: ServerEvent): number | null {
+  switch (event.type) {
+    case 'TURN_START':
+    case 'BOARD_UPDATE':
+    case 'ABILITY_RESOLVED':
+    case 'TURN_TIMEOUT':
+      return event.payload.stateVersion ?? null
+    default:
+      return null
+  }
+}
+
+/** O turno já foi fechado pelo servidor: nada mais fica liberado até o próximo TURN_START */
+const TURN_CLOSED: TurnActions = { abilityUsed: true, moveUsed: true }
+
+/**
+ * O que o jogador da vez já fez, como veio com a jogada ou a habilidade. Zerado depois de uma ação
+ * já feita quer dizer que o servidor fechou o turno (as duas ações usadas): o TURN_START do próximo
+ * vem logo atrás e, até ele, o turno fica travado
+ */
+function applyTurnActions(actions: TurnActions | undefined) {
+  if (!actions) return
+  const current = useTimerStore.getState().actions
+  const closed =
+    !actions.abilityUsed && !actions.moveUsed && (current.abilityUsed || current.moveUsed)
+  useTimerStore.setState({ actions: closed ? TURN_CLOSED : actions })
+}
+
 /** Limpa o estado da partida (Preparação, placar, tabuleiro, habilidades, turno) */
 function resetMatchStores() {
   useDraftStore.setState(INITIAL_DRAFT_STATE, true)
@@ -58,6 +87,12 @@ export function applyServerEvent(envelope: ServerEnvelope, receivedAt = Date.now
   if (!envelope.local) useClockStore.getState().syncWithServer(serverTime, receivedAt)
 
   const event = { type: envelope.type, payload: envelope.payload } as ServerEvent
+  // Jogada e habilidade do mesmo turno chegam em sequência e podem se cruzar no caminho: o evento
+  // de um estado mais antigo que o último aplicado é descartado, antes de tocar som (BE-046)
+  const version = stateVersionOf(event)
+  const appliedVersion = useTimerStore.getState().stateVersion
+  if (version !== null && appliedVersion !== null && version < appliedVersion) return
+  if (version !== null) useTimerStore.setState({ stateVersion: version })
   playSoundForServerEvent(event)
   // Anúncios gravados (Confronto, Round 1 e 2, empates, estouro do oponente): só a voz (FE-48)
   playAnnouncementForServerEvent(event)
@@ -76,6 +111,17 @@ export function applyServerEvent(envelope: ServerEnvelope, receivedAt = Date.now
       // A sala nunca volta para a Sala de Espera nem para o Match feito depois da Preparação:
       // um snapshot assim foi montado antes e chegou atrasado (AMB-03)
       if (sameRoom && isLobbyPhase(s.phase) && room.phase !== null && !isLobbyPhase(room.phase))
+        return
+      // Da mesma partida, montado antes do último evento de jogo aplicado (BE-046)
+      const sameGame = sameRoom && s.gameId != null && s.gameId === room.gameId
+      const appliedState = useTimerStore.getState().stateVersion
+      const snapshotState = s.turn?.stateVersion ?? null
+      if (
+        sameGame &&
+        snapshotState !== null &&
+        appliedState !== null &&
+        snapshotState < appliedState
+      )
         return
       const previous = useMatchStore.getState()
       const previousWinningLine = useBoardStore.getState().winningLine
@@ -146,7 +192,22 @@ export function applyServerEvent(envelope: ServerEnvelope, receivedAt = Date.now
         deck: s.myDeck,
         drawOptions: s.drawOptions ?? null,
       })
-      useTimerStore.setState({ turn: s.turn }, true)
+      const { turn } = s
+      useTimerStore.setState(
+        {
+          turn: turn
+            ? {
+                player: turn.player,
+                startedAt: turn.startedAt,
+                durationSeconds: turn.durationSeconds,
+              }
+            : null,
+          // Quem volta no meio do turno continua de onde parou: jogou, usou a habilidade ou nada
+          actions: turn?.actions ?? NO_TURN_ACTIONS,
+          stateVersion: snapshotState ?? (sameGame ? appliedState : null),
+        },
+        true,
+      )
       return
     }
 
@@ -232,8 +293,13 @@ export function applyServerEvent(envelope: ServerEnvelope, receivedAt = Date.now
       return
 
     case 'TURN_START': {
-      const { consecutiveTimeouts, silenced, player, startedAt, durationSeconds } = event.payload
-      useTimerStore.setState({ turn: { player, startedAt, durationSeconds } })
+      const { consecutiveTimeouts, silenced, player, startedAt, durationSeconds, actions } =
+        event.payload
+      // Turno novo: nada feito ainda (o back manda os dois em false)
+      useTimerStore.setState({
+        turn: { player, startedAt, durationSeconds },
+        actions: actions ?? NO_TURN_ACTIONS,
+      })
       useMatchStore.setState({ consecutiveTimeouts })
       useRoomStore.setState((r) => ({
         players: r.players.map((p) => ({
@@ -250,10 +316,13 @@ export function applyServerEvent(envelope: ServerEnvelope, receivedAt = Date.now
 
     case 'BOARD_UPDATE':
       useBoardStore.setState({ cells: event.payload.board })
+      applyTurnActions(event.payload.actions)
       return
 
-    case 'ABILITY_RESOLVED':
-      useBoardStore.setState({ lastAbility: { ...event.payload, serverTime, receivedAt } })
+    case 'ABILITY_RESOLVED': {
+      const { actions: _actions, stateVersion: _version, ...resolved } = event.payload
+      useBoardStore.setState({ lastAbility: { ...resolved, serverTime, receivedAt } })
+      applyTurnActions(event.payload.actions)
       // Silêncio confirmado (não anulado pelo Campo de Força) cala o oponente no próximo turno dele.
       // O back confirma no TURN_START seguinte (`silenced`); o simulado depende só daqui
       if (event.payload.ability === 'SILENCIO' && !event.payload.absorbed) {
@@ -263,6 +332,7 @@ export function applyServerEvent(envelope: ServerEnvelope, receivedAt = Date.now
       }
       usePowersStore.setState({ aim: null })
       return
+    }
 
     case 'TURN_TIMEOUT': {
       const { player, consecutiveTimeouts } = event.payload
@@ -281,7 +351,7 @@ export function applyServerEvent(envelope: ServerEnvelope, receivedAt = Date.now
       const { round, winner, winningLine, score } = event.payload
       useMatchStore.setState({ score, roundEnd: { round, winner, winningLine } })
       useBoardStore.setState({ winningLine })
-      useTimerStore.setState({ turn: null })
+      useTimerStore.setState({ turn: null, actions: NO_TURN_ACTIONS })
       usePowersStore.setState({ aim: null })
       useRoomStore.setState((r) => ({
         players: r.players.map((p) => ({ ...p, roundsWon: score[p.slot] })),
@@ -298,7 +368,7 @@ export function applyServerEvent(envelope: ServerEnvelope, receivedAt = Date.now
         outcomeReceivedAt: m.outcome === null ? receivedAt : m.outcomeReceivedAt,
         coins: event.payload.coins,
       }))
-      useTimerStore.setState({ turn: null })
+      useTimerStore.setState({ turn: null, actions: NO_TURN_ACTIONS })
       usePowersStore.setState({ aim: null })
       return
 

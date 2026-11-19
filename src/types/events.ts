@@ -10,6 +10,7 @@ import type {
   PlayerState,
   RoomPhase,
   RoomSnapshot,
+  TurnActions,
   TurnState,
 } from './game'
 
@@ -79,9 +80,20 @@ export type ServerEvent =
         consecutiveTimeouts: Record<PlayerSlot, number>
         /** Quem está silenciado neste turno. Sem o campo (simulado), o front deduz do Silêncio */
         silenced?: Record<PlayerSlot, boolean>
+        /** Começa sem nada feito (BE-046) */
+        actions?: TurnActions
+        stateVersion?: number
       }
     }
-  | { type: 'BOARD_UPDATE'; payload: { board: Cell[] } }
+  | {
+      type: 'BOARD_UPDATE'
+      payload: {
+        board: Cell[]
+        /** O que o jogador da vez já fez no turno, depois desta mudança (BE-046) */
+        actions?: TurnActions
+        stateVersion?: number
+      }
+    }
   | {
       type: 'ABILITY_RESOLVED'
       payload: {
@@ -93,9 +105,19 @@ export type ServerEvent =
         absorbed: boolean
         /** Tornado/Troca Rápida sem casa vizinha livre [RN-ARN-05] */
         noEffect: boolean
+        /** O que o jogador da vez já fez no turno, depois desta habilidade (BE-046) */
+        actions?: TurnActions
+        stateVersion?: number
       }
     }
-  | { type: 'TURN_TIMEOUT'; payload: { player: PlayerSlot; consecutiveTimeouts: number } }
+  /**
+   * Turno perdido por tempo, sem ter jogado nem usado habilidade: conta estouro [RN-ARN-01]. O
+   * prazo que acaba depois de uma ação não chega aqui: não é estouro (a tradução descarta)
+   */
+  | {
+      type: 'TURN_TIMEOUT'
+      payload: { player: PlayerSlot; consecutiveTimeouts: number; stateVersion?: number }
+    }
   | {
       type: 'ROUND_END'
       payload: {
@@ -133,6 +155,8 @@ export type ClientCommand =
       payload: { ability: AbilityId; abilityToRemove?: AbilityId }
     }
   | { type: 'MOVE'; payload: { cell: number } }
+  /** Passar a vez depois de jogar ou usar a habilidade, sem esperar o prazo (BE-046) */
+  | { type: 'END_TURN'; payload: Record<string, never> }
   | {
       type: 'USE_ABILITY'
       payload: { ability: AbilityId; targetCell?: number; destinationCell?: number }

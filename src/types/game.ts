@@ -60,6 +60,21 @@ export interface TurnState {
   durationSeconds: number
 }
 
+/**
+ * O que o jogador da vez já fez no turno. Cada turno tem 1 jogada e 1 habilidade, em qualquer
+ * ordem e no mesmo prazo; o turno acaba com as duas, ao passar a vez ou no fim do prazo (BE-046)
+ */
+export interface TurnActions {
+  abilityUsed: boolean
+  moveUsed: boolean
+}
+
+/** O turno no snapshot: também diz o que já foi feito nele e a versão do estado (BE-046) */
+export interface SnapshotTurn extends TurnState {
+  actions?: TurnActions
+  stateVersion?: number
+}
+
 export type MatchOutcome =
   | { kind: 'WIN'; winner: PlayerSlot; score: [number, number] }
   | { kind: 'ABSOLUTE_DRAW' }
@@ -79,7 +94,7 @@ export interface RoomSnapshot {
   round: number
   suddenDeath: boolean
   board: Cell[]
-  turn: TurnState | null
+  turn: SnapshotTurn | null
   /** Só o meu deck: o do oponente nunca é enviado */
   myDeck: DeckSlot[]
   outcome: MatchOutcome | null

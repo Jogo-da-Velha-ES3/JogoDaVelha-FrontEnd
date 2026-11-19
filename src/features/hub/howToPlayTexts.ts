@@ -133,7 +133,8 @@ export const HOW_TO_PLAY_PAGES: readonly HowToPlayPage[] = [
       `Deck de **${DECK_SIZE} habilidades**: **${INITIAL_ABILITIES_TO_PICK} iniciais** + **${DRAWN_PER_ROUND} de ${DRAW_OPTIONS} cartas** do sorteio (**${DRAW_PICK_SECONDS}s**).`,
       // O que acontece sem escolha fica na tela do sorteio, para a página caber no celular deitado
       'Cada round começa com o sorteio de **3 cartas**. Do round 2 em diante, a carta escolhida **troca** uma do deck.',
-      'Cada habilidade vale **1 uso por round**, e usar uma **gasta o turno**.',
+      // Jogada e habilidade no mesmo turno (BE-046)
+      'No turno: **1 jogada e 1 habilidade**, em qualquer ordem. Cada habilidade vale **1 uso por round**.',
       'O deck do oponente é **oculto**.',
     ],
   },

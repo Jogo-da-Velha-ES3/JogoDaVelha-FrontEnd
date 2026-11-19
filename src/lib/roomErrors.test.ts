@@ -35,6 +35,15 @@ describe('roomErrorMessage (SUG-02)', () => {
     ).toBe('A casa já está ocupada.')
   })
 
+  it('1 jogada e 1 habilidade por turno, e passar a vez só depois de agir (BE-046)', () => {
+    const error = (code: string, command: 'MOVE' | 'USE_ABILITY' | 'END_TURN') =>
+      roomErrorMessage({ code, message: 'x', command }, at('PLAYING'))
+    expect(error('MOVE_ALREADY_USED', 'MOVE')).toBe(T.moveAlreadyUsed)
+    expect(error('SKILL_ACTION_ALREADY_USED', 'USE_ABILITY')).toBe(T.abilityAlreadyUsed)
+    expect(error('END_TURN_WITHOUT_ACTION', 'END_TURN')).toBe(T.endTurnWithoutAction)
+    expect(error('NOT_YOUR_TURN', 'END_TURN')).toBe(T.notYourTurn)
+  })
+
   it('sorteio e Preparação: o tempo acabou quando a fase já passou', () => {
     expect(roomErrorMessage({ ...generic, command: 'DRAW_PICK' }, at('PLAYING'))).toBe(T.drawOver)
     expect(roomErrorMessage({ ...generic, command: 'DRAW_PICK' }, at('ROUND_DRAW'))).toBe(T.notNow)

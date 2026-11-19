@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { toBackCommand } from './destinations'
+import { commandFromDestination, toBackCommand } from './destinations'
 
 const body = (value: string) => JSON.parse(value) as unknown
 
@@ -27,6 +27,14 @@ describe('toBackCommand — intenções no formato do back', () => {
       payload: { ability: 'AMPULHETA' },
     })
     expect(body(hourglass.body)).toEqual({ skillCode: 'AMPULHETA' })
+  })
+
+  it('passar a vez vai para /end-turn, sem corpo (proposto ao back, BE-046)', () => {
+    expect(toBackCommand('4821', { type: 'END_TURN', payload: {} })).toEqual({
+      destination: '/app/rooms/4821/end-turn',
+      body: '{}',
+    })
+    expect(commandFromDestination('/app/rooms/4821/end-turn')).toBe('END_TURN')
   })
 
   it('aceitar e recusar a revanche são destinos diferentes, sem corpo', () => {

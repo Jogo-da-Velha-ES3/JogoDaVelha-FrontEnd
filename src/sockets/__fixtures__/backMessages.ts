@@ -144,6 +144,54 @@ export const BACK_MESSAGES = {
     },
     1793935996201,
   ),
+  // Jogada e habilidade no mesmo turno (BE-046, PR #139 do back): pelo contrato, sem captura ainda
+  turnStartWithActions: message(
+    'TURN_START',
+    {
+      player: 'P1',
+      stateVersion: 12,
+      startedAt: 1793102400000,
+      durationSeconds: 10,
+      consecutiveTimeouts: { P1: 0, P2: 1 },
+      silenced: { P1: false, P2: true },
+      actions: { abilityUsed: false, moveUsed: false },
+    },
+    1793102400000,
+  ),
+  /** Depois da jogada, com a habilidade ainda livre: o turno continua */
+  boardUpdateAfterMove: message(
+    'BOARD_UPDATE',
+    {
+      round: 1,
+      stateVersion: 13,
+      board: emptyBoard,
+      turn: { actions: { abilityUsed: false, moveUsed: true } },
+    },
+    1793102401000,
+  ),
+  abilityWithActions: message(
+    'ABILITY_RESOLVED',
+    {
+      by: 'P1',
+      skillCode: 'AMPULHETA',
+      absorbed: false,
+      noEffect: false,
+      stateVersion: 14,
+      turn: { actions: { abilityUsed: true, moveUsed: false } },
+    },
+    1793102402000,
+  ),
+  /** O prazo acabou depois de uma ação: o contador fica em 0 e não é estouro */
+  turnTimeoutAfterAction: message(
+    'TURN_TIMEOUT',
+    { player: 'P1', consecutiveTimeouts: 0, stateVersion: 18 },
+    1793102410000,
+  ),
+  turnTimeout: message(
+    'TURN_TIMEOUT',
+    { player: 'P1', consecutiveTimeouts: 2, stateVersion: 18 },
+    1793102410000,
+  ),
   /** Erro de uma ação, na fila de erros: formato do REST, sem envelope */
   error: JSON.stringify({
     code: 'ROOM_NOT_FOUND',

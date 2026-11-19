@@ -93,6 +93,38 @@ describe('tradução das mensagens reais do back (contrato V2)', () => {
     })
   })
 
+  it('jogada e habilidade no mesmo turno: as ações do turno e a versão do estado (BE-046)', () => {
+    expect(parse(M.turnStartWithActions)?.payload).toMatchObject({
+      player: 'P1',
+      actions: { abilityUsed: false, moveUsed: false },
+      stateVersion: 12,
+    })
+    expect(parse(M.boardUpdateAfterMove)?.payload).toEqual({
+      board: expect.any(Array),
+      actions: { abilityUsed: false, moveUsed: true },
+      stateVersion: 13,
+    })
+    expect(parse(M.abilityWithActions)?.payload).toEqual({
+      by: 'P1',
+      ability: 'AMPULHETA',
+      targetCell: null,
+      destinationCell: null,
+      absorbed: false,
+      noEffect: false,
+      actions: { abilityUsed: true, moveUsed: false },
+      stateVersion: 14,
+    })
+  })
+
+  it('TURN_TIMEOUT depois de uma ação (contador em 0) não é estouro e é descartado', () => {
+    expect(parse(M.turnTimeoutAfterAction)).toBeNull()
+    expect(parse(M.turnTimeout)?.payload).toEqual({
+      player: 'P1',
+      consecutiveTimeouts: 2,
+      stateVersion: 18,
+    })
+  })
+
   it('ROUND_END: o empate vem sem winningLine e vira null', () => {
     expect(parse(M.roundEndWin)?.payload).toMatchObject({ winner: 'P1', winningLine: [0, 1, 2, 3] })
     expect(parse(M.roundEndDraw)?.payload).toEqual({
