@@ -18,7 +18,7 @@ export interface TimerBarProps {
 }
 
 /**
- * Barra de tempo para turnos (10s/5s), Preparação (20s), sorteio (8s) e revanche (15s).
+ * Barra de tempo para turnos (10s/5s), Preparação (20s), sorteio (12s) e revanche (15s).
  * Só mostra o tempo do servidor: não avisa quando acaba, porque timeout é decisão do servidor.
  */
 export function TimerBar({

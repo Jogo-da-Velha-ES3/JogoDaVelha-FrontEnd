@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import { PREPARATION_SECONDS, TURN_DURATION_SECONDS } from '../constants/game'
+import { DRAW_PICK_SECONDS, PREPARATION_SECONDS, TURN_DURATION_SECONDS } from '../constants/game'
 import { getMockControls } from '../sockets/gameClient'
 import { MOCK_TIMINGS } from '../sockets/mock/mockServer'
 import { useAuthStore } from '../stores/authStore'
@@ -28,7 +28,7 @@ const emptyCells = () => within(board()).queryAllByRole('button')
 async function toPlaying() {
   await tick(NET + MOCK_TIMINGS.botJoin + MOCK_TIMINGS.matched + NET)
   await tick(PREPARATION_SECONDS * 1000 + MOCK_TIMINGS.versus + NET)
-  await tick(8000 + NET) // sorteio da 3ª
+  await tick(DRAW_PICK_SECONDS * 1000 + NET) // sorteio da 3ª
 }
 
 async function waitForMyTurn() {

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Button } from '../../components/ui'
 import { ABILITY_INFO } from '../../constants/abilities'
 import { CHARACTER_INFO } from '../../constants/characters'
-import { ABILITIES, CHARACTERS } from '../../constants/game'
+import { ABILITIES, CHARACTERS, DRAW_PICK_SECONDS } from '../../constants/game'
 import { Board } from '../../features/board'
 import { Arena, useOpponentDisconnect } from '../../features/match'
 import { ResultScreen, useRoomExit } from '../../features/results'
@@ -246,7 +246,7 @@ function NextStep() {
   } else if (room.phase === 'VERSUS') text = 'Confronto! O primeiro round começa em instantes.'
   else if (room.phase === 'ROUND_DRAW') {
     text = drawOptions
-      ? 'Sorteio: escolha 1 das 3 cartas logo abaixo da tela (8 segundos).'
+      ? `Sorteio: escolha 1 das 3 cartas logo abaixo da tela (${DRAW_PICK_SECONDS} segundos).`
       : 'Esperando o robô escolher a carta dele…'
   } else if (room.phase === 'PLAYING') {
     text =
