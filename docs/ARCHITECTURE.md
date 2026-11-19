@@ -311,7 +311,7 @@ a tradução em `src/api/shop.ts` muda:
   | `DRAW_PICK`                          | `/draw/pick` `{ ability, abilityToRemove? }` (abaixo)             |
   | `MOVE` `{ cell }`                    | `/move` `{ position }`                                            |
   | `USE_ABILITY`                        | `/ability` `{ skillCode, targetPosition?, destinationPosition? }` |
-  | `END_TURN` (proposto, abaixo)        | `/end-turn`, sem corpo                                            |
+  | `END_TURN` (abaixo)                  | `/end-turn`, sem corpo                                            |
   | `REMATCH_REQUEST`                    | `/rematch/request`                                                |
   | `REMATCH_RESPOND` `{ accept }`       | `/rematch/accept` ou `/rematch/decline`                           |
   | `LEAVE`                              | `/leave`, em qualquer fase (abaixo)                               |
@@ -338,8 +338,9 @@ a tradução em `src/api/shop.ts` muda:
   - **Jogada e habilidade no mesmo turno (BE-046, PR #139 do back):** `TURN_START`, o snapshot
     (`turn.actions`), o `BOARD_UPDATE` e o `ABILITY_RESOLVED` (`turn.actions`, que a tradução sobe
     para `actions`) dizem o que o jogador da vez já fez (`abilityUsed`, `moveUsed`); vão para o
-    `timerStore`. Quando a segunda ação fecha o turno, esses eventos já chegam com as ações do
-    turno seguinte (zeradas): o `serverEvents` marca o turno como fechado até o `TURN_START`.
+    `timerStore`. O `BOARD_UPDATE` e o `ABILITY_RESOLVED` também dizem de quem é a vez depois da
+    mudança (`turn.player`, que vira `turnPlayer`): quando já é do outro, o turno fechou, e o
+    `serverEvents` trava o atual até o `TURN_START` do próximo.
   - Os mesmos eventos, o `TURN_TIMEOUT` e o snapshot trazem `stateVersion`, que cresce a cada
     mudança da partida: o evento (ou o snapshot da mesma partida) mais antigo que o último aplicado
     é descartado. Os eventos de uma mudança só têm o mesmo número.
@@ -351,11 +352,11 @@ a tradução em `src/api/shop.ts` muda:
     (`serverEvents`), e o aviso vem de `roomClosedMessage` (`features/results`).
   - Os demais (`PHASE_CHANGE`, `DRAW_OPTIONS`, `DECK_UPDATE`, `MATCH_END`,
     `PLAYER_DISCONNECTED`, `PLAYER_RECONNECTED`) já vêm no formato do front.
-- **Passar a vez (`/end-turn`, proposto ao back em 19/11):** sem corpo, só na própria vez e depois
-  de jogar ou usar a habilidade; fecha o turno como se as duas ações tivessem sido feitas (os
-  efeitos caem, `BOARD_UPDATE` e `TURN_START` do outro). Sem ação no turno, o front espera o erro
-  `END_TURN_WITHOUT_ACTION`. Ainda não existe no back: até ele entrar, o botão não faz nada contra
-  o back real.
+- **Passar a vez (`/end-turn`, PR #139 do back):** sem corpo, só na própria vez e depois de jogar
+  ou usar a habilidade; fecha o turno como se as duas ações tivessem sido feitas (os efeitos caem,
+  `BOARD_UPDATE` e `TURN_START` do outro), sem estouro. Sem ação no turno, o erro é
+  `END_TURN_WITHOUT_ACTION`; fora da vez, `FORBIDDEN`; com o prazo vencido, o `ROOM_CONFLICT`
+  genérico (`roomErrorMessage` mostra "Não é a sua vez." e "O tempo do seu turno acabou.").
 - **Saída (`/leave`):** na Sala de Espera, o host encerra a sala; no MATCH FEITO e na Preparação,
   a sala é encerrada sem partida (`PLAYER_LEFT`); na partida, é desistência e o outro vence por
   W.O.; no Resultado, é voltar ao lobby. O `leaveRoom()` do `gameClient` manda sempre o mesmo.

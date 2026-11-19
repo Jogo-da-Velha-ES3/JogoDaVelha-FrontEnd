@@ -102,6 +102,7 @@ describe('tradução das mensagens reais do back (contrato V2)', () => {
     expect(parse(M.boardUpdateAfterMove)?.payload).toEqual({
       board: expect.any(Array),
       actions: { abilityUsed: false, moveUsed: true },
+      turnPlayer: 'P1',
       stateVersion: 13,
     })
     expect(parse(M.abilityWithActions)?.payload).toEqual({
@@ -112,6 +113,7 @@ describe('tradução das mensagens reais do back (contrato V2)', () => {
       absorbed: false,
       noEffect: false,
       actions: { abilityUsed: true, moveUsed: false },
+      turnPlayer: 'P1',
       stateVersion: 14,
     })
   })

@@ -144,7 +144,7 @@ export const BACK_MESSAGES = {
     },
     1793935996201,
   ),
-  // Jogada e habilidade no mesmo turno (BE-046, PR #139 do back): pelo contrato, sem captura ainda
+  // Jogada e habilidade no mesmo turno (BE-046, PR #139 do back): pelo código do PR, sem captura
   turnStartWithActions: message(
     'TURN_START',
     {
@@ -165,7 +165,7 @@ export const BACK_MESSAGES = {
       round: 1,
       stateVersion: 13,
       board: emptyBoard,
-      turn: { actions: { abilityUsed: false, moveUsed: true } },
+      turn: { player: 'P1', actions: { abilityUsed: false, moveUsed: true } },
     },
     1793102401000,
   ),
@@ -177,7 +177,7 @@ export const BACK_MESSAGES = {
       absorbed: false,
       noEffect: false,
       stateVersion: 14,
-      turn: { actions: { abilityUsed: true, moveUsed: false } },
+      turn: { player: 'P1', actions: { abilityUsed: true, moveUsed: false } },
     },
     1793102402000,
   ),

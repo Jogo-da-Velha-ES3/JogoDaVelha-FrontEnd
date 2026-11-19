@@ -91,6 +91,8 @@ export type ServerEvent =
         board: Cell[]
         /** O que o jogador da vez já fez no turno, depois desta mudança (BE-046) */
         actions?: TurnActions
+        /** De quem é a vez depois desta mudança: outro jogador quer dizer que o turno fechou */
+        turnPlayer?: PlayerSlot
         stateVersion?: number
       }
     }
@@ -107,6 +109,8 @@ export type ServerEvent =
         noEffect: boolean
         /** O que o jogador da vez já fez no turno, depois desta habilidade (BE-046) */
         actions?: TurnActions
+        /** De quem é a vez depois desta habilidade: outro jogador quer dizer que o turno fechou */
+        turnPlayer?: PlayerSlot
         stateVersion?: number
       }
     }

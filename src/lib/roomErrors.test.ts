@@ -42,6 +42,10 @@ describe('roomErrorMessage (SUG-02)', () => {
     expect(error('SKILL_ACTION_ALREADY_USED', 'USE_ABILITY')).toBe(T.abilityAlreadyUsed)
     expect(error('END_TURN_WITHOUT_ACTION', 'END_TURN')).toBe(T.endTurnWithoutAction)
     expect(error('NOT_YOUR_TURN', 'END_TURN')).toBe(T.notYourTurn)
+    // O back responde ao "Passar a vez" fora da vez com FORBIDDEN e, sem prazo, com o genérico
+    expect(error('FORBIDDEN', 'END_TURN')).toBe(T.notYourTurn)
+    expect(error('ROOM_CONFLICT', 'END_TURN')).toBe(T.turnOver)
+    expect(error('ROOM_CONFLICT', 'MOVE')).toBe(T.notNow)
   })
 
   it('sorteio e Preparação: o tempo acabou quando a fase já passou', () => {

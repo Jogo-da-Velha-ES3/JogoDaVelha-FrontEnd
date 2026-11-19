@@ -635,16 +635,20 @@ describe('jogada e habilidade no mesmo turno (BE-046)', () => {
     expect(useBoardStore.getState().lastAbility).not.toHaveProperty('actions')
   })
 
-  it('ações zeradas depois de uma ação: o servidor fechou o turno, que fica travado até o próximo', () => {
+  it('a vez já é do outro: o servidor fechou o turno, que fica travado até o próximo', () => {
+    const boardOf = (actions: ReturnType<typeof done>, turnPlayer: PlayerSlot) =>
+      send('BOARD_UPDATE', { board: cells('X...............'), actions, turnPlayer })
     send('TURN_START', { ...turn('P1'), actions: done(false, false) })
-    board(done(false, true))
-    board(done(false, false)) // a jogada fechou o turno: o back já manda as ações do próximo
+    boardOf(done(false, true), 'P1')
+    expect(timer().actions).toEqual(done(false, true))
+    // A jogada fechou o turno: o back já manda as ações e a vez do próximo
+    boardOf(done(false, false), 'P2')
     expect(timer().actions).toEqual(done(true, true))
 
     send('TURN_START', { ...turn('P2'), actions: done(false, false) })
     expect(timer().actions).toEqual(done(false, false))
-    // Turno novo zerado continua zerado (ex: tabuleiro que muda no fim do prazo)
-    board(done(false, false))
+    // O BOARD_UPDATE da mesma mudança chegando depois do TURN_START não trava o turno novo
+    boardOf(done(false, false), 'P2')
     expect(timer().actions).toEqual(done(false, false))
   })
 

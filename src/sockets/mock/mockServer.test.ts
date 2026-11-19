@@ -406,6 +406,7 @@ describe('habilidades no servidor', () => {
       ability: 'BOMBA',
       targetCell: 5,
       actions: { abilityUsed: true, moveUsed: false },
+      turnPlayer: 'P1',
     })
     expect(ctx.last('BOARD_UPDATE')?.board[5].owner).toBeNull()
     expect(ctx.last('DECK_UPDATE')?.deck.find((d) => d.ability === 'BOMBA')?.usedThisRound).toBe(
@@ -417,9 +418,12 @@ describe('habilidades no servidor', () => {
     ctx.send({ type: 'USE_ABILITY', payload: { ability: 'SILENCIO' } })
     expect(ctx.last('ERROR')?.code).toBe('SKILL_ACTION_ALREADY_USED')
 
-    // A jogada fecha o turno: os eventos já saem com as ações zeradas, e vem o turno do outro
+    // A jogada fecha o turno: os eventos já saem com as ações zeradas e a vez do outro, como o back
     ctx.move(1)
-    expect(ctx.last('BOARD_UPDATE')?.actions).toEqual({ abilityUsed: false, moveUsed: false })
+    expect(ctx.last('BOARD_UPDATE')).toMatchObject({
+      actions: { abilityUsed: false, moveUsed: false },
+      turnPlayer: 'P2',
+    })
     expect(ctx.all('TURN_START')).toHaveLength(turns + 1)
     expect(ctx.turnOf()).toBe('P2')
 

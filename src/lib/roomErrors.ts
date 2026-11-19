@@ -23,7 +23,7 @@ const T = ROOM_TEXTS.actionErrors
 /** Erro genérico do back para ação fora de hora */
 const GENERIC_CONFLICT = 'ROOM_CONFLICT'
 
-/** Passar a vez sem ter jogado nem usado habilidade (código proposto ao back em 19/11) */
+/** Passar a vez sem ter jogado nem usado habilidade (BE-046) */
 export const END_TURN_WITHOUT_ACTION = 'END_TURN_WITHOUT_ACTION'
 
 /** O texto do aviso, ou null quando a tela já explica o que aconteceu */
@@ -43,6 +43,10 @@ export function roomErrorMessage(error: RoomError, context: RoomErrorContext): s
       if (code === 'MOVE_ALREADY_USED') return T.moveAlreadyUsed
       if (code === 'SKILL_ACTION_ALREADY_USED') return T.abilityAlreadyUsed
       if (code === END_TURN_WITHOUT_ACTION) return T.endTurnWithoutAction
+      // "Passar a vez" fora da vez vem como FORBIDDEN e, com o prazo vencido, como o conflito
+      // genérico (a jogada usa NOT_YOUR_TURN e TURN_EXPIRED)
+      if (command === 'END_TURN' && code === 'FORBIDDEN') return T.notYourTurn
+      if (command === 'END_TURN' && code === GENERIC_CONFLICT) return T.turnOver
       return code === GENERIC_CONFLICT ? T.notNow : message
     case 'DRAW_PICK':
       if (phase !== 'ROUND_DRAW') return T.drawOver
