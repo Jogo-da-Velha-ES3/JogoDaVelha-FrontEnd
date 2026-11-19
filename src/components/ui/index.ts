@@ -1,6 +1,7 @@
 export { Banner, type BannerProps, type BannerTone } from './Banner'
 export { Button, type ButtonProps, type ButtonSize, type ButtonVariant } from './Button'
 export { GearIcon, HeartIcon, LockIcon, PauseIcon, PencilIcon } from './Icons'
+export { Logo, type LogoProps, type LogoSize } from './Logo'
 export { Modal, type ModalProps } from './Modal'
 export { Spinner, type SpinnerProps, type SpinnerSize } from './Spinner'
 export { TimerBar, type TimerBarProps } from './TimerBar'

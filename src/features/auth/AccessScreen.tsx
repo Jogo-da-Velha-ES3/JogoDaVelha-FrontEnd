@@ -9,7 +9,7 @@ import {
   registerErrorFor,
   type AuthSession,
 } from '../../api/auth'
-import { Button } from '../../components/ui'
+import { Button, Logo } from '../../components/ui'
 import {
   EMAIL_MAX,
   hasErrors,
@@ -106,27 +106,19 @@ function Brand({ hiddenWhenShort }: { hiddenWhenShort: boolean }) {
   return (
     <div
       className={[
-        'flex flex-1 flex-col items-center gap-2 short:gap-1',
+        'flex flex-1 flex-col items-center gap-2 short:gap-1 tall:gap-5',
         hiddenWhenShort ? 'short:hidden' : '',
       ].join(' ')}
     >
-      <div className="flex items-center gap-3">
-        {/* Espaço do logo com a carinha do Vitão: a arte vem com a FE-41 (flag desligada) */}
-        <div
-          aria-hidden
-          className="grid size-14 place-items-center rounded-full border-2 border-dashed border-line font-mono text-[0.625rem] text-text-muted short:size-11"
-        >
-          logo
-        </div>
-        <h1 className="font-display text-3xl leading-none font-extrabold tracking-wide text-primary uppercase short:text-2xl">
-          Jogo do
-          <br />
-          Velho
-        </h1>
-      </div>
-      <div className="flex justify-center gap-1" aria-hidden>
+      <Logo size="lg" />
+      <div className="flex justify-center gap-1 tall:gap-3" aria-hidden>
         {CHARACTER_IDS.map((id) => (
-          <Character key={id} id={id} decorative className="h-10 w-9 short:h-8 short:w-7" />
+          <Character
+            key={id}
+            id={id}
+            decorative
+            className="h-10 w-9 short:h-8 short:w-7 tall:h-16 tall:w-14"
+          />
         ))}
       </div>
     </div>
