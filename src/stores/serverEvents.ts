@@ -54,15 +54,14 @@ function stateVersionOf(event: ServerEvent): number | null {
 const TURN_CLOSED: TurnActions = { abilityUsed: true, moveUsed: true }
 
 /**
- * O que o jogador da vez já fez, como veio com a jogada ou a habilidade. Zerado depois de uma ação
- * já feita quer dizer que o servidor fechou o turno (as duas ações usadas): o TURN_START do próximo
- * vem logo atrás e, até ele, o turno fica travado
+ * O que o jogador da vez já fez, como veio com a jogada ou a habilidade. Se a vez já é do outro
+ * (`turnPlayer`), o servidor fechou o turno (as duas ações, "Passar a vez" ou o prazo): as ações que
+ * vieram são as do turno seguinte, e o atual fica travado até o TURN_START dele chegar
  */
-function applyTurnActions(actions: TurnActions | undefined) {
+function applyTurnActions(actions: TurnActions | undefined, turnPlayer: PlayerSlot | undefined) {
   if (!actions) return
-  const current = useTimerStore.getState().actions
-  const closed =
-    !actions.abilityUsed && !actions.moveUsed && (current.abilityUsed || current.moveUsed)
+  const current = useTimerStore.getState().turn?.player
+  const closed = turnPlayer !== undefined && current !== undefined && turnPlayer !== current
   useTimerStore.setState({ actions: closed ? TURN_CLOSED : actions })
 }
 
@@ -316,13 +315,18 @@ export function applyServerEvent(envelope: ServerEnvelope, receivedAt = Date.now
 
     case 'BOARD_UPDATE':
       useBoardStore.setState({ cells: event.payload.board })
-      applyTurnActions(event.payload.actions)
+      applyTurnActions(event.payload.actions, event.payload.turnPlayer)
       return
 
     case 'ABILITY_RESOLVED': {
-      const { actions: _actions, stateVersion: _version, ...resolved } = event.payload
+      const {
+        actions: _actions,
+        turnPlayer: _turnPlayer,
+        stateVersion: _version,
+        ...resolved
+      } = event.payload
       useBoardStore.setState({ lastAbility: { ...resolved, serverTime, receivedAt } })
-      applyTurnActions(event.payload.actions)
+      applyTurnActions(event.payload.actions, event.payload.turnPlayer)
       // Silêncio confirmado (não anulado pelo Campo de Força) cala o oponente no próximo turno dele.
       // O back confirma no TURN_START seguinte (`silenced`); o simulado depende só daqui
       if (event.payload.ability === 'SILENCIO' && !event.payload.absorbed) {

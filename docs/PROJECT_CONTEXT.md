@@ -168,8 +168,8 @@ estratégico e competitivo, **sem pay-to-win**.
   que usar uma habilidade consumia o turno `[RN-ARN-02]`; o back mudou no PR #139.
   - A jogada que fecha a linha (ou enche o tabuleiro) encerra o round na hora, sem esperar a
     habilidade.
-  - **[A VALIDAR COM O BACK]** O "Passar a vez" ainda não existe no back: o front manda
-    `/end-turn`, proposto ao Victor em 19/11.
+  - O "Passar a vez" é o `/end-turn` do back (PR #139, 19/11): só depois de jogar ou usar a
+    habilidade, e fecha o turno sem contar estouro.
 - **O deck do oponente é oculto:** você só descobre uma habilidade dele quando ela é usada
   (decisão de interface).
 - **Mira só com alvo que tem efeito (decidido em 29/10, FE-27):** a peça com Reforço não é alvo de

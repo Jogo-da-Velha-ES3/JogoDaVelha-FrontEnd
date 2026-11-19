@@ -19,6 +19,9 @@ const turnActions = (turn: unknown) =>
     ? { abilityUsed: turn.actions.abilityUsed === true, moveUsed: turn.actions.moveUsed === true }
     : undefined
 const version = (value: unknown) => (typeof value === 'number' ? value : undefined)
+/** `turn.player` dos mesmos eventos: de quem é a vez depois da mudança */
+const turnPlayer = (turn: unknown) =>
+  isRecord(turn) && (turn.player === 'P1' || turn.player === 'P2') ? turn.player : undefined
 
 /**
  * Aceita o envelope `{ type, payload, serverTime }` (ou `timestamp`, do `GameMessage` antigo) e o
@@ -88,6 +91,7 @@ function translatePayload(type: string, payload: Payload): Payload | null {
         absorbed: payload.absorbed === true,
         noEffect: payload.noEffect === true,
         actions: turnActions(payload.turn),
+        turnPlayer: turnPlayer(payload.turn),
         stateVersion: version(payload.stateVersion),
       }
 
@@ -95,6 +99,7 @@ function translatePayload(type: string, payload: Payload): Payload | null {
       return {
         board: payload.board,
         actions: turnActions(payload.turn),
+        turnPlayer: turnPlayer(payload.turn),
         stateVersion: version(payload.stateVersion),
       }
 

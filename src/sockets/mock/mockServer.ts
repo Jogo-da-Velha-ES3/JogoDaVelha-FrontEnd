@@ -111,6 +111,9 @@ export interface MockServerOptions {
 
 const noActions = (): TurnActions => ({ abilityUsed: false, moveUsed: false })
 
+/** Ações do turno e de quem é a vez, depois de uma mudança (BOARD_UPDATE e ABILITY_RESOLVED) */
+type TurnAfter = { actions: TurnActions; turnPlayer: PlayerSlot }
+
 /** Deck completo: a carta do sorteio precisa entrar no lugar de outra */
 const isDeckFull = (p: MockPlayer) => p.deck.length >= DECK_SIZE
 
@@ -753,7 +756,7 @@ export class MockGameServer {
     if (result.silence) opponent.silenced = true
     if (result.forceFieldFor) p.forceFieldTurnsLeft = EFFECT_DURATION_TURNS
 
-    this.afterAction(slot, () => {
+    this.afterAction(slot, (turn) => {
       this.emit('ABILITY_RESOLVED', {
         by: slot,
         ability,
@@ -761,7 +764,7 @@ export class MockGameServer {
         destinationCell: result.destinationCell,
         absorbed: result.absorbed,
         noEffect: result.noEffect,
-        actions: { ...this.turnActions },
+        ...turn,
       })
       this.emit('DECK_UPDATE', { deck: this.deckOf(slot) }, slot)
     })
@@ -772,19 +775,25 @@ export class MockGameServer {
    * Depois de cada jogada ou habilidade: verifica quem agiu e depois o oponente [RN-ARN-08], e a
    * vitória ou o tabuleiro cheio encerram o round na hora. Com a jogada e a habilidade feitas, o
    * turno fecha; senão, continua o mesmo, com o mesmo prazo (BE-046). Como o back, os eventos saem
-   * com o estado depois disso (as ações zeradas, se o turno fechou)
+   * com o estado depois disso (as ações zeradas e a vez do outro, se o turno fechou)
    */
-  private afterAction(actor: PlayerSlot, announce?: () => void) {
+  private afterAction(actor: PlayerSlot, announce?: (turn: TurnAfter) => void) {
     const result = evaluateBoard(this.cells, actor)
     const turnOver = !result && this.turnActions.moveUsed && this.turnActions.abilityUsed
     if (turnOver) this.closeTurn(actor)
-    announce?.()
-    this.emit('BOARD_UPDATE', { board: this.cells, actions: { ...this.turnActions } })
+    const turn = this.turnAfter(turnOver ? otherSlot(actor) : actor)
+    announce?.(turn)
+    this.emit('BOARD_UPDATE', { board: this.cells, ...turn })
     if (result) return this.endRoundWith(result)
     if (turnOver) this.startTurn(otherSlot(actor))
   }
 
-  /** "Passar a vez": só depois de jogar ou usar a habilidade (regra proposta ao back, BE-046) */
+  /** O que o jogador da vez já fez e de quem é a vez, como o back manda nos eventos de jogo */
+  private turnAfter(turnPlayer: PlayerSlot): TurnAfter {
+    return { actions: { ...this.turnActions }, turnPlayer }
+  }
+
+  /** "Passar a vez": só depois de jogar ou usar a habilidade, como o back (BE-046) */
   private endTurnByChoice(slot: PlayerSlot) {
     if (!this.isTurnOf(slot)) return
     if (!this.acted()) {
@@ -795,7 +804,7 @@ export class MockGameServer {
       )
     }
     this.closeTurn(slot)
-    this.emit('BOARD_UPDATE', { board: this.cells, actions: { ...this.turnActions } })
+    this.emit('BOARD_UPDATE', { board: this.cells, ...this.turnAfter(otherSlot(slot)) })
     this.startTurn(otherSlot(slot))
   }
 
@@ -816,7 +825,7 @@ export class MockGameServer {
     const result = evaluateBoard(this.cells, slot)
     if (result) return this.endRoundWith(result)
     this.closeTurn(slot)
-    this.emit('BOARD_UPDATE', { board: this.cells, actions: { ...this.turnActions } })
+    this.emit('BOARD_UPDATE', { board: this.cells, ...this.turnAfter(otherSlot(slot)) })
     this.startTurn(otherSlot(slot))
   }
 

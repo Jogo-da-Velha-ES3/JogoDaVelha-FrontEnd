@@ -79,7 +79,7 @@ export function toBackCommand(roomCode: string, command: ClientCommand): BackCom
       })
     }
     case 'END_TURN':
-      // Proposto ao back em 19/11 (PR #139, BE-046): ainda não existe lá
+      // Passar a vez depois da jogada ou da habilidade (BE-046, PR #139 do back)
       return to('/end-turn')
     case 'REMATCH_REQUEST':
       return to('/rematch/request')

@@ -782,7 +782,10 @@ describe('jogada e habilidade no mesmo turno (BE-046)', () => {
       ],
     })
   /** Tabuleiro com a minha peça na casa 0 e o que eu já fiz no turno */
-  const boardAfter = (actions: { moveUsed: boolean; abilityUsed: boolean }) =>
+  const boardAfter = (
+    actions: { moveUsed: boolean; abilityUsed: boolean },
+    turnPlayer: PlayerSlot = 'P1',
+  ) =>
     send('BOARD_UPDATE', {
       board: Array.from({ length: 16 }, (_, index) => ({
         index,
@@ -790,6 +793,7 @@ describe('jogada e habilidade no mesmo turno (BE-046)', () => {
         effects: [],
       })),
       actions,
+      turnPlayer,
     })
   const emptyCells = () => screen.queryAllByRole('button', { name: /vazia/ })
   const endTurn = () => screen.queryByRole('button', { name: 'Passar a vez' })
@@ -841,8 +845,8 @@ describe('jogada e habilidade no mesmo turno (BE-046)', () => {
     boardAfter({ moveUsed: true, abilityUsed: false })
     expect(screen.getByText('Pronto! Passe a vez')).toBeInTheDocument()
 
-    // O servidor fechou o turno (ações zeradas): nada fica liberado até o próximo TURN_START
-    boardAfter({ moveUsed: false, abilityUsed: false })
+    // O servidor fechou o turno (a vez já é do outro): nada fica liberado até o próximo TURN_START
+    boardAfter({ moveUsed: false, abilityUsed: false }, 'P2')
     expect(screen.getByText('Sua vez')).toBeInTheDocument()
     expect(endTurn()).not.toBeInTheDocument()
     expect(emptyCells()).toHaveLength(0)

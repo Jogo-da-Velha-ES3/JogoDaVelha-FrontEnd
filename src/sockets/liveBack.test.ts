@@ -74,10 +74,23 @@ async function until(condition: () => boolean, label: string, timeoutMs = MATCH_
   }
 }
 
-/** O front como P1: reage às stores e só manda intenções, como as telas */
-function driveP1(options: { ability?: { round: number; id: AbilityId } } = {}) {
+/**
+ * O front como P1: reage às stores e só manda intenções, como as telas. Na vez dele, joga e passa a
+ * vez; no round da habilidade, usa a habilidade e depois joga, e a jogada fecha o turno (BE-046).
+ * Com `turns: false`, só faz a Preparação e o sorteio (o teste joga os turnos)
+ */
+function driveP1(options: { ability?: { round: number; id: AbilityId }; turns?: boolean } = {}) {
   const line = [0, 1, 2, 3]
-  const sent = { character: false, abilities: false, pickRound: 0, turn: 0, abilityUsed: false }
+  const sent = {
+    character: false,
+    abilities: false,
+    pickRound: 0,
+    turn: 0,
+    abilityUsed: false,
+    abilityThisTurn: false,
+    moved: false,
+    ended: false,
+  }
   const timer = setInterval(() => {
     const room = useRoomStore.getState()
     const match = useMatchStore.getState()
@@ -103,17 +116,32 @@ function driveP1(options: { ability?: { round: number; id: AbilityId } } = {}) {
           : { ability: options_.options[0] },
       })
     }
-    const turn = useTimerStore.getState().turn
-    if (turn?.player === room.mySlot && turn.startedAt !== sent.turn) {
+    const { turn, actions } = useTimerStore.getState()
+    if (options.turns === false || room.phase !== 'PLAYING' || turn?.player !== room.mySlot) return
+    if (turn.startedAt !== sent.turn) {
       sent.turn = turn.startedAt
-      if (options.ability?.round === match.round && !sent.abilityUsed) {
-        sent.abilityUsed = true
-        sendCommand({ type: 'USE_ABILITY', payload: { ability: options.ability.id } })
-        return
-      }
+      sent.abilityThisTurn = false
+      sent.moved = false
+      sent.ended = false
+    }
+    if (options.ability?.round === match.round && !sent.abilityUsed) {
+      sent.abilityUsed = true
+      sent.abilityThisTurn = true
+      sendCommand({ type: 'USE_ABILITY', payload: { ability: options.ability.id } })
+      return
+    }
+    // Com a habilidade no turno, a jogada espera a confirmação dela e fecha o turno sozinha
+    if (!sent.moved && (!sent.abilityThisTurn || actions.abilityUsed)) {
+      sent.moved = true
       const cells = useBoardStore.getState().cells
       const cell = line.find((index) => cells[index]?.owner !== 'P1')
       if (cell !== undefined) sendCommand({ type: 'MOVE', payload: { cell } })
+      return
+    }
+    // Só jogou: passa a vez em vez de esperar o prazo
+    if (actions.moveUsed && !actions.abilityUsed && !sent.ended) {
+      sent.ended = true
+      sendCommand({ type: 'END_TURN', payload: {} })
     }
   }, 50)
   return () => clearInterval(timer)
@@ -125,7 +153,7 @@ interface BackMessage {
   code?: string
 }
 
-/** O P2: um cliente STOMP simples que joga casas que nunca fecham linha */
+/** O P2: um cliente STOMP simples que joga casas que nunca fecham linha e passa a vez */
 function botP2(code: string, guest: Account, mode: 'play' | 'leave-in-draft') {
   const received: BackMessage[] = []
   const cells = [4, 5, 6, 8, 9, 12, 13]
@@ -133,6 +161,7 @@ function botP2(code: string, guest: Account, mode: 'play' | 'leave-in-draft') {
   let deck: { ability: string; source: string }[] = []
   let sentCharacter = false
   let sentAbilities = false
+  let endedTurn = false
   const client = new Client({
     brokerURL: toBrokerUrl(BASE ?? ''),
     connectHeaders: { Authorization: `Bearer ${guest.token}` },
@@ -163,8 +192,18 @@ function botP2(code: string, guest: Account, mode: 'play' | 'leave-in-draft') {
       const drawn = deck.find((slot) => slot.source === 'DRAWN')?.ability
       send('/draw/pick', { ability: (payload.options as string[])[0], abilityToRemove: drawn })
     }
-    if (data.type === 'BOARD_UPDATE') board = payload.board as typeof board
+    if (data.type === 'BOARD_UPDATE') {
+      board = payload.board as typeof board
+      // Depois da própria jogada, com a vez ainda dele, passa a vez (BE-046). Espera o BOARD_UPDATE:
+      // mandar junto com a jogada pode chegar ao back antes dela
+      const turn = payload.turn as { player?: string; actions?: { moveUsed?: boolean } } | undefined
+      if (turn?.player === 'P2' && turn.actions?.moveUsed && !endedTurn) {
+        endedTurn = true
+        send('/end-turn')
+      }
+    }
     if (data.type === 'TURN_START' && payload.player === 'P2') {
+      endedTurn = false
       send('/move', { position: cells.find((index) => !board[index]?.owner) })
     }
   }
@@ -298,6 +337,74 @@ describe.skipIf(!BASE)('front contra o back de verdade (FE-18, FE-19, FE-20, FE-
         'ROOM_CLOSED para o P2',
         5000,
       )
+    },
+    MATCH_TIMEOUT,
+  )
+
+  it(
+    'jogada e habilidade no mesmo turno, Passar a vez e o prazo depois de uma ação (BE-046)',
+    async () => {
+      const room = await startRoom('play')
+      cleanups.push(room.cleanup, driveP1({ turns: false }))
+      const timer = () => useTimerStore.getState()
+      const myTurn = () =>
+        useRoomStore.getState().phase === 'PLAYING' && timer().turn?.player === 'P1'
+      /**
+       * Espera um turno meu novo. O robô joga e passa a vez em poucos milissegundos, então o turno
+       * dele pode passar entre duas checagens: o sinal é o início do meu turno mudar
+       */
+      const nextTurn = async (label: string) => {
+        const before = timer().turn?.startedAt
+        await until(
+          () => myTurn() && timer().turn?.startedAt !== before,
+          `minha vez (${label})`,
+          25_000,
+        )
+      }
+      /** Manda a intenção e espera o erro dela */
+      const refused = async (command: Parameters<typeof sendCommand>[0]) => {
+        const before = useRoomStore.getState().lastError
+        sendCommand(command)
+        await until(() => useRoomStore.getState().lastError !== before, `erro de ${command.type}`)
+        return useRoomStore.getState().lastError
+      }
+      await until(myTurn, 'minha primeira vez', 40_000)
+
+      // Jogada: o turno continua comigo, e uma segunda jogada é recusada
+      const startedAt = timer().turn?.startedAt
+      sendCommand({ type: 'MOVE', payload: { cell: 0 } })
+      await until(() => timer().actions.moveUsed, 'jogada confirmada')
+      expect(timer().turn).toMatchObject({ player: 'P1', startedAt })
+      expect(await refused({ type: 'MOVE', payload: { cell: 1 } })).toMatchObject({
+        code: 'MOVE_ALREADY_USED',
+        command: 'MOVE',
+      })
+      // Passar a vez fecha o turno sem estouro
+      sendCommand({ type: 'END_TURN', payload: {} })
+      await nextTurn('depois de passar a vez')
+      expect(useMatchStore.getState().lastTimeout).toBeNull()
+
+      // Sem ação, passar a vez é recusado; habilidade e jogada no mesmo turno fecham o turno sozinhas
+      expect(await refused({ type: 'END_TURN', payload: {} })).toMatchObject({
+        code: 'END_TURN_WITHOUT_ACTION',
+        command: 'END_TURN',
+      })
+      sendCommand({ type: 'USE_ABILITY', payload: { ability: 'AMPULHETA' } })
+      await until(() => timer().actions.abilityUsed, 'habilidade confirmada')
+      expect(timer().turn?.player).toBe('P1')
+      expect(
+        await refused({ type: 'USE_ABILITY', payload: { ability: 'ESCUDO', targetCell: 15 } }),
+      ).toMatchObject({ code: 'SKILL_ACTION_ALREADY_USED', command: 'USE_ABILITY' })
+      sendCommand({ type: 'MOVE', payload: { cell: 1 } })
+      await nextTurn('depois da habilidade e da jogada')
+
+      // Joga e deixa o prazo acabar: o turno passa sem estouro (o TURN_TIMEOUT com 0 é descartado)
+      sendCommand({ type: 'MOVE', payload: { cell: 2 } })
+      await until(() => timer().actions.moveUsed, 'terceira jogada confirmada')
+      await nextTurn('prazo depois da jogada')
+      expect(useMatchStore.getState().lastTimeout).toBeNull()
+      expect(useMatchStore.getState().consecutiveTimeouts.P1).toBe(0)
+      expect(useBoardStore.getState().cells.filter((c) => c.owner === 'P1')).toHaveLength(3)
     },
     MATCH_TIMEOUT,
   )
