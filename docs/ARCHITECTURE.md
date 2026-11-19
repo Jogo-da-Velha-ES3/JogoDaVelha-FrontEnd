@@ -10,7 +10,7 @@ src/
 ├── api/                # cliente REST fino (fetch): auth, perfil, inventário, loja, salas
 ├── assets/             # sons (Howler), imagens, ícones, fontes
 ├── components/         # componentes reutilizáveis e "burros" (sem lógica de negócio)
-│   ├── ui/              # botões, modais, inputs, toast, banner, carregando (`Spinner`), ícones (cadeado, pausa) — puramente visuais
+│   ├── ui/              # botões, modais, inputs, toast, banner, carregando (`Spinner`), ícones (cadeado, pausa), `Logo` — puramente visuais
 │   └── layout/          # LandscapeShell (safe-area, sem overflow) e o aviso "Gire a tela"
 ├── features/           # lógica de domínio, isolada por área do jogo
 │   ├── auth/            # login, cadastro, sessão

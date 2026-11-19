@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { createRoom } from '../../api/rooms'
 import { ApiError } from '../../api/client'
-import { Button } from '../../components/ui'
+import { Button, Logo } from '../../components/ui'
 import { ROOM_TEXTS } from '../../constants/texts'
 import { enterGameFullscreen } from '../../pwa/gameFullscreen'
 import { JOINED_ROOM_STATE, roomPath } from '../../routes/paths'
@@ -50,18 +50,7 @@ export function PlayScreen() {
       </div>
 
       <div className="flex flex-1 flex-col justify-center gap-3 short:gap-2">
-        <div className="flex items-center justify-center gap-2">
-          {/* Espaço do logo com a carinha do Vitão: a arte vem com a FE-41 (flag desligada) */}
-          <div
-            aria-hidden
-            className="grid size-9 place-items-center rounded-full border-2 border-dashed border-line font-mono text-[8px] text-text-muted"
-          >
-            logo
-          </div>
-          <h1 className="font-display text-2xl font-extrabold tracking-wide text-primary uppercase short:text-xl">
-            Jogo do Velho
-          </h1>
-        </div>
+        <Logo className="justify-center" />
 
         <Button
           size="lg"

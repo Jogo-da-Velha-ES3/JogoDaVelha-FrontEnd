@@ -339,6 +339,10 @@ A ERS não define a regra; o back decidiu usar a mesma do W.O. por tempo `[RN-AR
 - Botões principais: **Criar Sala** (destaque) e **Entrar com Código**.
 - Botões secundários: **Como Jogar** (modal navegável de regras) e **Instalar App** (gatilho de
   instalação do PWA).
+- **Logo (decidido em 19/11):** a cabeça do Vitão (expressão debochada) sobre um anel neon que
+  cintila de leve, ao lado de "JOGO DO" pequeno e "VELHO" grande, em letreiro com brilho. Aparece
+  no Hub (aba Jogar) e na tela de Acesso (componente `Logo`). O ícone do app instalado e o favicon
+  continuam com o X e o O.
 
 ### Loja `[RF-LOJ-01]` `[RF-LOJ-02]` `[RN-LOJ-03]` `[RN-LOJ-04]`
 
