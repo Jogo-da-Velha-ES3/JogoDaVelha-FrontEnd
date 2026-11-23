@@ -2,12 +2,13 @@
 // Layout do esboço: personagem favorito à esquerda; marca e botões à direita.
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { createRoom } from '../../api/rooms'
+import { ActiveRoomError, createRoom, withRoomConflictCheck } from '../../api/rooms'
 import { ApiError } from '../../api/client'
 import { Button, Logo } from '../../components/ui'
 import { ROOM_TEXTS } from '../../constants/texts'
 import { enterGameFullscreen } from '../../pwa/gameFullscreen'
 import { JOINED_ROOM_STATE, roomPath } from '../../routes/paths'
+import { showActiveRoom } from '../../stores/activeRoomStore'
 import { selectFavoriteCharacter, useProfileStore } from '../../stores/profileStore'
 import { showToast } from '../../stores/toastStore'
 import { Character } from '../characters'
@@ -27,14 +28,19 @@ export function PlayScreen() {
     setCreating(true)
     try {
       // Só vai para a sala com o código que o servidor devolveu
-      const room = await createRoom()
+      const room = await withRoomConflictCheck(createRoom)
       navigate(roomPath(room.code), { state: JOINED_ROOM_STATE })
     } catch (error) {
+      setCreating(false)
+      // Ainda numa sala: o aviso oferece voltar ou sair dela, em vez de criar outra (AMB-01)
+      if (error instanceof ActiveRoomError) {
+        showActiveRoom(error.room)
+        return
+      }
       showToast({
         tone: 'danger',
         message: error instanceof ApiError ? error.message : ROOM_TEXTS.errors.createFailed,
       })
-      setCreating(false)
     }
   }
 

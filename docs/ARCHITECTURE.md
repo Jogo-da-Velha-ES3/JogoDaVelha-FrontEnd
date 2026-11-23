@@ -81,8 +81,38 @@ vencedora que o servidor confirmou.
   `POST /rooms/{code}/join`. O `RoomPage` chama o `enterRoomByLink` (`src/api/rooms.ts`) antes do
   `joinRoom`, menos quando chega com `{ joined: true }` (`JOINED_ROOM_STATE`), que o Criar Sala e o
   modal do código mandam porque já fizeram o `/join`. Quem já está numa sala ativa (o host, quem
-  recarrega a página) recebe `ROOM_CONFLICT` e segue para o STOMP. Sala inexistente, cheia ou já
-  começada: aviso em vermelho e volta ao Hub.
+  recarrega a página) recebe `ROOM_CONFLICT`; o front pergunta ao `GET /rooms/active` qual é a
+  sala (abaixo) e, se for esta, segue para o STOMP. Sala inexistente, cheia ou já começada: aviso
+  em vermelho e volta ao Hub.
+- **Sala em andamento (23/11, AMB-01):** o back diz em que sala o jogador ainda está
+  (`GET /rooms/active`). O app instalado sempre abre no `/`, então quem fechou o app no meio da
+  sala cai no Hub sem o código. O `checkActiveRoom` (`src/api/rooms.ts`) nunca lança erro: devolve a
+  sala, nenhuma (204) ou "não sei" (rede, erro do servidor, resposta inesperada), e "não sei" deixa
+  tudo seguir como antes, sem tela de carregamento. Onde o front pergunta:
+  - **Abertura do jogo:** a primeira vez que o Hub abre no carregamento, ou depois de entrar na
+    conta (`checkActiveRoomOnStartup`, `activeRoomStore`). Quem já abriu uma sala no mesmo
+    carregamento não é perguntado: o `/leave` pode não ter sido processado ainda.
+  - **`ROOM_CONFLICT` no Criar sala, no Entrar com código e no link** (`withRoomConflictCheck`):
+    sala encontrada vira o `ActiveRoomError`; nenhuma (acabou de ser liberada) tenta de novo uma
+    vez; "não sei" mostra "Você ainda está em uma sala. Tente de novo em instantes.". O código da
+    própria sala só volta para ela.
+  - **Conexão recusada na sala** (`useRoomGoneGuard`, `src/features/lobby/`): o back não deixa
+    assinar uma sala da qual o jogador não faz mais parte, e o STOMP tentaria de novo sem parar. Se
+    a sala não é mais dele, "A sala foi encerrada." e volta ao Hub.
+
+  A sala encontrada abre o `ActiveRoomModal` (`src/features/hub/`), no Hub, em qualquer aba, sem
+  fechar por fora: **Voltar** vai para `/sala/{code}` com `JOINED_ROOM_STATE` (o snapshot escolhe a
+  tela) e **Sair** pede a confirmação do `QuitModal` quando a saída custa algo ao oponente
+  (desistência na partida, sala fechada no Match feito e na Preparação). Com `canReturn: false`, só
+  o Sair. A saída fica em `src/features/lobby/roomRelease.ts`: na Sala de Espera pelo
+  `POST /rooms/{code}/leave`; nas outras fases, o `sendLeaveFromOutside` do `gameClient` conecta,
+  manda o `/leave` e desconecta, sem passar os eventos às stores. Depois confere no
+  `GET /rooms/active` e repete, até 3 vezes, se o jogador continuou na sala: a desistência leva a
+  partida ao Resultado com quem desistiu ainda nela. O `RoomPage` faz a mesma conferência 1,5s
+  depois de deixar a tela da sala (`roomScreenClosed`), o que cobre a saída que não chegou ao back
+  (ex: "Voltar ao Hub" antes de a conexão abrir) e a desistência; nunca tira o jogador de uma sala
+  com a tela aberta.
+
 - Código de sala inválido (`/sala/abc`, `/sala/12345`) mostra "Página não encontrada".
 - Dentro de `/sala/:codigo`, a tela é escolhida pelo campo `phase` que o servidor manda no
   snapshot da sala (e no `PHASE_CHANGE`), em vez de rotas separadas para jogo e resultado. Assim,
@@ -183,6 +213,7 @@ balão caber no espaço sem cobrir as faixas. O `VitaoSlot` liga o motor ao `Vit
 | `authStore`       | token, usuário logado, status da sessão                                                                |
 | `profileStore`    | apelido, personagem favorito, Coins, inventário (personagens e habilidades), stats                     |
 | `roomStore`       | código da sala, `phase`, jogadores, meu lado (`mySlot`), conexão, queda do oponente, link pendente     |
+| `activeRoomStore` | sala em que o jogador ainda está (`GET /rooms/active`), para o aviso do Hub (AMB-01)                   |
 | `draftStore`      | personagens reservados por lado, quem está pronto, prazo dos 20s                                       |
 | `matchStore`      | round, placar MD3, Morte Súbita, quem começa, estouros (0–3), fim do round, resultado, Coins, revanche |
 | `boardStore`      | as 16 casas com efeitos e contadores, linha vencedora, última habilidade resolvida                     |
@@ -268,6 +299,8 @@ A fonte é o `docs/contrato-integracao-v2.md` do repositório do back. Ele foi v
 | POST   | `/coins/packages/{id}/purchase` | compra simbólica → 200 `{ coinsBalance }` `[RN-LOJ-04]`                                                                         |
 | POST   | `/rooms`                        | criar sala → código de 4 dígitos `[RF-HUB-04]`                                                                                  |
 | POST   | `/rooms/{code}/join`            | entrar, antes do STOMP; erros `ROOM_NOT_FOUND`, `ROOM_FULL`, `ROOM_ALREADY_STARTED` e `ROOM_CONFLICT` (já está numa sala ativa) |
+| POST   | `/rooms/{code}/leave`           | sair da Sala de Espera (o host fecha a sala) → 204; nas outras fases, 409 e a saída é o `/leave` do STOMP                       |
+| GET    | `/rooms/active`                 | sala em que o jogador ainda está → 200 `{ code, phase, canReturn }` ou 204 (AMB-01)                                             |
 
 **Back dormindo (FE-51):** o back de produção (Render) dorme sem uso e leva minutos para acordar.
 As chamadas REST não têm limite de tempo. Cada uma passa pelo `watchServerCall`
@@ -347,7 +380,9 @@ a tradução em `src/api/shop.ts` muda:
   - `TURN_TIMEOUT` com `consecutiveTimeouts: 0` é o prazo que acabou depois de uma ação: não é
     estouro, e a tradução descarta (sem aviso, som nem Vitão).
   - `ROOM_CLOSED` traz o motivo como código: `PLAYER_LEFT`, `RETURN_TO_LOBBY`, `REMATCH_DECLINED`,
-    `REMATCH_EXPIRED`, `REMATCH_DISCONNECTED`, `HOST_LEFT` ou `EXPIRED`. O back não tem evento de
+    `REMATCH_EXPIRED`, `REMATCH_DISCONNECTED`, `HOST_LEFT`, `EXPIRED`, `ABANDONED` (ninguém ficou
+    conectado; a partida termina sem vencedor e sem Coins) ou `HOST_DISCONNECTED` (o host caiu na
+    Sala de Espera e não voltou em 60s). O back não tem evento de
     revanche cancelada: a sala encerrada com um pedido em aberto cancela o pedido
     (`serverEvents`), e o aviso vem de `roomClosedMessage` (`features/results`).
   - Os demais (`PHASE_CHANGE`, `DRAW_OPTIONS`, `DECK_UPDATE`, `MATCH_END`,

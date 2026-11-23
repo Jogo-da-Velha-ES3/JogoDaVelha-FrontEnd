@@ -267,11 +267,57 @@ export const ROOM_TEXTS = {
     rematchExpired: 'O tempo da revanche acabou.',
     other: 'A sala foi encerrada.',
   },
+  /**
+   * Sala em que o jogador ainda está (`GET /rooms/active`), avisada no Hub com voltar ou sair
+   * (AMB-01). Um texto por momento da sala (`activeRoomMoment`, src/lib/activeRoom.ts)
+   */
+  active: {
+    WAITING: {
+      title: 'Sua sala está aberta',
+      body: (code: string) => `A sala ${code} ainda espera um adversário.`,
+      back: 'Voltar para a sala',
+      leave: 'Fechar a sala',
+    },
+    PREPARATION: {
+      title: 'Você ainda está numa sala',
+      body: (code: string) => `A Preparação da sala ${code} está esperando você.`,
+      back: 'Voltar para a sala',
+      leave: 'Sair da sala',
+    },
+    MATCH: {
+      title: 'Partida em andamento',
+      body: (code: string) => `Sua partida na sala ${code} continua, e o seu tempo está correndo.`,
+      back: 'Voltar para a partida',
+      leave: 'Desistir',
+    },
+    RESULT: {
+      title: 'Partida encerrada',
+      body: (code: string) => `O resultado da sala ${code} está esperando você.`,
+      back: 'Ver o resultado',
+      leave: 'Sair da sala',
+    },
+    OTHER: {
+      title: 'Você ainda está numa sala',
+      body: (code: string) => `Você ainda está na sala ${code}.`,
+      back: 'Voltar para a sala',
+      leave: 'Sair da sala',
+    },
+    /** `canReturn: false`: só resta sair */
+    cannotReturn: (code: string) =>
+      `Não dá mais para voltar à sala ${code}. Saia dela para jogar de novo.`,
+    leaving: 'Saindo…',
+    left: (code: string) => `Você saiu da sala ${code}.`,
+    leaveFailed: 'Não deu para sair da sala agora. Tente de novo.',
+  },
   errors: {
     notFound: (code: string) => `Sala ${code} não encontrada.`,
     full: (code: string) => `A sala ${code} já está cheia.`,
     alreadyStarted: (code: string) => `A partida da sala ${code} já começou.`,
     fullOrStarted: (code: string) => `A sala ${code} está cheia ou a partida já começou.`,
+    /** O back diz que o jogador ainda está numa sala, mas não deu para saber qual (AMB-01) */
+    stillInRoom: 'Você ainda está em uma sala. Tente de novo em instantes.',
+    /** Abriu outra sala enquanto ainda está nesta (AMB-01) */
+    inRoom: (code: string) => `Você ainda está na sala ${code}.`,
     createFailed: 'Não foi possível criar a sala agora.',
     joinFailed: 'Não foi possível entrar na sala agora.',
   },

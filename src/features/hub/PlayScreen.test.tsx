@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '../../api/client'
+import { useActiveRoomStore } from '../../stores/activeRoomStore'
 import { useToastStore } from '../../stores/toastStore'
 import { PlayScreen } from './PlayScreen'
 
@@ -11,7 +12,7 @@ vi.mock('../../api/rooms', async (importOriginal) => {
   return { ...original, createRoom: vi.fn<typeof original.createRoom>() }
 })
 
-import { createRoom } from '../../api/rooms'
+import { ActiveRoomError, createRoom } from '../../api/rooms'
 
 function renderPlay() {
   const router = createMemoryRouter(
@@ -48,6 +49,19 @@ describe('PlayScreen', () => {
     await waitFor(() => expect(useToastStore.getState().toasts).toHaveLength(1))
     expect(router.state.location.pathname).toBe('/')
     expect(screen.getByRole('button', { name: 'Criar sala' })).toBeEnabled()
+  })
+
+  it('ainda numa sala: abre o aviso dela em vez de criar outra (AMB-01)', async () => {
+    const room = { code: '4821', phase: 'PLAYING', canReturn: true } as const
+    vi.mocked(createRoom).mockRejectedValueOnce(new ActiveRoomError(room))
+    const router = renderPlay()
+    await userEvent.click(screen.getByRole('button', { name: 'Criar sala' }))
+
+    await waitFor(() => expect(useActiveRoomStore.getState().room).toEqual(room))
+    expect(router.state.location.pathname).toBe('/')
+    expect(useToastStore.getState().toasts).toHaveLength(0)
+    expect(screen.getByRole('button', { name: 'Criar sala' })).toBeEnabled()
+    useActiveRoomStore.setState({ room: null })
   })
 
   it('Entrar com código abre o modal do código', async () => {
