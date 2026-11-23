@@ -11,7 +11,11 @@ import { RoomPage } from './RoomPage'
 
 vi.mock('../api/rooms', async (importOriginal) => {
   const original = await importOriginal<typeof import('../api/rooms')>()
-  return { ...original, enterRoomByLink: vi.fn<typeof original.enterRoomByLink>() }
+  return {
+    ...original,
+    enterRoomByLink: vi.fn<typeof original.enterRoomByLink>(),
+    checkActiveRoom: vi.fn<typeof original.checkActiveRoom>(async () => ({ status: 'NONE' })),
+  }
 })
 
 vi.mock('../sockets/gameClient', async (importOriginal) => {
@@ -23,8 +27,10 @@ vi.mock('../sockets/gameClient', async (importOriginal) => {
   }
 })
 
-import { enterRoomByLink } from '../api/rooms'
+import { ActiveRoomError, checkActiveRoom, enterRoomByLink } from '../api/rooms'
 import { joinRoom, leaveRoom } from '../sockets/gameClient'
+import { useActiveRoomStore } from '../stores/activeRoomStore'
+import { useRoomStore } from '../stores/roomStore'
 
 function renderRoom(state?: RoomLocationState) {
   const router = createMemoryRouter(
@@ -43,6 +49,8 @@ const toasts = () => useToastStore.getState().toasts
 afterEach(() => {
   vi.clearAllMocks()
   useToastStore.setState({ toasts: [] })
+  useActiveRoomStore.setState({ room: null })
+  useRoomStore.setState({ lastError: null })
 })
 
 describe('entrar na sala pelo link', () => {
@@ -67,6 +75,17 @@ describe('entrar na sala pelo link', () => {
     await waitFor(() => expect(router.state.location.pathname).toBe('/'))
     expect(toasts()).toMatchObject([{ message: 'A sala 4821 já está cheia.', tone: 'danger' }])
     expect(screen.getByText('Hub')).toBeInTheDocument()
+    expect(joinRoom).not.toHaveBeenCalled()
+  })
+
+  it('ainda preso noutra sala: avisa, volta ao Hub com o aviso dela e não conecta (AMB-01)', async () => {
+    const other = { code: '1234', phase: 'PLAYING', canReturn: true } as const
+    vi.mocked(enterRoomByLink).mockRejectedValueOnce(new ActiveRoomError(other))
+    const router = renderRoom()
+
+    await waitFor(() => expect(router.state.location.pathname).toBe('/'))
+    expect(toasts()).toMatchObject([{ message: 'Você ainda está na sala 1234.' }])
+    expect(useActiveRoomStore.getState().room).toEqual(other)
     expect(joinRoom).not.toHaveBeenCalled()
   })
 
@@ -123,5 +142,62 @@ describe('esperando o servidor (tela de entrada)', () => {
     expect(joinRoom).toHaveBeenCalledTimes(2)
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     expect(screen.getByRole('status')).toHaveTextContent('Entrando na sala…')
+  })
+})
+
+describe('o servidor recusa a sala depois de conectar (AMB-01)', () => {
+  // O back não deixa assinar uma sala da qual o jogador não faz mais parte: a conexão manda este
+  // erro local a cada tentativa
+  const refuse = () =>
+    useRoomStore.setState({
+      lastError: {
+        code: 'CONNECTION_ERROR',
+        message: 'O servidor recusou a conexão.',
+        serverTime: Date.now(),
+      },
+    })
+
+  it('a sala foi encerrada enquanto você estava fora: avisa e volta ao Hub', async () => {
+    vi.mocked(joinRoom).mockResolvedValueOnce()
+    vi.mocked(checkActiveRoom).mockResolvedValueOnce({ status: 'NONE' })
+    const router = renderRoom(JOINED_ROOM_STATE)
+    await waitFor(() => expect(joinRoom).toHaveBeenCalled())
+    refuse()
+
+    await waitFor(() => expect(router.state.location.pathname).toBe('/'))
+    expect(toasts()).toContainEqual(
+      expect.objectContaining({ message: 'A sala foi encerrada.', tone: 'info' }),
+    )
+  })
+
+  it('preso noutra sala: volta ao Hub com o aviso dela', async () => {
+    const other = { code: '1234', phase: 'RESULT', canReturn: true } as const
+    vi.mocked(joinRoom).mockResolvedValueOnce()
+    vi.mocked(checkActiveRoom).mockResolvedValueOnce({ status: 'FOUND', room: other })
+    const router = renderRoom(JOINED_ROOM_STATE)
+    await waitFor(() => expect(joinRoom).toHaveBeenCalled())
+    refuse()
+
+    await waitFor(() => expect(router.state.location.pathname).toBe('/'))
+    expect(useActiveRoomStore.getState().room).toEqual(other)
+  })
+
+  it.each([
+    [
+      'a sala ainda é sua',
+      { status: 'FOUND', room: { code: '4821', phase: 'PLAYING', canReturn: true } },
+    ],
+    ['sem resposta', { status: 'UNKNOWN' }],
+  ] as const)('%s: continua na sala, e a conexão segue tentando', async (_, check) => {
+    vi.mocked(joinRoom).mockResolvedValueOnce()
+    vi.mocked(checkActiveRoom).mockResolvedValueOnce(check)
+    const router = renderRoom(JOINED_ROOM_STATE)
+    await waitFor(() => expect(joinRoom).toHaveBeenCalled())
+    refuse()
+
+    await waitFor(() => expect(checkActiveRoom).toHaveBeenCalled())
+    await new Promise((resolve) => setTimeout(resolve, 20)) // deixa a resposta ser tratada
+    expect(router.state.location.pathname).toBe('/sala/4821')
+    expect(leaveRoom).not.toHaveBeenCalled()
   })
 })

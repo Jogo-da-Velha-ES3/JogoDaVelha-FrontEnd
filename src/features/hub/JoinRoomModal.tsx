@@ -2,7 +2,7 @@
 // com os 4 dígitos e erro em vermelho mantendo os campos. Layout do esboço: tudo numa linha.
 import { useEffect, useRef, useState, type ClipboardEvent, type KeyboardEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { joinRoomByCode } from '../../api/rooms'
+import { ActiveRoomError, joinRoomByCode, withRoomConflictCheck } from '../../api/rooms'
 import { ApiError } from '../../api/client'
 import { Button, Modal } from '../../components/ui'
 import { ROOM_TEXTS } from '../../constants/texts'
@@ -16,6 +16,7 @@ import {
 } from '../../lib/roomCodeInput'
 import { enterGameFullscreen } from '../../pwa/gameFullscreen'
 import { JOINED_ROOM_STATE, roomPath } from '../../routes/paths'
+import { showActiveRoom } from '../../stores/activeRoomStore'
 
 interface JoinRoomModalProps {
   open: boolean
@@ -35,7 +36,7 @@ export function JoinRoomModal({ open, onClose }: JoinRoomModalProps) {
       placement="top"
     >
       {/* Montado só enquanto aberto: reabrir começa com os campos vazios */}
-      {open && <JoinRoomForm pending={pending} setPending={setPending} />}
+      {open && <JoinRoomForm pending={pending} setPending={setPending} onClose={onClose} />}
     </Modal>
   )
 }
@@ -43,9 +44,10 @@ export function JoinRoomModal({ open, onClose }: JoinRoomModalProps) {
 interface JoinRoomFormProps {
   pending: boolean
   setPending: (pending: boolean) => void
+  onClose: () => void
 }
 
-function JoinRoomForm({ pending, setPending }: JoinRoomFormProps) {
+function JoinRoomForm({ pending, setPending, onClose }: JoinRoomFormProps) {
   const navigate = useNavigate()
   const inputs = useRef<(HTMLInputElement | null)[]>([])
   const [digits, setDigits] = useState<CodeDigits>(emptyDigits)
@@ -83,12 +85,23 @@ function JoinRoomForm({ pending, setPending }: JoinRoomFormProps) {
     setError(null)
     try {
       // Só navega quando o servidor confirma a entrada (nada otimista)
-      const room = await joinRoomByCode(code)
+      const room = await withRoomConflictCheck(() => joinRoomByCode(code))
       navigate(roomPath(room.code), { state: JOINED_ROOM_STATE })
     } catch (err) {
+      setPending(false)
+      // Ainda numa sala (AMB-01): se é esta, é só voltar para ela; se é outra, o aviso de sala em
+      // andamento oferece voltar ou sair dela
+      if (err instanceof ActiveRoomError) {
+        if (err.room.code === code && err.room.canReturn) {
+          navigate(roomPath(code), { state: JOINED_ROOM_STATE })
+          return
+        }
+        onClose()
+        showActiveRoom(err.room)
+        return
+      }
       // joinRoomByCode já traduz: "Sala 4821 não encontrada.", "já está cheia", "já começou"
       setError(err instanceof ApiError ? err.message : ROOM_TEXTS.errors.joinFailed)
-      setPending(false)
     }
   }
 

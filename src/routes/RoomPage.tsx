@@ -1,10 +1,12 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { ApiError } from '../api/client'
-import { enterRoomByLink } from '../api/rooms'
+import { ActiveRoomError, enterRoomByLink } from '../api/rooms'
 import { RESULT_HOLD_SECONDS } from '../constants/game'
 import { ROOM_TEXTS } from '../constants/texts'
 import { RoomLoading } from '../features/lobby/RoomLoading'
+import { roomScreenClosed, roomScreenOpened } from '../features/lobby/roomRelease'
+import { useRoomGoneGuard } from '../features/lobby/useRoomGoneGuard'
 import { WaitingRoom } from '../features/lobby/WaitingRoom'
 import { Arena } from '../features/match'
 import { ResultScreen, useRoomExit } from '../features/results'
@@ -14,6 +16,7 @@ import { useIsBefore } from '../hooks/useIsBefore'
 import { isValidRoomCode } from '../lib/roomCode'
 import { roomErrorMessage } from '../lib/roomErrors'
 import { joinRoom, leaveRoom } from '../sockets/gameClient'
+import { showActiveRoom } from '../stores/activeRoomStore'
 import { useMatchStore } from '../stores/matchStore'
 import { useRoomStore } from '../stores/roomStore'
 import { showToast } from '../stores/toastStore'
@@ -37,8 +40,10 @@ export function RoomPage() {
 
   useEffect(() => {
     if (!isValid) return
-    // Chegou na sala: o link direto guardado antes do Acesso já foi usado
+    // Chegou na sala: o link direto guardado antes do Acesso já foi usado, e o aviso de sala em
+    // andamento do Hub fica para trás (AMB-01)
     setPendingRoomCode(null)
+    roomScreenOpened(codigo)
     let active = true
 
     async function enter(code: string) {
@@ -49,6 +54,8 @@ export function RoomPage() {
         } catch (error) {
           // Sessão vencida: o Acesso já avisa. Sala inexistente, cheia ou começada: volta ao Hub
           if (!active || (error instanceof ApiError && error.status === 401)) return
+          // Ainda preso noutra sala: o Hub oferece voltar ou sair dela (AMB-01)
+          if (error instanceof ActiveRoomError) showActiveRoom(error.room)
           showToast({
             message: error instanceof ApiError ? error.message : ROOM_TEXTS.errors.joinFailed,
             tone: 'danger',
@@ -71,6 +78,8 @@ export function RoomPage() {
       active = false
       leaveRoom()
       stopVoice() // a fala do Vitão não segue tocando no Hub (FE-48)
+      // Confere pouco depois se o /leave liberou o jogador; se não, sai de novo (AMB-01)
+      roomScreenClosed(codigo)
     }
   }, [isValid, codigo, alreadyJoined, attempt, setPendingRoomCode, navigate])
 
@@ -94,10 +103,13 @@ export function RoomPage() {
   }, [lastError])
 
   // Revanche cancelada para quem pediu ou sala encerrada: avisa e volta ao Hub [RN-POS-02]
-  useRoomExit((message) => {
+  const exitToHub = (message: string) => {
     showToast({ message, tone: 'info' })
     navigate(PATHS.play)
-  })
+  }
+  useRoomExit(exitToHub)
+  // O back recusou a conexão e a sala não é mais sua (encerrada enquanto você estava fora): Hub
+  useRoomGoneGuard(codigo ?? '', exitToHub)
 
   if (!isValid) return <NotFoundPage />
 

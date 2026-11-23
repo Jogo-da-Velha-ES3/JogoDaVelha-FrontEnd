@@ -26,6 +26,12 @@ const GENERIC_CONFLICT = 'ROOM_CONFLICT'
 /** Passar a vez sem ter jogado nem usado habilidade (BE-046) */
 export const END_TURN_WITHOUT_ACTION = 'END_TURN_WITHOUT_ACTION'
 
+/**
+ * Erro local: o back recusou a conexão já aberta (ex: a assinatura de uma sala da qual o jogador
+ * não faz mais parte). A tela confere se a sala ainda é dele (AMB-01)
+ */
+export const CONNECTION_REFUSED = 'CONNECTION_ERROR'
+
 /** O texto do aviso, ou null quando a tela já explica o que aconteceu */
 export function roomErrorMessage(error: RoomError, context: RoomErrorContext): string | null {
   const { code, command, message } = error

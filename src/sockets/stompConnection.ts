@@ -3,6 +3,7 @@
 import { Client, type IMessage, type StompConfig, type StompSubscription } from '@stomp/stompjs'
 import { getAuthToken } from '../api/session'
 import { APP_TEXTS } from '../constants/texts'
+import { CONNECTION_REFUSED } from '../lib/roomErrors'
 import type { ClientCommand, ServerEnvelope } from '../types/events'
 import {
   ERRORS_QUEUE,
@@ -90,7 +91,7 @@ export class StompConnection implements GameConnection {
         onStompError: () => {
           const message = APP_TEXTS.errors.connectionRefused
           this.setStatus('ERROR')
-          if (settled) this.emitLocalError('CONNECTION_ERROR', message)
+          if (settled) this.emitLocalError(CONNECTION_REFUSED, message)
           settle(new Error(message))
         },
         onWebSocketClose: () => {

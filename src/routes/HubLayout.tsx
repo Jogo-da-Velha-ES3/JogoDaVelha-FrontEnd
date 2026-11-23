@@ -3,9 +3,11 @@ import { NavLink, Outlet } from 'react-router-dom'
 import { Button, GearIcon, Modal } from '../components/ui'
 import { COINS_TEXTS, HUB_TEXTS, PROFILE_TEXTS, SETTINGS_TEXTS } from '../constants/texts'
 import { Character } from '../features/characters'
+import { ActiveRoomModal } from '../features/hub/ActiveRoomModal'
 import { BuyCoinsModal } from '../features/shop/BuyCoinsModal'
 import { SettingsModal } from '../features/settings/SettingsModal'
 import { playMusic } from '../features/sound/soundManager'
+import { checkActiveRoomOnStartup } from '../stores/activeRoomStore'
 import { useAuthStore } from '../stores/authStore'
 import { selectFavoriteCharacter, useProfileStore } from '../stores/profileStore'
 import { PATHS } from './paths'
@@ -31,6 +33,11 @@ export function HubLayout() {
     playMusic('trilha-hub')
   }, [])
 
+  // Abriu o jogo (ou entrou na conta) ainda numa sala: o aviso oferece voltar ou sair (AMB-01)
+  useEffect(() => {
+    void checkActiveRoomOnStartup()
+  }, [])
+
   return (
     <div className="flex max-h-dvh min-h-0 flex-1 gap-4 py-3 short:gap-3 short:py-2 tall:gap-6 tall:py-5">
       <HubNav />
@@ -40,6 +47,7 @@ export function HubLayout() {
           <Outlet />
         </main>
       </div>
+      <ActiveRoomModal />
     </div>
   )
 }
