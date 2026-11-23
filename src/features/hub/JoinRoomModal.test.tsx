@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '../../api/client'
+import { useActiveRoomStore } from '../../stores/activeRoomStore'
 import { JoinRoomModal } from './JoinRoomModal'
 
 vi.mock('../../api/rooms', async (importOriginal) => {
@@ -10,7 +11,7 @@ vi.mock('../../api/rooms', async (importOriginal) => {
   return { ...original, joinRoomByCode: vi.fn<typeof original.joinRoomByCode>() }
 })
 
-import { joinRoomByCode } from '../../api/rooms'
+import { ActiveRoomError, joinRoomByCode } from '../../api/rooms'
 
 function renderModal(onClose = () => {}) {
   const router = createMemoryRouter(
@@ -118,5 +119,39 @@ describe('JoinRoomModal', () => {
     expect(digit(4)).toHaveValue('1')
     expect(digit(1)).toHaveAttribute('aria-invalid', 'true')
     expect(router.state.location.pathname).toBe('/')
+  })
+
+  describe('ainda numa sala (AMB-01)', () => {
+    afterEach(() => useActiveRoomStore.setState({ room: null }))
+
+    async function typeAndEnter(code: string) {
+      await userEvent.click(digit(1))
+      await userEvent.paste(code)
+      await userEvent.click(enter())
+    }
+
+    it('é a sala do código digitado: só volta para ela', async () => {
+      vi.mocked(joinRoomByCode).mockRejectedValueOnce(
+        new ActiveRoomError({ code: '4821', phase: 'DRAFT', canReturn: true }),
+      )
+      const router = renderModal()
+      await typeAndEnter('4821')
+
+      await waitFor(() => expect(router.state.location.pathname).toBe('/sala/4821'))
+      expect(router.state.location.state).toEqual({ joined: true })
+      expect(useActiveRoomStore.getState().room).toBeNull()
+    })
+
+    it('é outra sala: fecha o modal do código e abre o aviso da sala', async () => {
+      const room = { code: '1234', phase: 'PLAYING', canReturn: true } as const
+      vi.mocked(joinRoomByCode).mockRejectedValueOnce(new ActiveRoomError(room))
+      const onClose = vi.fn<() => void>()
+      const router = renderModal(onClose)
+      await typeAndEnter('4821')
+
+      await waitFor(() => expect(onClose).toHaveBeenCalled())
+      expect(useActiveRoomStore.getState().room).toEqual(room)
+      expect(router.state.location.pathname).toBe('/')
+    })
   })
 })

@@ -282,6 +282,18 @@ A ERS não define a regra; o back decidiu usar a mesma do W.O. por tempo `[RN-AR
 - Máximo de **2 jogadores** por sala; o servidor rejeita o terceiro.
 - **Match feito:** quando o segundo jogador entra, os dois veem "MATCH FEITO! [Nome do Adversário]
   entrou!" e uma contagem automática de **3s** até a Preparação.
+- **Sala em andamento (decidido em 23/11, AMB-01):** enquanto estiver numa sala, o jogador não
+  consegue criar nem entrar em outra. O back diz em que sala ele ainda está (`GET /rooms/active`) e
+  encerra sozinho as salas sem ninguém conectado. Quem abre o jogo (o app instalado sempre abre no
+  Hub), entra na conta ou tenta criar ou entrar numa sala ainda preso a outra vê, no Hub, um aviso
+  que só fecha com uma escolha:
+  - **Voltar** para a sala, que abre na tela da fase (Sala de Espera, Match feito, Preparação,
+    Arena ou Resultado).
+  - **Sair** dela, com a mesma consequência e a mesma confirmação da sala: desistir na partida
+    (W.O.), fechar a sala no Match feito e na Preparação, fechar a Sala de Espera, deixar o
+    Resultado.
+  - Sem resposta do servidor, o Hub segue normal. Quem desiste da partida também sai do
+    Resultado, para não ficar preso à sala até o oponente sair dela.
 
 ### Preparação `[RF-DRAFT-01]` `[RN-DRAFT-04]`
 

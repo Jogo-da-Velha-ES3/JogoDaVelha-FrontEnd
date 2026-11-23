@@ -26,7 +26,9 @@ export interface ServerEnvelope<T extends ServerEvent = ServerEvent> {
 
 /**
  * Por que a sala foi encerrada (`ROOM_CLOSED`). PLAYER_LEFT: alguém saiu depois do MATCH FEITO e
- * antes da partida; RETURN_TO_LOBBY: alguém voltou ao lobby no Resultado.
+ * antes da partida; RETURN_TO_LOBBY: alguém voltou ao lobby no Resultado. ABANDONED: ninguém ficou
+ * conectado (a partida em andamento termina sem vencedor e sem Coins); HOST_DISCONNECTED: o host
+ * caiu na Sala de Espera e não voltou (AMB-01).
  */
 export type RoomClosedReason =
   | 'HOST_LEFT'
@@ -36,6 +38,8 @@ export type RoomClosedReason =
   | 'REMATCH_EXPIRED'
   | 'RETURN_TO_LOBBY'
   | 'REMATCH_DISCONNECTED'
+  | 'ABANDONED'
+  | 'HOST_DISCONNECTED'
 
 export type ServerEvent =
   | { type: 'ROOM_SNAPSHOT'; payload: RoomSnapshot }

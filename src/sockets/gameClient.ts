@@ -104,6 +104,22 @@ export function leaveRoom() {
   resetGameStores()
 }
 
+/**
+ * Sai de uma sala sem abrir a tela dela (o aviso de sala em andamento do Hub, AMB-01): conecta,
+ * manda o `/leave` e desconecta. Os eventos da sala não chegam às stores e a sala aberta na tela,
+ * se houver, não é tocada. O back decide o que a saída é pela fase (ARCHITECTURE §6); quem confere
+ * se o jogador saiu é o `GET /rooms/active`.
+ */
+export async function sendLeaveFromOutside(roomCode: string): Promise<void> {
+  const conn = await createGameConnection()
+  try {
+    await watchServerCall(conn.connect(roomCode))
+    conn.send({ type: 'LEAVE', payload: {} })
+  } finally {
+    conn.disconnect()
+  }
+}
+
 /** Só no servidor simulado (vitrine e testes): simular quedas de conexão (FE-20) */
 export function getMockControls(): MockControls | null {
   const isMock = (c: GameConnection | null): c is GameConnection & MockControls =>
